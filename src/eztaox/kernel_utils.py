@@ -51,7 +51,7 @@ def carma_psd(f, arparams, maparams):
 
 
 @jax.jit
-def carma_acf(f, arparams, maparams):
+def carma_acf(t, arparams, maparams):
     """
     Return a function that computes the model autocorrelation function (ACF) of CARMA.
 
