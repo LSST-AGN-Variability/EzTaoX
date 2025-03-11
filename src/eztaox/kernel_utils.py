@@ -18,7 +18,7 @@ def carma_rms(alpha, beta):
 
 
 @jax.jit
-def carma_psd(arparams, maparams, f):
+def carma_psd(f, arparams, maparams):
     """
     Return a function that computes CARMA Power Spectral Density (PSD).
 
@@ -51,7 +51,7 @@ def carma_psd(arparams, maparams, f):
 
 
 @jax.jit
-def carma_acf(arparams, maparams, t):
+def carma_acf(f, arparams, maparams):
     """
     Return a function that computes the model autocorrelation function (ACF) of CARMA.
 
@@ -75,7 +75,7 @@ def carma_acf(arparams, maparams, t):
 
 
 @jax.jit
-def carma_sf(arparams, maparams, t):
+def carma_sf(t, arparams, maparams):
     """
     Return a function that computes the CARMA structure function (SF).
 
@@ -87,10 +87,11 @@ def carma_sf(arparams, maparams, t):
         A function that takes in time lags and returns CARMA SF at the given lags.
     """
     amp2 = carma_rms(arparams, maparams) ** 2
-    return jnp.sqrt(2 * amp2 * (1 - carma_acf(arparams, maparams, t)))
+    return jnp.sqrt(2 * amp2 * (1 - carma_acf(t, arparams, maparams)))
 
 
-def drw_psd(tau, amp, f):
+@jax.jit
+def drw_psd(f, tau, amp):
     """
     Return a function that computes DRW Power Spectral Density (PSD).
 
@@ -109,7 +110,8 @@ def drw_psd(tau, amp, f):
     return sigma2 / (a0**2 + (2 * jnp.pi * f) ** 2)
 
 
-def drw_acf(tau, t):
+@jax.jit
+def drw_acf(t, tau):
     """
     Return a function that computes the DRW autocorrelation function (ACF).
 
@@ -124,7 +126,8 @@ def drw_acf(tau, t):
     return jnp.exp(-a0 * t)
 
 
-def drw_sf(tau, amp, t):
+@jax.jit
+def drw_sf(t, tau, amp):
     """
     Return a function that computes the structure function (SF) of DRW.
 
@@ -136,4 +139,4 @@ def drw_sf(tau, amp, t):
         A function that takes in time lags and returns DRW SF at the given lags.
     """
 
-    return jnp.sqrt(2 * amp**2 * (1 - drw_acf(tau, t)))
+    return jnp.sqrt(2 * amp**2 * (1 - drw_acf(t, tau)))
