@@ -4,12 +4,14 @@
 import jax
 import jax.numpy as jnp
 from jax._src import dtypes
+from numpy.typing import NDArray
+from tinygp.helpers import JAXArray
 
 from eztaox.kernels import carma_acvf, carma_roots
 
 
 @jax.jit
-def carma_rms(alpha, beta):
+def carma_rms(alpha: JAXArray | NDArray, beta: JAXArray | NDArray) -> JAXArray:
     alpha = jnp.atleast_1d(alpha)
     beta = jnp.atleast_1d(beta)
     _arroots = carma_roots(jnp.append(alpha, 1.0))
@@ -18,7 +20,9 @@ def carma_rms(alpha, beta):
 
 
 @jax.jit
-def carma_psd(f, arparams, maparams):
+def carma_psd(
+    f: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
+) -> JAXArray:
     """
     Return a function that computes CARMA Power Spectral Density (PSD).
 
@@ -51,7 +55,9 @@ def carma_psd(f, arparams, maparams):
 
 
 @jax.jit
-def carma_acf(t, arparams, maparams):
+def carma_acf(
+    t: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
+) -> JAXArray:
     """
     Return a function that computes the model autocorrelation function (ACF) of CARMA.
 
@@ -75,7 +81,9 @@ def carma_acf(t, arparams, maparams):
 
 
 @jax.jit
-def carma_sf(t, arparams, maparams):
+def carma_sf(
+    t: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
+) -> JAXArray:
     """
     Return a function that computes the CARMA structure function (SF).
 
@@ -91,7 +99,9 @@ def carma_sf(t, arparams, maparams):
 
 
 @jax.jit
-def drw_psd(f, tau, amp):
+def drw_psd(
+    f: JAXArray | NDArray, tau: JAXArray | float, amp: JAXArray | float
+) -> JAXArray:
     """
     Return a function that computes DRW Power Spectral Density (PSD).
 
@@ -111,7 +121,7 @@ def drw_psd(f, tau, amp):
 
 
 @jax.jit
-def drw_acf(t, tau):
+def drw_acf(t: JAXArray | NDArray, tau: JAXArray | float) -> JAXArray:
     """
     Return a function that computes the DRW autocorrelation function (ACF).
 
@@ -127,7 +137,9 @@ def drw_acf(t, tau):
 
 
 @jax.jit
-def drw_sf(t, tau, amp):
+def drw_sf(
+    t: JAXArray | NDArray, tau: JAXArray | float, amp: JAXArray | float
+) -> JAXArray:
     """
     Return a function that computes the structure function (SF) of DRW.
 

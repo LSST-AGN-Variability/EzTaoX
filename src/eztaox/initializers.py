@@ -24,7 +24,7 @@ class UniformInit(InitializerBase):
     n: int
     Range: Sequence[JAXArray | float]
 
-    def __init__(self, n, Range) -> None:
+    def __init__(self, n: int, Range: Sequence[JAXArray | float]) -> None:
         self.n = n
         self.Range = Range
 
@@ -51,17 +51,21 @@ class CARMAInit(InitializerBase):
     logArRange: Sequence[JAXArray | float]
     logMaRange: Sequence[JAXArray | float]
 
-    def __init__(self, p, q, logArRange, logMaRange):
+    def __init__(
+        self,
+        p: int,
+        q: int,
+        logArRange: Sequence[JAXArray | float],
+        logMaRange: Sequence[JAXArray | float],
+    ):
         assert p > q
         self.p = p
         self.q = q
         self.logArRange = logArRange
         self.logMaRange = logMaRange
 
-    def __call__(self, key, nSample):
+    def __call__(self, key: jax.random.PRNGKey, nSample: int) -> JAXArray:
         key1, key2 = jax.random.split(key, 2)
-        # logAR = dist.Uniform(*self.logArRange).sample(key1, (nSample, self.p))
-        # logMA = dist.Uniform(*self.logMaRange).sample(key2, (nSample, self.q + 1))
         AR_cent = (self.logArRange[1] + self.logArRange[0]) / 2
         AR_width = (self.logArRange[1] - self.logArRange[0]) / 2
         MA_cent = (self.logMaRange[1] + self.logMaRange[0]) / 2
@@ -81,8 +85,8 @@ class ExpInit(InitializerBase):
 
     def __init__(
         self,
-        logScaleRange,
-        logSigmaRange,
+        logScaleRange: Sequence[JAXArray | float],
+        logSigmaRange: Sequence[JAXArray | float],
     ) -> None:
         self.logScaleRange = logScaleRange
         self.logSigmaRange = logSigmaRange
@@ -110,10 +114,10 @@ class CeleriteInit(InitializerBase):
 
     def __init__(
         self,
-        aRange,
-        bRange,
-        cRange,
-        dRange,
+        aRange: Sequence[JAXArray | float],
+        bRange: Sequence[JAXArray | float],
+        cRange: Sequence[JAXArray | float],
+        dRange: Sequence[JAXArray | float],
     ) -> None:
         self.aRange = aRange
         self.bRange = bRange
@@ -144,9 +148,9 @@ class SHOInit(InitializerBase):
 
     def __init__(
         self,
-        logOmegaRange,
-        logQualityRange,
-        logSigmaRange,
+        logOmegaRange: Sequence[JAXArray | float],
+        logQualityRange: Sequence[JAXArray | float],
+        logSigmaRange: Sequence[JAXArray | float],
     ) -> None:
         self.logOmegaRange = logOmegaRange
         self.logQualityRange = logQualityRange

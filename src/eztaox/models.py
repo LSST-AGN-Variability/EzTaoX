@@ -7,8 +7,8 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
-
-# from jax.tree_util import PyTreeDef
+import tinygp
+from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
@@ -24,7 +24,14 @@ class MultiVarModel(eqx.Module):
     has_jitter: bool = False
     has_lag: bool = False
 
-    def __init__(self, X, y, yerr, kernel, **kwargs) -> None:
+    def __init__(
+        self,
+        X: JAXArray,
+        y: JAXArray | NDArray,
+        yerr: JAXArray | NDArray,
+        kernel: tinygp.kernels.quasisep.Quasisep,
+        **kwargs,
+    ) -> None:
         self.X = X
         self.diag = yerr**2
         self.y = y
@@ -34,7 +41,7 @@ class MultiVarModel(eqx.Module):
         self.has_lag = kwargs.get("has_lag", False)
 
     def lag_transform(
-        self, X, has_lag, params
+        self, X: JAXArray, has_lag: bool, params: dict[str, JAXArray]
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         if has_lag is True:
             lags = jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
@@ -46,18 +53,22 @@ class MultiVarModel(eqx.Module):
         inds = jnp.argsort(new_t)
         return (new_t, band), inds
 
-    def amp_transform(self, params) -> JAXArray:
+    def amp_transform(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.insert(jnp.atleast_1d(params["log_amp_delta"]), 0, 0.0)
 
     @staticmethod
-    def mean_func(zero_mean, nBand, params, X) -> JAXArray:
+    def mean_func(
+        zero_mean: bool, nBand: int, params: dict[str, JAXArray], X: JAXArray
+    ) -> JAXArray:
         if zero_mean is True:
             means = jnp.zeros(nBand)
         else:
             means = jnp.atleast_1d(params["mean"])
         return means[X[1]]
 
-    def _build_gp(self, params):
+    def _build_gp(
+        self, params: dict[str, JAXArray]
+    ) -> tuple[GaussianProcess, JAXArray]:
         # log amp + mean
         log_amps = self.amp_transform(params)
         means = partial(
@@ -94,16 +105,18 @@ class MultiVarModel(eqx.Module):
         )
 
     @eqx.filter_jit
-    def log_prob(self, params) -> JAXArray:
+    def log_prob(self, params: dict[str, JAXArray]) -> JAXArray:
         gp, inds = self._build_gp(params)
         return gp.log_probability(y=self.y[inds])
 
-    def sample(self, params):
+    def sample(self, params: dict[str, JAXArray]) -> None:
         gp, inds = self._build_gp(params)
         numpyro.sample("gp", gp.numpyro_dist(), obs=self.y[inds])
 
     @eqx.filter_jit
-    def pred(self, params, X) -> tuple[JAXArray, JAXArray]:
+    def pred(
+        self, params: dict[str, JAXArray], X: JAXArray
+    ) -> tuple[JAXArray, JAXArray]:
         # transform time axis
         new_X, inds = self.lag_transform(X, self.has_lag, params)
 
@@ -123,7 +136,14 @@ class UniVarModel(eqx.Module):
     zero_mean: bool = True
     has_jitter: bool = False
 
-    def __init__(self, t, y, yerr, kernel, **kwargs) -> None:
+    def __init__(
+        self,
+        t: JAXArray | NDArray,
+        y: JAXArray | NDArray,
+        yerr: JAXArray | NDArray,
+        kernel: tinygp.kernels.quasisep.Quasisep,
+        **kwargs,
+    ) -> None:
         self.t = t
         self.y = y
         self.yerr = yerr
@@ -133,14 +153,14 @@ class UniVarModel(eqx.Module):
         self.has_jitter = kwargs.get("has_jitter", False)
 
     @staticmethod
-    def mean_func(zero_mean, params, X) -> JAXArray:
+    def mean_func(zero_mean, params: dict[str, JAXArray], X: JAXArray) -> JAXArray:
         if zero_mean is True:
             mean = jnp.zeros(())
         else:
             mean = params["mean"]
         return mean
 
-    def _build_gp(self, params) -> GaussianProcess:
+    def _build_gp(self, params: dict[str, JAXArray]) -> GaussianProcess:
         mean = partial(UniVarModel.mean_func, self.zero_mean, params)
 
         # add jitter to the diagonal
@@ -160,15 +180,17 @@ class UniVarModel(eqx.Module):
         )
 
     @eqx.filter_jit
-    def log_prob(self, params) -> JAXArray:
+    def log_prob(self, params: dict[str, JAXArray]) -> JAXArray:
         gp = self._build_gp(params)
         return gp.log_probability(self.y[self.inds])
 
-    def sample(self, params):
+    def sample(self, params: dict[str, JAXArray]) -> None:
         gp = self._build_gp(params)
-        return numpyro.sample("gp", gp.numpyro_dist(), obs=self.y[self.inds])
+        numpyro.sample("gp", gp.numpyro_dist(), obs=self.y[self.inds])
 
     @eqx.filter_jit
-    def pred(self, params, t) -> tuple[JAXArray, JAXArray]:
+    def pred(
+        self, params: dict[str, JAXArray], t: JAXArray | NDArray
+    ) -> tuple[JAXArray, JAXArray]:
         _, cond = self._build_gp(params).condition(self.y[self.inds], t)
         return cond.loc, jnp.sqrt(cond.variance)

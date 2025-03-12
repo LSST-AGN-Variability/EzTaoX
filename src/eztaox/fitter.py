@@ -1,29 +1,34 @@
 """
 This module contains the fitter functions that fits a model to data.
 """
+from collections.abc import Callable
+
 import jax
 import jax.numpy as jnp
 import jaxopt
 import optax
+from tinygp.helpers import JAXArray
+
+from eztaox.models import MultiVarModel, UniVarModel
 
 
 def fit(
-    model,
-    optimizer,
-    initSampler,
-    prng_key,
-    nSample,
-    nIter,
-    nBest,
-    jaxoptMethod="SLSQP",
-    batch_size=1000,
-):
+    model: UniVarModel | MultiVarModel,
+    optimizer: optax.GradientTransformation,
+    initSampler: Callable,
+    prng_key: jax.random.PRNGKey,
+    nSample: int,
+    nIter: int,
+    nBest: int,
+    jaxoptMethod: str = "SLSQP",
+    batch_size: int = 1000,
+) -> tuple[dict[str, JAXArray], JAXArray]:
     # define loss
     @jax.jit
-    def loss(params):
+    def loss(params) -> JAXArray:
         return -model.log_prob(params)
 
-    def single_loop(params):
+    def single_loop(params) -> tuple[dict[str, JAXArray], JAXArray]:
         opt_state = optimizer.init(params)
         for _ in range(nIter):
             grads = jax.grad(loss)(params)

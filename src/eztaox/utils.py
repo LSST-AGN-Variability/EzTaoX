@@ -1,13 +1,12 @@
-from typing import Any
-
 import jax.numpy as jnp
+from numpy.typing import NDArray
 from tinygp.helpers import JAXArray
 
 
 def formatlc(
-    ts: dict[str, Any],
-    ys: dict[str, Any],
-    yerrs: dict[str, Any],
+    ts: dict[str, NDArray | JAXArray],
+    ys: dict[str, NDArray | JAXArray],
+    yerrs: dict[str, NDArray | JAXArray],
     band_order: dict[str, int],
 ) -> tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]:
     "Transform data in dictionary to TinyGP friendly format."

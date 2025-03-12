@@ -7,6 +7,7 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 import tinygp
+from numpy.typing import NDArray
 from tinygp.helpers import JAXArray
 from tinygp.kernels.quasisep import Quasisep
 
@@ -76,13 +77,11 @@ class CARMA(Quasisep):
             where `q+1 <= p`.
     """
 
-    alpha: JAXArray
-    beta: JAXArray
-    sigma: JAXArray = 1.0
-    # = eqx.field(static=True)
+    alpha: JAXArray = eqx.field(converter=jnp.asarray)
+    beta: JAXArray = eqx.field(converter=jnp.asarray)
+    sigma: float = 1.0
 
-    def __init__(self, alpha: Any, beta: Any):
-        # sigma = jnp.ones(())
+    def __init__(self, alpha: JAXArray | NDArray, beta: JAXArray | NDArray) -> None:
         alpha = jnp.atleast_1d(jnp.asarray(alpha))
         beta = jnp.atleast_1d(jnp.asarray(beta))
         assert alpha.ndim == 1
@@ -92,7 +91,7 @@ class CARMA(Quasisep):
 
         self.alpha = alpha
         self.beta = beta
-        # self.sigma = sigma
+        # self.sigma = jnp.ones(())
 
     @classmethod
     def init(cls, alpha: JAXArray, beta: JAXArray) -> CARMA:
@@ -100,7 +99,10 @@ class CARMA(Quasisep):
 
     @classmethod
     def from_quads(
-        cls, alpha_quads: JAXArray, beta_quads: JAXArray, beta_mult: JAXArray
+        cls,
+        alpha_quads: JAXArray | NDArray,
+        beta_quads: JAXArray | NDArray,
+        beta_mult: JAXArray | NDArray,
     ) -> CARMA:
         r"""Construct a CARMA kernel using the roots of its characteristic polynomials
 
@@ -361,7 +363,7 @@ def carma_acvf(arroots: JAXArray, arparam: JAXArray, maparam: JAXArray) -> JAXAr
 
 
 @jax.jit
-def _compute(alpha, beta, sigma):
+def _compute(alpha: JAXArray, beta: JAXArray, sigma: JAXArray) -> tuple[JAXArray, ...]:
     # Find acvf using Eqn. 4 in Kelly+14, giving the correct combination of
     # real/complex exponential kernels
     arroots = carma_roots(jnp.append(alpha, 1.0))
