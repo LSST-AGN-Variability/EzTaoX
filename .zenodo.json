@@ -1,0 +1,17 @@
+{
+  "creators": [
+    {
+      "orcid": "0000-0003-1262-2897",
+      "affiliation": "Department of Physics and Astronomy, Bishop's University, Canada",
+      "name": "Yu, Weixiang"
+    },
+    {
+      "orcid": "0000-0001-9947-6911",
+      "affiliation": "Department of Astronomy, Yale University, USA",
+      "name": "Burke, Colin"
+    },
+  ],
+  "license": "MIT",
+  "title": "EzTaoX: AGN light curve modeling with Gauassian Process",
+  "description": "`EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning."
+}
