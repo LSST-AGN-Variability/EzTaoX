@@ -1,6 +1,6 @@
 [project]
 name = "eztaox"
-version = "0.0.1"
+version = "0.1"
 description = "`EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning."
 authors = [
     {name = "Weixiang Yu",email = "astro.flyfish@gmail.com"}
