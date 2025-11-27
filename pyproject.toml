@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10, <3.13"
 dependencies = [
     "tinygp (>=0.3.0,<0.4.0)",
-    "jax (<=0.4.31)",
-    "jaxlib (<=0.4.31)",
+    "jax (<=0.6.2)",
+    "jaxlib (<=0.6.2)",
     "jaxopt (>=0.8.3,<0.9.0)",
     "optax (>=0.2.4,<0.3.0)",
     "numpyro (>=0.17.0,<0.20.0)",
