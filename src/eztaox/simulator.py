@@ -94,7 +94,7 @@ class MultiVarSim(eqx.Module):
         self.has_lag = kwargs.get("has_lag", False)
 
         # compile funcs
-        self._build_gp(self.init_params)
+        self._build_gp(self.X, self.init_params)
 
     def full(
         self, key: jax.random.PRNGKey, params: dict[str, JAXArray] | None = None
@@ -111,7 +111,7 @@ class MultiVarSim(eqx.Module):
                 form of (time, band) and the simulated light curve values.
         """
         params = params if params is not None else self.init_params
-        gp, inds = self._build_gp(params)
+        gp, inds = self._build_gp(self.X, params)
 
         return (self.X[0][inds], self.X[1][inds]), gp.sample(key)
 
@@ -189,9 +189,42 @@ class MultiVarSim(eqx.Module):
 
         return ((jnp.concat(ts), jnp.concat(bands)), jnp.concat(ys))
 
+    def fixed_input_fast(
+        self,
+        sim_X: tuple[JAXArray | NDArray, JAXArray | NDArray],
+        lc_key: jax.random.PRNGKey,
+        params: dict[str, JAXArray] | None = None,
+    ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
+        """Simulate a multivariace GP time series with fixed input time and band labels.
+
+        This method is faster than `fixed_input` since it only simulates the GP at the
+        input times, rather than simulating a full light curve and selecting points that
+        match the input times.
+
+        Args:
+            sim_X (tuple[JAXArray|NDArray, JAXArray|NDArray]): Input time and band.
+            lc_key (jax.random.PRNGKey): Random number generator key for simulating a
+                full light curve with uniform time sampling.
+            params (dict[str, JAXArray] | None, optional): Light curve model parames.
+                Defaults to None. If None, uses the initial parameters.
+
+        Returns:
+            tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
+                form of (time, band) and the simulated light curve values.
+        """
+        # convert sim_X to JAXArray and ensure band is int
+        sim_X = (jnp.asarray(sim_X[0]), jnp.asarray(sim_X[1]).astype(int))
+
+        # build gp
+        params = params if params is not None else self.init_params
+        gp, inds = self._build_gp(sim_X, params)
+
+        return (sim_X[0][inds], sim_X[1][inds]), gp.sample(lc_key)
+
     @eqx.filter_jit
     def _build_gp(
         self,
+        X: tuple[JAXArray, JAXArray],
         params: dict[str, JAXArray],
     ) -> tuple[GaussianProcess, JAXArray]:
         # log amp + mean
@@ -201,10 +234,10 @@ class MultiVarSim(eqx.Module):
         # time axis transform: new_inds gives the sorted indices for t, band,
         # after the lag transform
         if self.has_lag is False:
-            inds = jnp.arange(self.X[0].size)
-            new_t = self.X[0]
+            inds = jnp.arange(X[0].size)
+            new_t = X[0]
         else:
-            new_X, inds = self.lag_transform(self.has_lag, params, self.X)
+            new_X, inds = self.lag_transform(self.has_lag, params, X)
             new_t = new_X[0]
 
         # def kernel
@@ -218,7 +251,7 @@ class MultiVarSim(eqx.Module):
         return (
             GaussianProcess(
                 kernel,
-                (new_t[inds], self.X[1][inds]),
+                (new_t[inds], X[1][inds]),
                 mean=means,
                 assume_sorted=True,
             ),
@@ -319,6 +352,55 @@ class UniVarSim(MultiVarSim):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
+    def full(
+        self, key: jax.random.PRNGKey, params: dict[str, JAXArray] | None = None
+    ) -> tuple[JAXArray, JAXArray]:
+        """Simulate a univariate GP time series with unifrom time sampling.
+
+        Args:
+            key (jax.random.PRNGKey): Random number generator key.
+            params (dict[str, JAXArray] | None, optional): Light curve model parames.
+                Defaults to None. If None, uses the initial parameters.
+
+        Returns:
+            tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
+                light curve values).
+        """
+        params = params if params is not None else self.init_params
+        mb_X, mb_y = super().full(key, params)
+        return mb_X[0], mb_y
+
+    def random(
+        self,
+        nRand: int,
+        lc_key: jax.random.PRNGKey,
+        random_key: jax.random.PRNGKey,
+        params: dict[str, JAXArray] | None = None,
+    ) -> tuple[JAXArray, JAXArray, JAXArray]:
+        """Simulate a univariate GP time series with random time sampling.
+
+        Args:
+            nRand (int): Number of data points in the simulated time series.
+            lc_key (jax.random.PRNGKey): Random number generator key for simulating a
+                full light curve with uniform time sampling.
+            random_key (jax.random.PRNGKey): Random number generator key for selecting
+                random data points from the full light curve.
+            params (dict[str, JAXArray] | None, optional): Light curve model parames.
+                Defaults to None. If None, uses the initial parameters.
+
+        Returns:
+            tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
+                light curve values).
+        """
+
+        # get full light curve
+        params = params if params is not None else self.init_params
+        full_t, full_y = self.full(lc_key, params)
+
+        # select randomly & return
+        rand_inds = jnp.sort(jax.random.permutation(random_key, full_y.size)[:nRand])
+        return full_t[rand_inds], full_y[rand_inds]
+
     def fixed_input(
         self,
         sim_t: JAXArray | NDArray,
@@ -338,7 +420,37 @@ class UniVarSim(MultiVarSim):
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
                 light curve values).
         """
+        params = params if params is not None else self.init_params
+        full_t, full_y = self.full(lc_key, params)
 
+        # get indices for the input sim_t
+        inds = jax.vmap(_get_nearest_idx, in_axes=(None, 0))(full_t, jnp.asarray(sim_t))
+        return full_t[inds], full_y[inds]
+
+    def fixed_input_fast(
+        self,
+        sim_t: JAXArray | NDArray,
+        lc_key: jax.random.PRNGKey,
+        params: dict[str, JAXArray] | None = None,
+    ) -> tuple[JAXArray, JAXArray]:
+        """Simulate a univariate GP time series with fixed input time.
+
+        This method is faster than `fixed_input` since it only simulates the GP at the
+        input times, rather than simulating a full light curve and selecting points that
+        match the input times.
+
+        Args:
+            sim_t (JAXArray | NDArray): Input time for the simulation.
+            lc_key (jax.random.PRNGKey): Random number generator key for simulating a
+                full light curve with uniform time sampling.
+            params (dict[str, JAXArray] | None, optional): Light curve model parames.
+                Defaults to None. If None, uses the initial parameters.
+
+        Returns:
+            tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
+                light curve values).
+        """
+        params = params if params is not None else self.init_params
         sim_X = (jnp.asarray(sim_t), jnp.zeros_like(sim_t))
-        mb_X, mb_y = super().fixed_input(sim_X, lc_key, params)
+        mb_X, mb_y = super().fixed_input_fast(sim_X, lc_key, params)
         return mb_X[0], mb_y
