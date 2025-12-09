@@ -340,4 +340,5 @@ class UniVarSim(MultiVarSim):
         """
 
         sim_X = (jnp.asarray(sim_t), jnp.zeros_like(sim_t))
-        return super().fixed_input(sim_X, lc_key, params)
+        mb_X, mb_y = super().fixed_input(sim_X, lc_key, params)
+        return mb_X[0], mb_y
