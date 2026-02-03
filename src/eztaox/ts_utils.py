@@ -43,7 +43,8 @@ def formatlc(
     Args:
         ts (dict[str, NDArray  |  JAXArray]): Time stamps for observation in each band.
         ys (dict[str, NDArray  |  JAXArray]): Observed values in each band.
-        yerrs (dict[str, NDArray  |  JAXArray]): Uncertainties in observed values for each band.
+        yerrs (dict[str, NDArray  |  JAXArray]): Uncertainties in observed values for
+            each band.
         band_order (dict[str, int]): Mapping of band names to band indices.
 
     Returns:
