@@ -1,12 +1,21 @@
+
 [project]
 name = "eztaox"
-version = "0.1"
-description = "`EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning."
-authors = [
-    {name = "Weixiang Yu",email = "astro.flyfish@gmail.com"}
-]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
+authors = [
+    { name = "Weixiang Yu", email = "astro.flyfish@gmail.com" }
+]
+description = "`EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning."
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+]
+dynamic = ["version"]
 requires-python = ">=3.10, <3.13"
 dependencies = [
     "tinygp (>=0.3.0,<0.4.0)",
@@ -17,6 +26,34 @@ dependencies = [
     "numpyro (>=0.17.0,<0.20.0)",
 ]
 
+[project.urls]
+"Source Code" = "https://github.com/LSST-AGN-Variability/eztaox"
+
+# On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
+[project.optional-dependencies]
+dev = [
+    "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
+    "eztao",
+    "celerite",
+    "jupyter", # Clears output from Jupyter notebooks
+    "pre-commit", # Used to run checks before finalizing a git commit
+    "pytest",
+    "pytest-cov", # Used to report total code coverage
+]
+
+[build-system]
+requires = [
+    "setuptools>=62", # Used to build and package the Python project
+    "setuptools_scm>=6.2", # Gets release version from git. Makes it available programmatically
+    # "poetry-core>=2.0.0,<3.0.0"
+]
+build-backend = "setuptools.build_meta"
+# build-backend = "poetry.core.masonry.api"
+[tool.setuptools_scm]
+write_to = "src/eztaox/_version.py"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.9"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.0"
@@ -45,6 +82,16 @@ sphinx-copybutton = "^0.5.2"
 formats = "ipynb,py:percent"
 notebook_metadata_filter="-all"
 
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+addopts = "--doctest-modules --doctest-glob=*.rst"
+
+[tool.coverage.run]
+omit=["src/eztaox/_version.py"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 88
@@ -57,14 +104,3 @@ ignore = [
     "PLR2004", # Allow magic numbers in comparisons
 ]
 exclude = ["tutorials/"]
-
-[tool.ruff.format]
-skip-magic-trailing-comma = false
-quote-style = "double"  # Matches Black's double-quote style
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.requires-plugins]
-poetry-plugin-export = ">=1.9"

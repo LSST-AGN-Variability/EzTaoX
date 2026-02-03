@@ -1,0 +1,20 @@
+# Changes here will be overwritten by Copier
+_commit: v2.2.0
+_src_path: gh:lincc-frameworks/python-project-template
+author_email: astro.flyfish@gmail.com
+author_name: Weixiang Yu
+custom_install: retrofit
+include_docs: true
+include_notebooks: true
+package_name: eztaox
+project_description: '`EzTaoX` is a flexible framework for multi-wavelength and multi-survey
+    AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a
+    scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly
+    with the `JAX` ecosystem for statistical inference and modern machine learning.'
+project_license: MIT
+project_name: eztaox
+project_organization: LSST-AGN-Variability
+python_versions:
+- '3.10'
+- '3.11'
+- '3.12'
