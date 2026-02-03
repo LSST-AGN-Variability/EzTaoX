@@ -1,6 +1,7 @@
 """
 This module contains the fitter functions that fits a model to data.
 """
+
 from collections.abc import Callable
 
 import jax

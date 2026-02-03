@@ -1,4 +1,5 @@
 """Simulator module for multi/uni-variate Gaussian Processes."""
+
 from collections.abc import Callable
 from functools import partial
 

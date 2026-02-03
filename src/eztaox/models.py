@@ -2,6 +2,7 @@
 A module of light curve models, which are the interface for modeling uni/multi-band
 light curves using Gaussian Processes (GPs).
 """
+
 from collections.abc import Callable
 from functools import partial
 

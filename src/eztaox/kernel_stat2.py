@@ -1,4 +1,5 @@
 """Second-Order statistic functions for kernels in kernels.quasisep."""
+
 from collections.abc import Callable
 
 import equinox as eqx
@@ -13,7 +14,7 @@ from tinygp.helpers import JAXArray
 from eztaox.kernels.quasisep import carma_acvf, carma_roots
 
 
-class gpStat2(eqx.Module):
+class gpStat2(eqx.Module):  # noqa: N801
     """Base class for second-order statistics of GP kernels.
 
     Args:
@@ -93,7 +94,10 @@ class gpStat2(eqx.Module):
 
 
 @jax.jit
-def carma_rms(alpha: JAXArray | NDArray, beta: JAXArray | NDArray) -> JAXArray:
+def carma_rms(
+    alpha: JAXArray | NDArray, beta: JAXArray | NDArray
+) -> JAXArray:  # noqa: D103
+    # TODO: Write docstring.
     alpha = jnp.atleast_1d(alpha)
     beta = jnp.atleast_1d(beta)
     _arroots = carma_roots(jnp.append(alpha, 1.0))
@@ -109,6 +113,7 @@ def carma_psd(
     Return a function that computes CARMA power spectral density (PSD).
 
     Args:
+        f (array): frequencies.
         arparams (array(float)): AR coefficients.
         maparams (array(float)): MA coefficients
 
@@ -144,6 +149,7 @@ def carma_acf(
     Return a function that computes the model autocorrelation function (ACF) of CARMA.
 
     Args:
+        t (array): times.
         arparams (array(float)): AR coefficients.
         maparams (array(float)): MA coefficients.
 
@@ -155,7 +161,7 @@ def carma_acf(
     autocorr = carma_acvf(roots, arparams, maparams)
     carma_amp = carma_rms(arparams, maparams)
 
-    R = 0
+    R = 0  # noqa: N806
     for i, r in enumerate(roots):
         R += autocorr[i] * jnp.exp(r * t)
 
@@ -170,6 +176,7 @@ def carma_sf(
     Return a function that computes the CARMA structure function (SF).
 
     Args:
+        t (array): times.
         arparams (array(float)): AR coefficients.
         maparams (array(float)): MA coefficients.
 

@@ -35,6 +35,7 @@ dev = [
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
     "eztao",
     "celerite",
+    "black", # Used for static linting of files
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
     "pytest",
@@ -90,8 +91,7 @@ testpaths = [
 ]
 addopts = "--doctest-modules --doctest-glob=*.rst"
 
-[tool.ruff]
-target-version = "py312"
+[tool.black]
 line-length = 88
 
 [tool.ruff.lint]
@@ -138,10 +138,6 @@ ignore = [
     "SIM117", # Allow nested with
     "UP015", # Allow redundant open parameters
     "UP028", # Allow yield in for loop
-    "D103", # Missing docstring in public function
-    "D102", # Missing docstring in public method
-    "N803", # Argument name should be lowercase
-    "N806", # Variable in function should be lowercase
 ]
 exclude = ["docs/*"]
 

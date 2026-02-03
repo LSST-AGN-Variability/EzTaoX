@@ -7,7 +7,7 @@ create_example_module: false
 custom_install: custom
 enforce_style:
 - ruff_lint
-- ruff_format
+- black
 failure_notification: []
 include_benchmarks: true
 include_docs: true

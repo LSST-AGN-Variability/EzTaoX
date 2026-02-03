@@ -1,4 +1,5 @@
 """Utility functions for time series processing."""
+
 import jax
 import jax.numpy as jnp
 from numpy.typing import NDArray

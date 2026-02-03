@@ -2,6 +2,7 @@
 Kernels evaluated using a direct apporach, where the likelihood computation follows
 O(N^3) scaling.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -24,10 +25,12 @@ class MultibandLowRank(tinygp.kernels.Kernel):
     amplitudes: jnp.ndarray
     kernel: tinygp.kernels.Kernel
 
-    def coord_to_sortable(self, X) -> JAXArray:
+    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return X[0]
 
-    def evaluate(self, X1, X2) -> JAXArray:
+    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D103
+        # TODO: Write docstring.
         return (
             self.amplitudes[X1[1]]
             * self.amplitudes[X2[1]]
