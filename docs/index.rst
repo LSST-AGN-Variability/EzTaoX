@@ -68,7 +68,7 @@ Thus, only the :math:`S` factors for the non-reference bands are allowed to vary
 To get the best-fit amplitude of the GP in a given band, one needs to multiply the best-fit amplitude of the 
 latent GP (a parameter of the :math:`k_{\rm latent}`) by the corresponding :math:`S` factor of the desired band. 
 
-See the Section II in the notebook :doc:`MultibandFitting <pre_executed/01_MultibandFitting>` to learn how to 
+See the Section II in the notebook :doc:`MultibandFitting <notebooks/01_MultibandFitting>` to learn how to 
 set the reference band. 
 
 **Note** that in this context, a reference band carries no physical meanings, but rather to simplify the 
@@ -135,10 +135,10 @@ Tutorials
 
 A preliminary list of tutorials to help users getting started:
 
-* :doc:`MultibandFitting <pre_executed/01_MultibandFitting>`: Demonstrating the workflow of conducting multi-band fitting.
-* :doc:`Damped Harmonic Oscillator <pre_executed/02_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
+* :doc:`MultibandFitting <notebooks/01_MultibandFitting>`: Demonstrating the workflow of conducting multi-band fitting.
+* :doc:`Damped Harmonic Oscillator <notebooks/02_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
   In this notebook, we are fitting the CARMA(2,1) process, which is also known as the damped harmonic oscillator (DHO) process.
-* :doc:`Damped Random Walk <pre_executed/03_DRW>`: Demonstrating fitting to a damped random walk.
+* :doc:`Damped Random Walk <notebooks/03_DRW>`: Demonstrating fitting to a damped random walk.
 
 .. toctree::
    :hidden:
