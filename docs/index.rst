@@ -148,6 +148,6 @@ A preliminary list of tutorials to help users getting started:
    Notebooks <notebooks>
    About <about>
 
-.. [DFM17] Daniel Foreman-Mackey, Eric Agol, Sivaram Ambikasaran, Ruth Angus, 
+.. [DFM17] Daniel Foreman-Mackey, Eric Agol, Sivaram Ambikasaran, Ruth Angus; 
    *Fast and scalable Gaussian process modeling with applications to astronomical time series*, 
    https://arxiv.org/abs/1703.09710
