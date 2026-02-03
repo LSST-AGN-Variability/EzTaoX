@@ -123,7 +123,7 @@ Please see `here <https://tinygp.readthedocs.io/en/stable/api/kernels.quasisep.h
 - `Cosine`: The cosine kernel.
 - `Matern32/Matern52`: The Matern32/Matern52 kernel.
 - `SHO`: The noise-driven simple harmonic oscillator kernel.
-- `Celetrie`: The base kernel of the `celerite` algorithm. This kernel is not recommended to use directly.
+- `Celerite`: The base kernel of the `celerite` algorithm. This kernel is not recommended to use directly.
 - `Lorentzian`: The Lorentzian kernel. The product of an `Exp` and a `Cosine` kernel, and the scales of which are correlated. See the doc string for the definition. 
 - `CARMA`: Continuous-time auto-regressive moving-average (CARMA) kernel. In the current version, CARMA process that are more complex than CAMRA(2,1) might raise bugs. 
 
