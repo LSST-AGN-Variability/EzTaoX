@@ -1,5 +1,16 @@
+# EzTao*X*
+
 [![DOI](https://zenodo.org/badge/928658755.svg)](https://doi.org/10.5281/zenodo.17467662)
-## EzTao*X*
+[![PyPI](https://img.shields.io/pypi/v/eztaox?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/eztaox/)
+[![Conda](https://img.shields.io/conda/vn/conda-forge/eztaox.svg?color=blue&logo=condaforge&logoColor=white)](https://anaconda.org/conda-forge/eztaox) 
+
+[![Read the Docs](https://img.shields.io/readthedocs/eztaox)](https://eztaox.readthedocs.io/en/latest/index.html)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/LSST-AGN-Variability/EzTaoX/smoke-test.yml)](https://github.com/LSST-AGN-Variability/EzTaoX/actions/workflows/smoke-test.yml)
+[![codecov](https://codecov.io/gh/LSST-AGN-Variability/EzTaoX/branch/main/graph/badge.svg)](https://codecov.io/gh/LSST-AGN-Variability/EzTaoX)
+[![benchmarks](https://img.shields.io/github/actions/workflow/status/LSST-AGN-Variability/EzTaoX/asv-main.yml?label=benchmarks)](https://LSST-AGN-Variability.github.io/EzTaoX/)
+
+<!--TODO: the mybinder badge-->
+
 `EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning.
 
 > #### `EzTaoX` is under active development, breaking API changes are expected.
