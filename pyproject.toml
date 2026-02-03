@@ -55,6 +55,33 @@ write_to = "src/eztaox/_version.py"
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.0"
+pre-commit = "^3.5.0"
+ruff = "^0.2.1"
+matplotlib = "^3.3.0"
+arviz = "^0.20.0"
+ipywidgets = "^8.1.5"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^6.0.0"
+nox = "^2025.0.0"
+nox-poetry = "^1.2.0"
+celerite = "^0.4.0"
+eztao = {git = "https://github.com/ywx649999311/EzTao.git"}
+
+
+[tool.poetry.group.docs.dependencies]
+toml = "^0.10.2"
+Sphinx = "^8.0.0"
+nbsphinx = "^0.9.0"
+sphinx-copybutton = "^0.5.2"
+
+[tool.jupytext]
+formats = "ipynb,py:percent"
+notebook_metadata_filter="-all"
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
@@ -64,3 +91,16 @@ addopts = "--doctest-modules --doctest-glob=*.rst"
 
 [tool.coverage.run]
 omit=["src/eztaox/_version.py"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+select = ["E", "F", 'I', 'W', 'UP']
+ignore = [
+    "E741",    # Allow ambiguous variable names
+    "PLR0911", # Allow many return statements
+    "PLR0913", # Allow many arguments to functions
+    "PLR0915", # Allow many statements
+    "PLR2004", # Allow magic numbers in comparisons
+]
+exclude = ["tutorials/"]
