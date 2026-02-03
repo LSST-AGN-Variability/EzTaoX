@@ -94,9 +94,9 @@ class gpStat2(eqx.Module):  # noqa: N801
 
 
 @jax.jit
-def carma_rms(
+def carma_rms(  # noqa: D103
     alpha: JAXArray | NDArray, beta: JAXArray | NDArray
-) -> JAXArray:  # noqa: D103
+) -> JAXArray:
     # TODO: Write docstring.
     alpha = jnp.atleast_1d(alpha)
     beta = jnp.atleast_1d(beta)
@@ -161,7 +161,7 @@ def carma_acf(
     autocorr = carma_acvf(roots, arparams, maparams)
     carma_amp = carma_rms(arparams, maparams)
 
-    R = 0  # noqa: N806
+    R = 0
     for i, r in enumerate(roots):
         R += autocorr[i] * jnp.exp(r * t)
 

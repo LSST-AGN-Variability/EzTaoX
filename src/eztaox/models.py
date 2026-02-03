@@ -408,9 +408,10 @@ class UniVarModel(MultiVarModel):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
-    def lag_transform(
+    def lag_transform(  # noqa: D102
         self, has_lag, params, X
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
+        # TODO: Write docstring.
         return self.X, jnp.arange(self.X[0].size)
 
     def pred(self, params, t) -> tuple[JAXArray, JAXArray]:
