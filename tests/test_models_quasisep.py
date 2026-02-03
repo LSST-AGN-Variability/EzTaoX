@@ -215,7 +215,7 @@ def test_multivar_pred_unsorted_inputs(data, kernel, random) -> None:
         "lag": jnp.array([1.0, 2.0]),
     }
 
-    model = MultiVarModel((t, b), y, yerr, kernel, n_band=3, has_lag=True)
+    model = MultiVarModel((t, b), y, yerr, kernel, nBand=3, has_lag=True)
 
     # unsorted inputs
     t_pred = jnp.array([4.2, 0.3, 3.4, 1.7])

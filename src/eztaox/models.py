@@ -35,7 +35,7 @@ class MultiVarModel(eqx.Module):
         y (JAXArray|NDArray): Observed data values.
         yerr (JAXArray|NDArray): Observational uncertainties.
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
-        n_band (int): An integer number of bands in the input light curve.
+        nBand (int): An integer number of bands in the input light curve.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
         mean_func(Callable, optional): A callable mean function for the GP, defaults to
@@ -60,7 +60,7 @@ class MultiVarModel(eqx.Module):
     diag: JAXArray
     base_kernel_def: Callable
     multiband_kernel: tkq.Wrapper
-    n_band: int
+    nBand: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
     lag_func: Callable | None
@@ -74,7 +74,7 @@ class MultiVarModel(eqx.Module):
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
         base_kernel: quasisep.Quasisep,
-        n_band: int,
+        nBand: int,
         multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
@@ -96,7 +96,7 @@ class MultiVarModel(eqx.Module):
         self.diag = (yerr**2)[inds]
         self.y = y[inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
-        self.n_band = n_band
+        self.nBand = nBand
 
         # assign callables/classes
         self.multiband_kernel = multiband_kernel
@@ -132,7 +132,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         """Shift the time axis by the lag in each band."""
         if has_lag is False:
-            lags = jnp.zeros(self.n_band)
+            lags = jnp.zeros(self.nBand)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -335,8 +335,8 @@ class MultiVarModelFFT(MultiVarModel):
             )
         # add the decorrelation matrix
         if self.has_decorrelation is True:
-            n_band = params["log_amp_delta"].size + 1
-            log_diagonal = jnp.zeros(n_band)
+            nBand = params["log_amp_delta"].size + 1
+            log_diagonal = jnp.zeros(nBand)
             kernel = direct.MultibandFullRank(
                 kernel, jnp.exp(log_diagonal), params["off_diagonal"]
             )
@@ -391,14 +391,14 @@ class UniVarModel(MultiVarModel):
         y = jnp.asarray(y)[inds]
         yerr = jnp.asarray(yerr)[inds]
         base_kernel = kernel
-        n_band = 1
+        nBand = 1
         has_lag = False
         super().__init__(
             X,
             y,
             yerr,
             base_kernel,
-            n_band,
+            nBand,
             mean_func=mean_func,
             amp_scale_func=amp_scale_func,
             has_lag=has_lag,

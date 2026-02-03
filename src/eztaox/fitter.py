@@ -16,23 +16,23 @@ from eztaox.models import MultiVarModel, UniVarModel
 
 def random_search(
     model: UniVarModel | MultiVarModel,
-    init_sampler: Callable,
+    initSampler: Callable,
     prng_key: jax.random.PRNGKey,
-    n_sample: int,
-    n_best: int,
-    jaxopt_method: str = "SLSQP",
+    nSample: int,
+    nBest: int,
+    jaxoptMethod: str = "SLSQP",
     batch_size: int = 1000,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
     """Fit a model using random search plus optimization.
 
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
-        init_sampler (Callable): Function to sample initial parameters.
+        initSampler (Callable): Function to sample initial parameters.
         prng_key (jax.random.PRNGKey): Random number generator key.
-        n_sample (int): Number of random samples to draw.
-        n_best (int): Number of best samples (selected based on their likelihod values)
+        nSample (int): Number of random samples to draw.
+        nBest (int): Number of best samples (selected based on their likelihod values)
             to keep for optimization.
-        jaxopt_method (str, optional): Optimization algorithm. Defaults to "SLSQP".
+        jaxoptMethod (str, optional): Optimization algorithm. Defaults to "SLSQP".
         batch_size (int, optional): The batch size used in evaluating likehood of
             randomly drawn samples. Defaults to 1000.
 
@@ -46,17 +46,17 @@ def random_search(
         return -model.log_prob(params)
 
     # init samples
-    init_keys = jax.random.split(prng_key, int(n_sample))
-    batched_samples = jax.vmap(lambda k: seed(init_sampler, rng_seed=k)())(init_keys)
+    init_keys = jax.random.split(prng_key, int(nSample))
+    batched_samples = jax.vmap(lambda k: seed(initSampler, rng_seed=k)())(init_keys)
 
     # batched loss
     losses = jax.lax.map(loss, batched_samples, batch_size=batch_size)
 
-    # select top n_best
+    # select top nBest
     loss_idx = jnp.argsort(losses)
     top_params = {}
     for p in batched_samples:
-        top_params[p] = batched_samples[p][loss_idx[:n_best]]
+        top_params[p] = batched_samples[p][loss_idx[:nBest]]
 
     # convert from pytree to list of pytrees
     list_of_params = [
@@ -65,7 +65,7 @@ def random_search(
     ]
 
     # jaxopt optimize
-    opt = jaxopt.ScipyMinimize(fun=loss, method=jaxopt_method)
+    opt = jaxopt.ScipyMinimize(fun=loss, method=jaxoptMethod)
     log_prob, param = [], []
     for item in list_of_params:
         soln = opt.run(item)
@@ -76,11 +76,11 @@ def random_search(
     return best_param, max(log_prob)
 
 
-def simple_optimizer(
+def simpleOptimizer(  # noqa: N802
     model: UniVarModel | MultiVarModel,
     optimizer: optax.GradientTransformation,
-    init_sample: dict[str, JAXArray],
-    n_step: int,
+    initSample: dict[str, JAXArray],
+    nStep: int,
 ) -> tuple[
     dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray, dict[str, JAXArray]]
 ]:
@@ -89,8 +89,8 @@ def simple_optimizer(
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
         optimizer (optax.GradientTransformation): Optimizer to use.
-        init_sample (dict[str, JAXArray]): The initial guess of parameters.
-        n_step (int): Number of optimization steps.
+        initSample (dict[str, JAXArray]): The initial guess of parameters.
+        nStep (int): Number of optimization steps.
 
     Returns:
         tuple[dict, tuple[dict, JAXArray, dict]]: Best parameters, (parameter history,
@@ -102,9 +102,9 @@ def simple_optimizer(
         return -model.log_prob(params)
 
     param_hist, loss_hist, grad_hist = [], [], []
-    params = init_sample.copy()
+    params = initSample.copy()
     opt_state = optimizer.init(params)
-    for _ in range(n_step):
+    for _ in range(nStep):
         # compute loss, grad for current param & save to hist
         val, grad = jax.value_and_grad(loss)(params)
         param_hist.append(params)
