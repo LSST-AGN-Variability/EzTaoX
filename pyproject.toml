@@ -63,7 +63,5 @@ testpaths = [
 ]
 addopts = "--doctest-modules --doctest-glob=*.rst"
 
-
-
 [tool.coverage.run]
 omit=["src/eztaox/_version.py"]
