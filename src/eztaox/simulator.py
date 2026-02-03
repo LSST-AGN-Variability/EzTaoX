@@ -27,7 +27,7 @@ class MultiVarSim(eqx.Module):
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
         min_dt (float): Minimum time step for the simulation.
         max_dt (float): Maximum time step (temporal baseline) for the simulation.
-        nBand (int): An interger number of bands in the input light curve.
+        n_band (int): An integer number of bands in the input light curve.
         init_params (dict[str, JAXArray]): Initial parameters for the GP.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
@@ -47,7 +47,7 @@ class MultiVarSim(eqx.Module):
     multiband_kernel: tkq.Wrapper
     X: tuple[JAXArray, JAXArray]
     init_params: dict[str, JAXArray]
-    nBand: int
+    n_band: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
     lag_func: Callable | None
@@ -59,7 +59,7 @@ class MultiVarSim(eqx.Module):
         base_kernel: quasisep.Quasisep,
         min_dt: float,
         max_dt: float,
-        nBand: int,
+        n_band: int,
         init_params: dict[str, JAXArray],
         multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
         mean_func: Callable | None = None,
@@ -70,7 +70,7 @@ class MultiVarSim(eqx.Module):
         # make sim X
         simN = int(max_dt / min_dt) + 1
         ts, bands = [], []
-        for i in range(nBand):
+        for i in range(n_band):
             ts.append(jnp.linspace(0, max_dt, simN))
             bands.append(jnp.full_like(ts[i], i, dtype=int))
         t = jnp.concat(ts)
@@ -79,7 +79,7 @@ class MultiVarSim(eqx.Module):
         # assign fixed values
         inds = jnp.argsort(t)
         self.X = (t[inds], band[inds])
-        self.nBand = nBand
+        self.n_band = n_band
         self.init_params = init_params
 
         # assign callables/classes
@@ -177,7 +177,7 @@ class MultiVarSim(eqx.Module):
 
         # get indices for the input sim_X
         ts, bands, ys = [], [], []
-        for i in range(self.nBand):
+        for i in range(self.n_band):
             full_band_mask = full_X[1] == i
             input_band_mask = sim_X[1] == i
             inds = jax.vmap(_get_nearest_idx, in_axes=(None, 0))(
@@ -281,7 +281,7 @@ class MultiVarSim(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         """Shift the time axis by the lag in each band."""
         if has_lag is False:
-            lags = jnp.zeros(self.nBand)
+            lags = jnp.zeros(self.n_band)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -333,7 +333,7 @@ class UniVarSim(MultiVarSim):
         """Initialize the UniVarSim with time, observed data, and kernel."""
 
         # univar specific attributes
-        nBand = 1
+        n_band = 1
         has_lag = False
 
         # call super
@@ -341,7 +341,7 @@ class UniVarSim(MultiVarSim):
             base_kernel,
             min_dt,
             max_dt,
-            nBand,
+            n_band,
             init_params,
             mean_func=mean_func,
             amp_scale_func=amp_scale_func,

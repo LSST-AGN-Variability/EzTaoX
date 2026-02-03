@@ -108,13 +108,13 @@ class MultibandFFT(tinygp.kernels.Kernel):
         t2, b2 = X2
 
         # Testing that this gives the same results as the normal kernel
-        # return self.amplitudes[b1] * self.amplitudes[b2] * self.kernel.evaluate(t1, t2)
+        # return self.amplitudes[b1] * self.amplitudes[b2] * self.kernel.evaluate(t1,t2)
 
         # Equation 8 in https://ui.adsabs.harvard.edu/abs/2011ApJ...735...80Z/abstract
         Psi1 = self.transfer_function(t_eval, b1, **self.transfer_function_params)
         Psi2 = self.transfer_function(t_eval, b2, **self.transfer_function_params)
         K1 = dt * jax.scipy.signal.fftconvolve(Psi1, kernel_eval, mode="same")
-        K2 = dt * jax.scipy.signal.fftconvolve(Psi2, K1, mode="same")
+        K2 = dt * jax.scipy.signal.fftconvolve(Psi2, K1, mode="same")  # noqa: F841
 
         return (
             self.amplitudes[b1]

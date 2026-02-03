@@ -83,6 +83,8 @@ class Sum(Quasisep, tkq.Sum):
 
 
 class Product(Quasisep, tkq.Product):
+    """A helper to represent the product of two quasiseparable kernels"""
+
     def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
         return NotImplementedError

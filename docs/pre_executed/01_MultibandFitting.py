@@ -25,7 +25,7 @@ jax.config.update("jax_enable_x64", True)
 
 # %% [markdown]
 # ## Multiband GP Fitting
-# This notebook present a complete workflow on how to perform multiband fitting using `EzTaoX`. A damped random walk (DRW) GP kernel is assumed. 
+# This notebook present a complete workflow on how to perform multiband fitting using `EzTaoX`. A damped random walk (DRW) GP kernel is assumed.
 
 # %% [markdown]
 # ### 1. Light Curve Simulation
@@ -39,9 +39,9 @@ from eztao.ts import addNoise, gpSimRand
 # %%
 amps = {"g": 0.35, "r": 0.25}
 taus = {"g": 100, "r": 100}
-snrs = {"g": 5, "r": 3} # ratio of the DRW amplitude to the median error bar
-sampling_seeds = {"g": 2, "r": 5} # seed for random sampling
-noise_seeds = {"g": 111, "r": 2} # seed for mocking observational noise
+snrs = {"g": 5, "r": 3}  # ratio of the DRW amplitude to the median error bar
+sampling_seeds = {"g": 2, "r": 5}  # seed for random sampling
+noise_seeds = {"g": 111, "r": 2}  # seed for mocking observational noise
 
 ts, ys, yerrs = {}, {}, {}
 ys_noisy = {}
@@ -51,10 +51,10 @@ for band in "gr":
     t, y, yerr = gpSimRand(
         DRW_kernel,
         snrs[band],
-        365 * 10, # 10 year LC
+        365 * 10,  # 10 year LC
         100,
         lc_seed=seed,
-        downsample_seed=sampling_seeds[band]
+        downsample_seed=sampling_seeds[band],
     )
 
     # add to dict
@@ -65,13 +65,15 @@ for band in "gr":
     ys_noisy[band] = addNoise(ys[band], yerrs[band], seed=noise_seeds[band] + seed)
 
 ## add time lag
-ts['r'] += 5
+ts["r"] += 5
 
 for b in "gr":
-    plt.errorbar(ts[b][::1], ys_noisy[b][::1], yerrs[b][::1], fmt=".", label=f'{b}-band')
+    plt.errorbar(
+        ts[b][::1], ys_noisy[b][::1], yerrs[b][::1], fmt=".", label=f"{b}-band"
+    )
 
-plt.xlabel('Time (day)')
-plt.ylabel('Flux (mag)')
+plt.xlabel("Time (day)")
+plt.ylabel("Flux (mag)")
 plt.legend(fontsize=15)
 
 # %% [markdown]
@@ -81,7 +83,7 @@ plt.legend(fontsize=15)
 #
 # - **X**: A tuple of arrays in the format of (time, band index)
 #     - *time*: An array of time stamps for observations in all bands.
-#     - *band index*: An array of integers, starting with 0. This array has the same size as the *time* array. Observations with the band index belong to the same band. Band assigned with a band index of 0 is treated as the 'reference' band. 
+#     - *band index*: An array of integers, starting with 0. This array has the same size as the *time* array. Observations with the band index belong to the same band. Band assigned with a band index of 0 is treated as the 'reference' band.
 # - **y**: An array of observed values (from all bands).
 # - **yerr**: An array observational uncertainties associated with **y**.
 
@@ -95,7 +97,7 @@ X, y, yerr
 
 # %% [markdown]
 # ### 3. The Inference Interface
-# Classes included in the `eztaox.models` module constitute the main interface for performing light curve modeling. 
+# Classes included in the `eztaox.models` module constitute the main interface for performing light curve modeling.
 
 # %%
 import jax.numpy as jnp
@@ -111,9 +113,9 @@ import numpyro.distributions as dist
 
 # %%
 # define model parameters
-has_lag = True # if fit interband lags
-zero_mean = True # if fit a mean function
-nBand = 2 # number of bands in the provide light curve (X, y, yerr)
+has_lag = True  # if fit interband lags
+zero_mean = True  # if fit a mean function
+nBand = 2  # number of bands in the provide light curve (X, y, yerr)
 
 # initialize a GP kernel, note the initial parameters are not used in the fitting
 k = Exp(scale=100.0, sigma=1.0)
@@ -137,7 +139,8 @@ m
 
 # %% [markdown]
 # #### InitSampler
-# The `initSampler` defines a prior distribution from which to draw random samples to evaluate the likelihood. It shares a similar structure as that used to perform MCMC using `numpyro` (see Section 4). The distribution for a parameter can take any shapes, as long as it has a `numpyro` implementation. A list of `numpyro` distributions can be found [here](https://num.pyro.ai/en/stable/distributions.html). 
+# The `initSampler` defines a prior distribution from which to draw random samples to evaluate the likelihood. It shares a similar structure as that used to perform MCMC using `numpyro` (see Section 4). The distribution for a parameter can take any shapes, as long as it has a `numpyro` implementation. A list of `numpyro` distributions can be found [here](https://num.pyro.ai/en/stable/distributions.html).
+
 
 # %%
 def initSampler():
@@ -155,8 +158,8 @@ def initSampler():
     log_amp_scale = numpyro.sample("log_amp_scale", dist.Uniform(-2, 2))
 
     mean = numpyro.sample(
-        "mean", dist.Uniform(low=jnp.asarray([-.1, -.1]), 
-                             high=jnp.asarray([.1, .1]))
+        "mean",
+        dist.Uniform(low=jnp.asarray([-0.1, -0.1]), high=jnp.asarray([0.1, 0.1])),
     )
 
     # interband lags
@@ -166,7 +169,7 @@ def initSampler():
         "log_kernel_param": log_kernel_param,
         "log_amp_scale": log_amp_scale,
         "mean": mean,
-        "lag": lag
+        "lag": lag,
     }
 
     return sample_params
@@ -180,9 +183,9 @@ prior_sample
 
 # %% [markdown]
 # #### **A note on model parameters**:
-# - **`log_kernel_param`**: The parameters of the latent GP process. 
+# - **`log_kernel_param`**: The parameters of the latent GP process.
 # - **`log_amp_scale`**: This parameter characterize the log of the ratio between the amplitude of the GP in each band relative to the latent GP (i.e., the $S$ parameter in the kernel function). Since the $S$ parameter is set to 1 by default, `log_amp_scale` is an array of size M-1, where M is the number of bands.
-# - **`mean`**: The mean of the light curve in each band, with a size M. 
+# - **`mean`**: The mean of the light curve in each band, with a size M.
 # - **`lag`**: The inter-band lags with respect to the reference band. `lag` is any array with a size M-1
 
 # %% [markdown]
@@ -202,10 +205,11 @@ bestP
 
 # %% [markdown]
 # ### 4.0 MCMC
-# MCMC sampling is carried out using the `numpyro` package, which is native to `JAX`. In this example, I will use the NUTS algorithm, however, there are a large collection of sampling algorithms that you can pick from (see [here](https://num.pyro.ai/en/stable/infer.html)). In addition, you can freely specify more flexible (no longer just flat!!) prior distributions for each parameter in the light curve model. 
+# MCMC sampling is carried out using the `numpyro` package, which is native to `JAX`. In this example, I will use the NUTS algorithm, however, there are a large collection of sampling algorithms that you can pick from (see [here](https://num.pyro.ai/en/stable/infer.html)). In addition, you can freely specify more flexible (no longer just flat!!) prior distributions for each parameter in the light curve model.
 
 # %% [markdown]
 # #### Define `numpyro` MCMC model
+
 
 # %%
 def numpyro_model(X, yerr, y=None):
@@ -223,8 +227,8 @@ def numpyro_model(X, yerr, y=None):
     log_amp_scale = numpyro.sample("log_amp_scale", dist.Uniform(-2, 2))
 
     mean = numpyro.sample(
-        "mean", dist.Uniform(low=jnp.asarray([-.1, -.1]), 
-                             high=jnp.asarray([.1, .1]))
+        "mean",
+        dist.Uniform(low=jnp.asarray([-0.1, -0.1]), high=jnp.asarray([0.1, 0.1])),
     )
 
     # interband lags
@@ -234,15 +238,15 @@ def numpyro_model(X, yerr, y=None):
         "log_kernel_param": log_kernel_param,
         "log_amp_scale": log_amp_scale,
         "mean": mean,
-        "lag": lag
-    }    
+        "lag": lag,
+    }
 
     ## the following is different from the initSampler
     has_lag = True
     zero_mean = True
     nBand = 2
 
-    k = Exp(scale=100.0, sigma=1.0) # init params for k are not used
+    k = Exp(scale=100.0, sigma=1.0)  # init params for k are not used
     m = MultiVarModel(X, y, yerr, k, nBand, has_lag=has_lag, zero_mean=zero_mean)
     m.sample(sample_params)
 
@@ -259,7 +263,7 @@ import arviz as az
 nuts_kernel = NUTS(
     numpyro_model,
     dense_mass=True,
-    target_accept_prob=0.9,    
+    target_accept_prob=0.9,
     init_strategy=init_to_median,
 )
 
@@ -281,18 +285,21 @@ mcmc.print_summary()
 
 # %%
 import warnings
+
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # %%
-az.plot_trace(data, var_names=['log_drw_scale', 'log_drw_sigma', 'log_amp_scale', 'lag'])
+az.plot_trace(
+    data, var_names=["log_drw_scale", "log_drw_sigma", "log_amp_scale", "lag"]
+)
 plt.subplots_adjust(hspace=0.4)
 
 # %%
-az.plot_pair(data, var_names=['log_drw_scale', 'log_drw_sigma', 'log_amp_scale', 'lag'])
+az.plot_pair(data, var_names=["log_drw_scale", "log_drw_sigma", "log_amp_scale", "lag"])
 
 # %% [markdown]
 # ### 5.0 Second-order Statistics
-# `EzTaoX` provides a unified class (`extaox.kernel_stat2.gpStat2`) for generating the second-order statistic functions (ACF, SF, and PSD) of any supported kernels. All you need to do is initialize a `gpStat2` instance with your desired kernel. 
+# `EzTaoX` provides a unified class (`extaox.kernel_stat2.gpStat2`) for generating the second-order statistic functions (ACF, SF, and PSD) of any supported kernels. All you need to do is initialize a `gpStat2` instance with your desired kernel.
 
 # %%
 from eztaox.kernel_stat2 import gpStat2
@@ -307,16 +314,16 @@ fs = np.logspace(-3, 3)
 # %%
 flatPost = data.posterior.stack(sample=["chain", "draw"])
 
-log_drw_draws = flatPost['log_kernel_param'].values.T
-log_amp_scale_draws = flatPost['log_amp_scale'].values.T
-lag_draws = flatPost['lag'].values.T
+log_drw_draws = flatPost["log_kernel_param"].values.T
+log_amp_scale_draws = flatPost["log_amp_scale"].values.T
+lag_draws = flatPost["lag"].values.T
 
 # %% [markdown]
 # #### 5.2 `g`-band SF
 
 # %%
 # create a 2nd statistic object using the true g-band kernel
-g_drw = Exp(scale=taus['g'], sigma=amps['g'])
+g_drw = Exp(scale=taus["g"], sigma=amps["g"])
 gpStat2_g = gpStat2(g_drw)
 
 # compute sf for MCMC draws
@@ -325,22 +332,22 @@ mcmc_sf_g = jax.vmap(gpStat2_g.sf, in_axes=(None, 0))(ts, jnp.exp(log_drw_draws)
 # %%
 ## plot
 # ture SF
-plt.loglog(ts, gpStat2_g.sf(ts), c='k', label='True g-band SF', zorder=100, lw=2)
-plt.loglog(ts, mcmc_sf_g[0], label='MCMC g-band SF', c='tab:green', alpha=0.8, lw=2)
+plt.loglog(ts, gpStat2_g.sf(ts), c="k", label="True g-band SF", zorder=100, lw=2)
+plt.loglog(ts, mcmc_sf_g[0], label="MCMC g-band SF", c="tab:green", alpha=0.8, lw=2)
 plt.legend(fontsize=15)
 # MCMC SFs
 for sf in mcmc_sf_g[::20]:
-    plt.loglog(ts, sf, c='tab:green', alpha=0.15)
+    plt.loglog(ts, sf, c="tab:green", alpha=0.15)
 
-plt.xlabel('Time')
-plt.ylabel('SF')
+plt.xlabel("Time")
+plt.ylabel("SF")
 
 # %% [markdown]
 # #### 5.3 `r`-band SF
 
 # %%
 # create a 2nd statistic object using the true g-band kernel
-r_drw = Exp(scale=taus['r'], sigma=amps['r'])
+r_drw = Exp(scale=taus["r"], sigma=amps["r"])
 gpStat2_r = gpStat2(r_drw)
 
 # compute sf for MCMC draws
@@ -351,25 +358,25 @@ mcmc_sf_r = jax.vmap(gpStat2_r.sf, in_axes=(None, 0))(ts, jnp.exp(log_drw_draws_
 # %%
 ## plot
 # ture SF
-plt.loglog(ts, gpStat2_r.sf(ts), c='k', label='True r-band SF', zorder=100, lw=2)
-plt.loglog(ts, mcmc_sf_r[0], label='MCMC r-band SF', c='tab:red', alpha=0.8, lw=2)
+plt.loglog(ts, gpStat2_r.sf(ts), c="k", label="True r-band SF", zorder=100, lw=2)
+plt.loglog(ts, mcmc_sf_r[0], label="MCMC r-band SF", c="tab:red", alpha=0.8, lw=2)
 plt.legend(fontsize=15)
 # MCMC SFs
 for sf in mcmc_sf_r[::20]:
-    plt.loglog(ts, sf, c='tab:red', alpha=0.15)
+    plt.loglog(ts, sf, c="tab:red", alpha=0.15)
 
-plt.xlabel('Time')
-plt.ylabel('SF')
+plt.xlabel("Time")
+plt.ylabel("SF")
 
 # %% [markdown]
 # ### 6.0 Lag distribution
 
 # %%
 _ = plt.hist(lag_draws, density=True)
-plt.vlines(5.0, ymin=0, ymax=0.4, color='k', lw=2, label='True g-r Lag')
+plt.vlines(5.0, ymin=0, ymax=0.4, color="k", lw=2, label="True g-r Lag")
 plt.legend(fontsize=15, loc=2)
 
-plt.xlabel('Lag')
+plt.xlabel("Lag")
 plt.ylim(0, 0.4)
 
 # %%
