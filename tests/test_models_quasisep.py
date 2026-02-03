@@ -4,12 +4,13 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import pytest
-from eztaox.kernels import quasisep
-from eztaox.models import MultiVarModel, UniVarModel
 from numpy import random as np_random
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 from tinygp.test_utils import assert_allclose
+
+from eztaox.kernels import quasisep
+from eztaox.models import MultiVarModel, UniVarModel
 
 
 @pytest.fixture

@@ -7,6 +7,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from eztao.carma import carma_acf, carma_psd, carma_sf, drw_acf, drw_psd, drw_sf
+from tinygp.test_utils import assert_allclose
+
 from eztaox.kernel_stat2 import (
     carma_acf as carma_acf_local,
 )
@@ -17,7 +19,6 @@ from eztaox.kernel_stat2 import (
     gpStat2,
 )
 from eztaox.kernels import quasisep
-from tinygp.test_utils import assert_allclose
 
 jax.config.update("jax_enable_x64", True)
 
