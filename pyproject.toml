@@ -59,7 +59,6 @@ poetry-plugin-export = ">=1.9"
 testpaths = [
     "tests",
     "src",
-    "docs",
 ]
 addopts = "--doctest-modules --doctest-glob=*.rst"
 
