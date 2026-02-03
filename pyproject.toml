@@ -138,6 +138,9 @@ ignore = [
     "SIM117", # Allow nested with
     "UP015", # Allow redundant open parameters
     "UP028", # Allow yield in for loop
+    "N806", # Variable in function should be lowercase
+    "N803", # Argument name should be lowercase
+    "N815", # Variable in class scope should not be mixedCase
 ]
 exclude = ["docs/*"]
 

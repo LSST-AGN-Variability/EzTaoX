@@ -4,7 +4,7 @@ PYTHON_VERSIONS = ["3.10", "3.11", "3.12"]
 
 
 @session(python=PYTHON_VERSIONS)
-def tests(session):
+def tests(session):  # noqa: D103
     tmp_path = session.poetry.export_requirements()
     session.run(
         "poetry",
