@@ -17,20 +17,6 @@ def _get_nearest_idx(tIn, x) -> int:
     return jnp.argmin(jnp.abs(tIn - x))
 
 
-def downsampleByTime(tIn, tOut) -> JAXArray:
-    """
-    Downsample `tIn` to match the time points in `tOut`.
-
-    Args:
-        tIn (JAXArray): Array of time values to be downsampled.
-        tOut (JAXArray): Array of target time values.
-
-    Returns:
-        JAXArray: Downsampled array of time values.
-    """
-    return tIn[jax.vmap(_get_nearest_idx, in_axes=(None, 0))(tIn, tOut)]
-
-
 def formatlc(
     ts: dict[str, NDArray | JAXArray],
     ys: dict[str, NDArray | JAXArray],
