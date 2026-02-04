@@ -725,3 +725,73 @@ class MultibandLowRank(tkq.Wrapper):
         return amplitudes[X[1]] * self.kernel.observation_model(
             self.coord_to_sortable(X)
         )
+
+
+class Laguerre(Quasisep):
+    scale: jax.Array | float
+    order: int = eqx.field(static=True)
+
+    def __init__(self, order, scale):
+        self.order = order
+        self.scale = scale
+
+    def design_matrix(self) -> jax.Array:
+        # LOWER Triangular Jordan Block
+        # This allows the 'impulse' at input to propagate down the chain,
+        # creating the polynomial terms t^k in the lower states.
+        p = 1.0 / self.scale
+        N = self.order + 1
+        diag = -p * jnp.ones(N)
+        sub_diag = jnp.ones(N - 1)
+        # Changed k=1 to k=-1
+        return jnp.diag(diag) + jnp.diag(sub_diag, k=-1)
+
+    def stationary_covariance(self) -> jax.Array:
+        p = 1.0 / self.scale
+        m = self.order
+        N = m + 1
+
+        k_indices = jnp.arange(N)
+
+        # Calculate coefficients for Laguerre expansion
+        # b_k = sqrt(2p) * binom(m, k) * (-2p)^k
+        prefactor = jnp.sqrt(2 * p)
+
+        log_binom = (jax.scipy.special.gammaln(m + 1) -
+                     jax.scipy.special.gammaln(k_indices + 1) -
+                     jax.scipy.special.gammaln(m - k_indices + 1))
+        binom = jnp.exp(log_binom)
+
+        b = prefactor * binom * ((-2 * p) ** k_indices)
+
+        # Symmetric P with 'b' in the first row/column
+        P = jnp.eye(N)
+        P = P.at[:, 0].set(b)
+        P = P.at[0, :].set(b)
+        P = P.at[0, 0].set(b[0])
+
+        return P
+
+    def observation_model(self, X: jax.Array) -> jax.Array:
+        return jnp.concatenate([jnp.ones(1), jnp.zeros(self.order)])
+
+    def transition_matrix(self, X1: jax.Array, X2: jax.Array) -> jax.Array:
+        dt = X2 - X1
+        p = 1.0 / self.scale
+        N = self.order + 1
+
+        k = jnp.arange(N)
+        log_fact = jax.scipy.special.gammaln(k + 1)
+        safe_dt = jnp.where(dt == 0, 1.0, dt)
+        powers = jnp.exp(k * jnp.log(jnp.abs(safe_dt)) - log_fact)
+        powers = jnp.where(dt == 0, jnp.where(k == 0, 1.0, 0.0), powers)
+
+        i, j = jnp.indices((N, N))
+
+        # Changed to Lower Triangular: i >= j
+        mask = i >= j
+
+        # Access powers[i - j]
+        coeffs = jnp.where(mask, powers[i - j], 0.0)
+
+        return jnp.exp(-p * dt) * coeffs

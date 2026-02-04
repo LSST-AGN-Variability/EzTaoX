@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from eztao.carma import carma_acf, carma_psd, carma_sf, drw_acf, drw_psd, drw_sf
+from eztaox.kernels.quasisep import Laguerre
 from tinygp.test_utils import assert_allclose
 
 from eztaox.kernel_stat2 import carma_acf as carma_acf_local
@@ -218,3 +219,35 @@ def test_carma30() -> None:
     # assert_allclose(
     # c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
     # )
+
+def laguerre_eval(x, *, order, scale):
+    return (
+        np.sqrt(2.0 / scale)
+        * np.exp(-x / scale)
+        * np.polynomial.laguerre.lagval(2.0 / scale * x, [0.0] * order + [1.0])
+    )
+
+
+def test_laguerre_evaluate() -> None:
+    """Test Laguerre kernel values."""
+    x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
+    scale = 10.0
+    for order in [0, 1, 2, 3]:
+        k = Laguerre(order=order, scale=scale)
+        actual = [k.evaluate(jnp.array(x_), jnp.array(0.0)) for x_ in x]
+        expected = laguerre_eval(x, order=order, scale=scale)
+        assert_allclose(np.asarray(actual), expected, err_msg=f"Failed for order {order}")
+
+
+def test_laguerre_inv() -> None:
+    """Test inverse Laguerre kernel matrix."""
+    x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
+    dx_matrix = jnp.abs(x[:, None] - x[None, :])
+    scale = 10.0
+    for order in [0, 1, 2, 3]:
+        k = Laguerre(order=order, scale=scale)
+        sim_qsm = k.to_symm_qsm(x)
+        actual = sim_qsm.inv().to_dense()
+        kernel_matrix = laguerre_eval(dx_matrix, order=order, scale=scale)
+        expected = np.linalg.inv(kernel_matrix)
+        assert_allclose(actual, expected, err_msg=f"Failed for order {order}")
