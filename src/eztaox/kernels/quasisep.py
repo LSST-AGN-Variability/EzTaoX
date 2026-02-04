@@ -795,3 +795,64 @@ class Laguerre(Quasisep):
         coeffs = jnp.where(mask, powers[i - j], 0.0)
 
         return jnp.exp(-p * dt) * coeffs
+
+
+def get_laguerre_poly_values(x: jax.Array, max_order: int) -> jax.Array:
+    """
+    Evaluates Laguerre polynomials L_0(x)...L_N(x) at given points x using recurrence.
+    Returns matrix of shape (len(x), max_order + 1).
+    """
+
+    def step(carry, n):
+        l_nm1, l_n = carry
+        # Recurrence: (n+1) L_{n+1} = (2n+1-x)L_n - n L_{n-1}
+        l_np1 = ((2 * n + 1 - x) * l_n - n * l_nm1) / (n + 1)
+        return (l_n, l_np1), l_n
+
+    # L_{-1}=0, L_0=1
+    init = (jnp.zeros_like(x), jnp.ones_like(x))
+    _, polys = jax.lax.scan(step, init, jnp.arange(max_order + 1))
+
+    return polys.T  # Shape: (Num_Points, Order+1)
+
+
+def decompose_laguerre_coeffs(func, *, order: int, scale: float, n_quad: int) -> jax.Array:
+    """
+    Decomposes an analytical function using Gauss-Laguerre quadrature.
+
+    Args:
+        func: A callable jax function f(t).
+        order: Max Laguerre order.
+        scale: The time-scale parameter (1/p).
+        n_quad: Number of quadrature points (grid size).
+                Rules of thumb: n_quad >= order + 10.
+    """
+    p = 1.0 / scale
+
+    unscaled_nodes, weights = np.polynomial.laguerre.laggauss(n_quad)
+    unscaled_nodes, weights = jnp.array(unscaled_nodes), jnp.array(weights)
+
+    x_nodes = unscaled_nodes / p
+    f_vals = func(x_nodes)
+
+    # Compute Laguerre Polynomials L_n(2 * x_nodes)
+    # Note the argument is 2*x_nodes because phi has L_n(2pt) and x=pt
+    L_vals = get_laguerre_poly_values(2 * unscaled_nodes, order)
+
+    # Perform the weighted sum (Dot product)
+    # Formula: sqrt(2/p) * sum( w_k * f(t_k) * L_n(2x_k) )
+    prefactor = jnp.sqrt(2.0 / p)
+
+    # weights * f_vals contracts to (n_quad,)
+    # L_vals is (n_quad, order+1)
+    # Result c is (order+1,)
+    weighted_signal = weights * f_vals
+    coeffs = prefactor * (weighted_signal @ L_vals)
+
+    return coeffs
+
+
+def laguerre_decomposition_kernel(func, *, order: int, scale: float, n_quad: int) -> Quasisep:
+    coeffs = decompose_laguerre_coeffs(func, order=order, scale=scale, n_quad=n_quad)
+    kernel = sum(c * Laguerre(order, scale) for order, c in enumerate(coeffs))
+    return kernel

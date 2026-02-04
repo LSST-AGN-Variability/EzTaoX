@@ -6,8 +6,20 @@ Test for second-order statistics of GP kernels: autocorrelation function
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 from eztao.carma import carma_acf, carma_psd, carma_sf, drw_acf, drw_psd, drw_sf
 from eztaox.kernels.quasisep import Laguerre
+from eztaox.kernel_stat2 import (
+    carma_acf as carma_acf_local,
+)
+from eztaox.kernel_stat2 import (
+    carma_sf as carma_sf_local,
+)
+from eztaox.kernel_stat2 import (
+    gpStat2,
+)
+from eztaox.kernels import quasisep
+from eztaox.kernels.quasisep import Laguerre, laguerre_decomposition_kernel
 from tinygp.test_utils import assert_allclose
 
 from eztaox.kernel_stat2 import carma_acf as carma_acf_local
@@ -230,24 +242,47 @@ def laguerre_eval(x, *, order, scale):
 
 def test_laguerre_evaluate() -> None:
     """Test Laguerre kernel values."""
-    x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
+    test_x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
     scale = 10.0
     for order in [0, 1, 2, 3]:
         k = Laguerre(order=order, scale=scale)
-        actual = [k.evaluate(jnp.array(x_), jnp.array(0.0)) for x_ in x]
-        expected = laguerre_eval(x, order=order, scale=scale)
+        actual = [k.evaluate(jnp.array(x), jnp.array(0.0)) for x in test_x]
+        expected = laguerre_eval(test_x, order=order, scale=scale)
         assert_allclose(np.asarray(actual), expected, err_msg=f"Failed for order {order}")
 
 
 def test_laguerre_inv() -> None:
     """Test inverse Laguerre kernel matrix."""
-    x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
-    dx_matrix = jnp.abs(x[:, None] - x[None, :])
+    test_x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
+    dx_matrix = jnp.abs(test_x[:, None] - test_x[None, :])
     scale = 10.0
     for order in [0, 1, 2, 3]:
         k = Laguerre(order=order, scale=scale)
-        sim_qsm = k.to_symm_qsm(x)
+        sim_qsm = k.to_symm_qsm(test_x)
         actual = sim_qsm.inv().to_dense()
         kernel_matrix = laguerre_eval(dx_matrix, order=order, scale=scale)
         expected = np.linalg.inv(kernel_matrix)
         assert_allclose(actual, expected, err_msg=f"Failed for order {order}")
+
+
+def _exp(x, scale):
+    return jnp.exp(-jnp.abs(x) / scale)
+
+
+def _squared_exp(x, scale):
+    return jnp.exp(-0.5 * jnp.square(x / scale))
+
+
+@pytest.mark.parametrize(("func", "atol"), [(_exp, 1e-9), (_squared_exp, 1e-4)])
+def test_laguerre_decomposition_kernel(func, atol) -> None:
+    """Test decomposition into laguerre kernel matrices."""
+    test_x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
+    scale = 10.0
+
+    kernel = laguerre_decomposition_kernel(lambda x: func(x, scale), order=20, scale=scale, n_quad=100)
+
+    kernel_eval = jax.jit(jax.vmap(lambda x: kernel.evaluate(x, jnp.array(0.0))))
+    actual = kernel_eval(test_x)
+
+    desired = func(test_x, scale)
+    assert_allclose(jnp.asarray(actual), desired, atol=atol)
