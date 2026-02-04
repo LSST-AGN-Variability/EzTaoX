@@ -14,10 +14,8 @@ include_docs: true
 include_notebooks: true
 mypy_type_checking: none
 package_name: eztaox
-project_description: '`EzTaoX` is a flexible framework for multi-wavelength and multi-survey
-    AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a
-    scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly
-    with the `JAX` ecosystem for statistical inference and modern machine learning.'
+project_description: EzTaoX is a flexible framework for multi-wavelength and multi-survey
+    AGN light-curve modeling using Gaussian Processes (GPs). Built on top of tinygp.
 project_license: MIT
 project_name: eztaox
 project_organization: LSST-AGN-Variability
@@ -25,4 +23,4 @@ python_versions:
 - '3.10'
 - '3.11'
 - '3.12'
-test_lowest_version: none
+test_lowest_version: direct

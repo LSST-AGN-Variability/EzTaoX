@@ -2,11 +2,11 @@
 Basic tests of the simulator function.
 """
 
+import jax
+import jax.numpy as jnp
+
 import eztaox.kernels.quasisep as ekq
 from eztaox.simulator import UniVarSim
-
-import jax.numpy as jnp
-import jax
 
 
 def test_simulator_run_univarsim() -> None:
