@@ -3,8 +3,10 @@ name: eztao
 channels:
   - conda-forge
 dependencies:
-  - jupyter
-  - jupyterlab
   - numpy
   - scipy
   - matplotlib
+  - eztaox
+  - arviz
+  - celerite
+  - eztao
