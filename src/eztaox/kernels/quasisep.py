@@ -843,7 +843,12 @@ class LaguerreSeries(Quasisep):
     def stationary_covariance(self) -> jax.Array:
         """Block diagonal of scaled stationary covariances."""
         basis = self._basis()
-        return jax.scipy.linalg.block_diag(*[c * b.stationary_covariance() for c, b in zip(self._coeffs(), basis)])
+        return jax.scipy.linalg.block_diag(
+            *[
+                c * b.stationary_covariance()
+                for c, b in zip(self._coeffs(), basis, strict=False)
+            ]
+        )
 
     def observation_model(self, X: jax.Array) -> jax.Array:
         """Concatenation of observation models."""
