@@ -319,7 +319,7 @@ class UniVarSim(MultiVarSim):
         amp_scale_func(Callable, optional): A callable amplitude scaling function,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            
+
             * `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
     """
 
