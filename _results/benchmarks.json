@@ -1,3 +1,18 @@
 {
+    "simulator.UnivariateSimulatorSuite.time_run_sim": {
+        "code": "class UnivariateSimulatorSuite:\n    def time_run_sim(self):\n        return self.s.fixed_input(self.t, self.lc_key)\n\n    def setup(self):\n        tau_true = 5.891242982962032\n        sigma_true = 0.13896505738419102\n        drw_true = ekq.Exp(scale=tau_true, sigma=sigma_true)\n        log_kernel_param = jnp.stack([jnp.log(tau_true), jnp.log(sigma_true)])\n        self.t = jnp.arange(0.0, 4000.0, 1.0)\n        self.s = UniVarSim(\n            drw_true,\n            min_dt=0.01,\n            max_dt=float(self.t[-1]),\n            init_params={\"log_kernel_param\": log_kernel_param},\n            zero_mean=True,\n        )\n        self.lc_key = jax.random.PRNGKey(11)",
+        "min_run_count": 2,
+        "name": "simulator.UnivariateSimulatorSuite.time_run_sim",
+        "number": 0,
+        "param_names": [],
+        "params": [],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "type": "time",
+        "unit": "seconds",
+        "version": "54aef32c269f405f6352b09d8e65a84bba194394065ad26b57ce6cb2295621b1",
+        "warmup_time": -1
+    },
     "version": 2
 }
