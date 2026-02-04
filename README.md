@@ -17,7 +17,7 @@
 
 ### Installation
 ```
-pip install git+https://github.com/ywx649999311/EzTaoX.git
+pip install eztaox
 ```
 #### Dependencies
 ##### Supports Python 3.10, 3.11, 3.12
@@ -31,7 +31,7 @@ pip install git+https://github.com/ywx649999311/EzTaoX.git
 ```
 
 ### Documentation
-Please see tutorials in the `tutorials` folder.
+Please see our [readthedocs](https://eztaox.readthedocs.io/)
 
 ### Citation
 If you find `EzTaoX` useful for your research, please consider citing the following paper [arXiv:2511.21479](https://arxiv.org/abs/2511.21479):
@@ -53,8 +53,6 @@ archivePrefix = {arXiv},
       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 ```
-
-
 
 ### Acknowledgment
 `EzTaoX` is built on top of (and inspired by) [`tinygp`](https://github.com/dfm/tinygp)---a general purpose GP modeling framework written in `JAX`. For more general GP modeling tasks, experienced users can directly explore `tinygp`.
