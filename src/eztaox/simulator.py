@@ -1,4 +1,5 @@
 """Simulator module for multi/uni-variate Gaussian Processes."""
+
 from collections.abc import Callable
 from functools import partial
 
@@ -27,7 +28,7 @@ class MultiVarSim(eqx.Module):
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
         min_dt (float): Minimum time step for the simulation.
         max_dt (float): Maximum time step (temporal baseline) for the simulation.
-        nBand (int): An interger number of bands in the input light curve.
+        nBand (int): An integer number of bands in the input light curve.
         init_params (dict[str, JAXArray]): Initial parameters for the GP.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.

@@ -2,6 +2,7 @@
 A module of light curve models, which are the interface for modeling uni/multi-band
 light curves using Gaussian Processes (GPs).
 """
+
 from collections.abc import Callable
 from functools import partial
 
@@ -34,7 +35,7 @@ class MultiVarModel(eqx.Module):
         y (JAXArray|NDArray): Observed data values.
         yerr (JAXArray|NDArray): Observational uncertainties.
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
-        nBand (int): An interger number of bands in the input light curve.
+        nBand (int): An integer number of bands in the input light curve.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
         mean_func(Callable, optional): A callable mean function for the GP, defaults to
@@ -407,9 +408,10 @@ class UniVarModel(MultiVarModel):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
-    def lag_transform(
+    def lag_transform(  # noqa: D102
         self, has_lag, params, X
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
+        # TODO: Write docstring.
         return self.X, jnp.arange(self.X[0].size)
 
     def pred(self, params, t) -> tuple[JAXArray, JAXArray]:

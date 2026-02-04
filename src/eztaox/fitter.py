@@ -1,6 +1,7 @@
 """
 This module contains the fitter functions that fits a model to data.
 """
+
 from collections.abc import Callable
 
 import jax
@@ -59,7 +60,8 @@ def random_search(
 
     # convert from pytree to list of pytrees
     list_of_params = [
-        dict(zip(top_params.keys(), values)) for values in zip(*top_params.values())
+        dict(zip(top_params.keys(), values, strict=False))
+        for values in zip(*top_params.values(), strict=False)
     ]
 
     # jaxopt optimize
@@ -74,7 +76,7 @@ def random_search(
     return best_param, max(log_prob)
 
 
-def simpleOptimizer(
+def simpleOptimizer(  # noqa: N802
     model: UniVarModel | MultiVarModel,
     optimizer: optax.GradientTransformation,
     initSample: dict[str, JAXArray],

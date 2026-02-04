@@ -83,6 +83,8 @@ class Sum(Quasisep, tkq.Sum):
 
 
 class Product(Quasisep, tkq.Product):
+    """A helper to represent the product of two quasiseparable kernels"""
+
     def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
         return NotImplementedError
@@ -119,9 +121,10 @@ class Cosine(Quasisep, tkq.Cosine):
         default_factory=lambda: 0.001 * jnp.ones(())
     )
 
-    def power(
+    def power(  # noqa: D102
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
+        # TODO: Write docstring.
         return (
             0.5
             * self.sigma**2
@@ -223,10 +226,12 @@ class Lorentzian(Quasisep):
     sigma: JAXArray | float = eqx.field(default_factory=lambda: jnp.ones(()))
 
     @eqx.filter_jit
-    def get_scale(self) -> tuple[JAXArray | float, JAXArray | float]:
+    def get_scale(self) -> tuple[JAXArray | float, JAXArray | float]:  # noqa: D102
+        # TODO: Write docstring.
         return 2 * self.quality / self.omega, 2 * np.pi / self.omega
 
-    def design_matrix(self) -> JAXArray:
+    def design_matrix(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         drw_scale, cos_scale = self.get_scale()
         f = 2 * np.pi / cos_scale
         F1 = jnp.array([[-1 / drw_scale]])
@@ -235,19 +240,22 @@ class Lorentzian(Quasisep):
             jnp.eye(F1.shape[0]), F2
         )
 
-    def stationary_covariance(self) -> JAXArray:
+    def stationary_covariance(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         drw_scale, cos_scale = self.get_scale()
         a1 = jnp.ones((1, 1))
         a2 = jnp.eye(2)
         return _prod_helper(a1, a2)
 
-    def observation_model(self, X: JAXArray) -> JAXArray:
+    def observation_model(self, X: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         del X
         a1 = jnp.array([self.sigma])
         a2 = jnp.array([1.0, 0.0])
         return _prod_helper(a1, a2)
 
-    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
+    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         drw_scale, cos_scale = self.get_scale()
         dt = X2 - X1
         f = 2 * np.pi / cos_scale
@@ -259,9 +267,10 @@ class Lorentzian(Quasisep):
 
         return _prod_helper(a1, a2)
 
-    def power(
+    def power(  # noqa: D102
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
+        # TODO: Write docstring.
         f0 = self.omega / (2 * np.pi)
         num = jnp.square(self.sigma) * self.quality * f0
         denom = jnp.square(f0) + 4 * jnp.square(self.quality) * jnp.square(f - f0)
@@ -341,7 +350,8 @@ class CARMA(Quasisep):
         # self.sigma = jnp.ones(())
 
     @classmethod
-    def init(cls, alpha: JAXArray, beta: JAXArray) -> CARMA:
+    def init(cls, alpha: JAXArray, beta: JAXArray) -> CARMA:  # noqa: D102
+        # TODO: Write docstring.
         return cls(alpha, beta)
 
     @classmethod
@@ -381,7 +391,8 @@ class CARMA(Quasisep):
 
         return cls(alpha, beta)
 
-    def design_matrix(self) -> JAXArray:
+    def design_matrix(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -403,7 +414,8 @@ class CARMA(Quasisep):
 
         return dm_real + dm_complex_diag + -dm_complex_u.T + dm_complex_u
 
-    def stationary_covariance(self) -> JAXArray:
+    def stationary_covariance(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -433,7 +445,8 @@ class CARMA(Quasisep):
 
         return diag + diag_complex + sc_complex_u + sc_complex_u.T
 
-    def observation_model(self, X: JAXArray) -> JAXArray:
+    def observation_model(self, X: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         del X
         (
             arroots,
@@ -452,7 +465,8 @@ class CARMA(Quasisep):
             jnp.ravel(om_complex)[::2],
         )
 
-    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
+    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -479,9 +493,10 @@ class CARMA(Quasisep):
         return tm_real + tm_complex_diag + -tm_complex_u.T + tm_complex_u
 
     @jax.jit
-    def power(
+    def power(  # noqa: D102
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
+        # TODO: Write docstring.
         arparams = jnp.append(jnp.array(self.alpha), 1.0)
         maparams = jnp.array(self.beta)
 
@@ -504,7 +519,8 @@ class CARMA(Quasisep):
 
 
 @jax.jit
-def carma_roots(poly_coeffs: JAXArray) -> JAXArray:
+def carma_roots(poly_coeffs: JAXArray) -> JAXArray:  # noqa: D103
+    # TODO: Write docstring.
     roots = jnp.roots(poly_coeffs[::-1], strip_zeros=False)
     return roots[jnp.argsort(roots.real)]
 
@@ -699,10 +715,12 @@ class MultibandLowRank(tkq.Wrapper):
 
     params: dict[str, JAXArray]
 
-    def coord_to_sortable(self, X) -> JAXArray:
+    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return X[0]
 
-    def observation_model(self, X) -> JAXArray:
+    def observation_model(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         amplitudes = self.params["amplitudes"]
         return amplitudes[X[1]] * self.kernel.observation_model(
             self.coord_to_sortable(X)
