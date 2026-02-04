@@ -5,9 +5,6 @@ O(N^3) scaling.
 
 from __future__ import annotations
 
-from collections.abc import Callableg
-
-import jax
 import jax.numpy as jnp
 import tinygp
 from tinygp.helpers import JAXArray
