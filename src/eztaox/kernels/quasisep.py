@@ -727,23 +727,18 @@ class MultibandLowRank(tkq.Wrapper):
         )
 
 
-class Laguerre(Quasisep):
-    scale: jax.Array | float
-    order: int = eqx.field(static=True)
+class _Laguerre:
+    """Laguerre basis function math helper. Not an equinox module."""
 
-    def __init__(self, order, scale):
+    def __init__(self, order: int, scale: jax.Array | float):
         self.order = order
         self.scale = scale
 
     def design_matrix(self) -> jax.Array:
-        # LOWER Triangular Jordan Block
-        # This allows the 'impulse' at input to propagate down the chain,
-        # creating the polynomial terms t^k in the lower states.
         p = 1.0 / self.scale
         N = self.order + 1
         diag = -p * jnp.ones(N)
         sub_diag = jnp.ones(N - 1)
-        # Changed k=1 to k=-1
         return jnp.diag(diag) + jnp.diag(sub_diag, k=-1)
 
     def stationary_covariance(self) -> jax.Array:
@@ -752,19 +747,16 @@ class Laguerre(Quasisep):
         N = m + 1
 
         k_indices = jnp.arange(N)
-
-        # Calculate coefficients for Laguerre expansion
-        # b_k = sqrt(2p) * binom(m, k) * (-2p)^k
         prefactor = jnp.sqrt(2 * p)
 
-        log_binom = (jax.scipy.special.gammaln(m + 1) -
-                     jax.scipy.special.gammaln(k_indices + 1) -
-                     jax.scipy.special.gammaln(m - k_indices + 1))
+        log_binom = (
+            jax.scipy.special.gammaln(m + 1)
+            - jax.scipy.special.gammaln(k_indices + 1)
+            - jax.scipy.special.gammaln(m - k_indices + 1)
+        )
         binom = jnp.exp(log_binom)
-
         b = prefactor * binom * ((-2 * p) ** k_indices)
 
-        # Symmetric P with 'b' in the first row/column
         P = jnp.eye(N)
         P = P.at[:, 0].set(b)
         P = P.at[0, :].set(b)
@@ -772,11 +764,10 @@ class Laguerre(Quasisep):
 
         return P
 
-    def observation_model(self, X: jax.Array) -> jax.Array:
+    def observation_model(self) -> jax.Array:
         return jnp.concatenate([jnp.ones(1), jnp.zeros(self.order)])
 
-    def transition_matrix(self, X1: jax.Array, X2: jax.Array) -> jax.Array:
-        dt = X2 - X1
+    def transition_matrix(self, dt: jax.Array) -> jax.Array:
         p = 1.0 / self.scale
         N = self.order + 1
 
@@ -787,72 +778,81 @@ class Laguerre(Quasisep):
         powers = jnp.where(dt == 0, jnp.where(k == 0, 1.0, 0.0), powers)
 
         i, j = jnp.indices((N, N))
-
-        # Changed to Lower Triangular: i >= j
         mask = i >= j
-
-        # Access powers[i - j]
         coeffs = jnp.where(mask, powers[i - j], 0.0)
 
         return jnp.exp(-p * dt) * coeffs
 
 
-def get_laguerre_poly_values(x: jax.Array, max_order: int) -> jax.Array:
-    """
-    Evaluates Laguerre polynomials L_0(x)...L_N(x) at given points x using recurrence.
-    Returns matrix of shape (len(x), max_order + 1).
-    """
+class LaguerreSeries(Quasisep):
+    """Laguerre series approximation of a stationary kernel.
 
-    def step(carry, n):
-        l_nm1, l_n = carry
-        # Recurrence: (n+1) L_{n+1} = (2n+1-x)L_n - n L_{n-1}
-        l_np1 = ((2 * n + 1 - x) * l_n - n * l_nm1) / (n + 1)
-        return (l_n, l_np1), l_n
-
-    # L_{-1}=0, L_0=1
-    init = (jnp.zeros_like(x), jnp.ones_like(x))
-    _, polys = jax.lax.scan(step, init, jnp.arange(max_order + 1))
-
-    return polys.T  # Shape: (Num_Points, Order+1)
-
-
-def decompose_laguerre_coeffs(func, *, order: int, scale: float, n_quad: int) -> jax.Array:
-    """
-    Decomposes an analytical function using Gauss-Laguerre quadrature.
+    Wraps a kernel and approximates its autocovariance using a truncated
+    Laguerre series expansion, enabling O(N) GP computations. The coefficients
+    are derived from the wrapped kernel's parameters at construction time.
 
     Args:
-        func: A callable jax function f(t).
-        order: Max Laguerre order.
-        scale: The time-scale parameter (1/p).
-        n_quad: Number of quadrature points (grid size).
-                Rules of thumb: n_quad >= order + 10.
+        kernel: The kernel to approximate (must have a `scale` attribute).
+        order: Maximum Laguerre polynomial order.
+        n_quad: Number of quadrature points for coefficient computation.
     """
-    p = 1.0 / scale
 
-    unscaled_nodes, weights = np.polynomial.laguerre.laggauss(n_quad)
-    unscaled_nodes, weights = jnp.array(unscaled_nodes), jnp.array(weights)
+    kernel: Kernel
+    order: int = eqx.field(static=True)
+    n_quad: int = eqx.field(static=True)
 
-    x_nodes = unscaled_nodes / p
-    f_vals = func(x_nodes)
+    def __post_init__(self):
+        if not hasattr(self.kernel, "scale"):
+            raise ValueError("Kernel must have a 'scale' attribute")
 
-    # Compute Laguerre Polynomials L_n(2 * x_nodes)
-    # Note the argument is 2*x_nodes because phi has L_n(2pt) and x=pt
-    L_vals = get_laguerre_poly_values(2 * unscaled_nodes, order)
+    @property
+    def scale(self) -> jax.Array | float:
+        """Scale parameter from the wrapped kernel."""
+        return self.kernel.scale
 
-    # Perform the weighted sum (Dot product)
-    # Formula: sqrt(2/p) * sum( w_k * f(t_k) * L_n(2x_k) )
-    prefactor = jnp.sqrt(2.0 / p)
+    def _quadrature(self) -> tuple[NDArray, NDArray]:
+        """Get quadrature nodes and weights."""
+        return np.polynomial.laguerre.laggauss(self.n_quad)
 
-    # weights * f_vals contracts to (n_quad,)
-    # L_vals is (n_quad, order+1)
-    # Result c is (order+1,)
-    weighted_signal = weights * f_vals
-    coeffs = prefactor * (weighted_signal @ L_vals)
+    def _lag_vals(self, nodes: NDArray) -> NDArray:
+        """Evaluate Laguerre polynomials at 2*nodes for orders 0..order."""
+        return np.polynomial.laguerre.lagval(2 * nodes, np.eye(self.order + 1)).T
 
-    return coeffs
+    def _coeffs(self) -> jax.Array:
+        """Compute Laguerre coefficients from the wrapped kernel."""
+        nodes, weights = self._quadrature()
+        lag_vals = self._lag_vals(nodes)
 
+        func = jax.vmap(lambda x: self.kernel.evaluate(x, jnp.array(0.0)))
+        x_nodes = nodes * self.scale
+        f_vals = func(x_nodes)
 
-def laguerre_decomposition_kernel(func, *, order: int, scale: float, n_quad: int) -> Quasisep:
-    coeffs = decompose_laguerre_coeffs(func, order=order, scale=scale, n_quad=n_quad)
-    kernel = sum(c * Laguerre(order, scale) for order, c in enumerate(coeffs))
-    return kernel
+        prefactor = jnp.sqrt(2.0 * self.scale)
+        weighted_signal = weights * f_vals
+        return prefactor * (weighted_signal @ lag_vals)
+
+    def _basis(self) -> list[_Laguerre]:
+        """Create Laguerre basis functions for each order."""
+        return [_Laguerre(order=i, scale=self.scale) for i in range(self.order + 1)]
+
+    def design_matrix(self) -> jax.Array:
+        """Block diagonal of individual design matrices."""
+        basis = self._basis()
+        return jax.scipy.linalg.block_diag(*[b.design_matrix() for b in basis])
+
+    def stationary_covariance(self) -> jax.Array:
+        """Block diagonal of scaled stationary covariances."""
+        basis = self._basis()
+        return jax.scipy.linalg.block_diag(*[c * b.stationary_covariance() for c, b in zip(self._coeffs(), basis)])
+
+    def observation_model(self, X: jax.Array) -> jax.Array:
+        """Concatenation of observation models."""
+        del X
+        basis = self._basis()
+        return jnp.concatenate([b.observation_model() for b in basis])
+
+    def transition_matrix(self, X1: jax.Array, X2: jax.Array) -> jax.Array:
+        """Block diagonal of transition matrices."""
+        dt = X2 - X1
+        basis = self._basis()
+        return jax.scipy.linalg.block_diag(*[b.transition_matrix(dt) for b in basis])
