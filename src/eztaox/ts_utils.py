@@ -18,7 +18,7 @@ def _get_nearest_idx(tIn, x) -> int:
     return jnp.argmin(jnp.abs(tIn - x))
 
 
-def downsampleByTime(tIn, tOut) -> JAXArray:
+def downsampleByTime(tIn, tOut) -> JAXArray:  # noqa: N802
     """
     Downsample `tIn` to match the time points in `tOut`.
 
