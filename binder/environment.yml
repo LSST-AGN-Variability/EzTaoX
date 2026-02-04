@@ -1,0 +1,10 @@
+# https://mybinder.org/v2/gh/LSST-AGN-Variability/EzTaoX/delucchi/binder?urlpath=%2Fdoc%2Ftree%2Fdocs%2Fnotebooks%2F
+name: eztao
+channels:
+  - conda-forge
+dependencies:
+  - jupyter
+  - jupyterlab
+  - numpy
+  - scipy
+  - matplotlib
