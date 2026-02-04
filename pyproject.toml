@@ -7,7 +7,7 @@ readme = "README.md"
 authors = [
     { name = "Weixiang Yu", email = "astro.flyfish@gmail.com" }
 ]
-description = "EzTaoX is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of tinygp"
+description = "EzTaoX is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs). Built on top of tinygp."
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
