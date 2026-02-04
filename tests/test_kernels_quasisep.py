@@ -6,12 +6,13 @@ import numpy as np
 import pytest
 from celerite import GP
 from eztao.carma import CARMA_term
-from eztaox.kernels import quasisep
 from matplotlib.pylab import Generator
 from numpy import random as np_random
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 from tinygp.test_utils import assert_allclose
+
+from eztaox.kernels import quasisep
 
 
 @pytest.fixture

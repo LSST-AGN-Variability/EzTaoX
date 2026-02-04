@@ -2,6 +2,7 @@
 Kernels evaluated using a direct apporach, where the likelihood computation follows
 O(N^3) scaling.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -24,10 +25,12 @@ class MultibandLowRank(tinygp.kernels.Kernel):
     amplitudes: jnp.ndarray
     kernel: tinygp.kernels.Kernel
 
-    def coord_to_sortable(self, X) -> JAXArray:
+    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return X[0]
 
-    def evaluate(self, X1, X2) -> JAXArray:
+    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return (
             self.amplitudes[X1[1]]
             * self.amplitudes[X2[1]]
@@ -66,10 +69,12 @@ class MultibandFullRank(tinygp.kernels.Kernel):
         self.band_kernel = factor @ factor.T
         self.core_kernel = kernel
 
-    def coord_to_sortable(self, X) -> JAXArray:
+    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return X[0]
 
-    def evaluate(self, X1, X2) -> JAXArray:
+    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         t1, b1 = X1
         t2, b2 = X2
 
@@ -96,10 +101,12 @@ class MultibandFFT(tinygp.kernels.Kernel):
         self.transfer_function = transfer_function
         self.transfer_function_params = kwargs
 
-    def coord_to_sortable(self, X) -> JAXArray:
+    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         return X[0]
 
-    def evaluate(self, X1, X2) -> JAXArray:
+    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         t_eval = jnp.linspace(-1000, 1000, 1000)
         dt = t_eval[1] - t_eval[0]
         kernel_eval = self.kernel(t_eval, jnp.array([0])).T[0]
@@ -108,13 +115,13 @@ class MultibandFFT(tinygp.kernels.Kernel):
         t2, b2 = X2
 
         # Testing that this gives the same results as the normal kernel
-        # return self.amplitudes[b1] * self.amplitudes[b2] * self.kernel.evaluate(t1, t2)
+        # return self.amplitudes[b1] * self.amplitudes[b2] * self.kernel.evaluate(t1,t2)
 
         # Equation 8 in https://ui.adsabs.harvard.edu/abs/2011ApJ...735...80Z/abstract
         Psi1 = self.transfer_function(t_eval, b1, **self.transfer_function_params)
         Psi2 = self.transfer_function(t_eval, b2, **self.transfer_function_params)
         K1 = dt * jax.scipy.signal.fftconvolve(Psi1, kernel_eval, mode="same")
-        K2 = dt * jax.scipy.signal.fftconvolve(Psi2, K1, mode="same")
+        K2 = dt * jax.scipy.signal.fftconvolve(Psi2, K1, mode="same")  # noqa: F841
 
         return (
             self.amplitudes[b1]
