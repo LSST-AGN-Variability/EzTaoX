@@ -11,13 +11,12 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
-import tinygp
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
-from eztaox.kernels import direct, quasisep
+from eztaox.kernels import quasisep
 
 
 class MultiVarModel(eqx.Module):
