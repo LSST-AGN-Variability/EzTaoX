@@ -20,7 +20,7 @@ class MultiVarSim(eqx.Module):
     """An interface for simulating multivariate/mutli-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
-    scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This interface
+    scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`_. This interface
     allows specifying a parameterized mean function of the time series, cross-band
     covariance, and time delays between each uni-variate/single-band time series.
 
@@ -39,9 +39,10 @@ class MultiVarSim(eqx.Module):
         lag_func(Callable, optional): A callable function for time delays between bands,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
-            has_lag (bool): If True, assumes time delays between time series in
-                each band. Defaults to False.
+
+            - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
+            - `has_lag` (bool): If True, assumes time delays between time series in
+              each band. Defaults to False.
     """
 
     base_kernel_def: Callable
@@ -109,7 +110,7 @@ class MultiVarSim(eqx.Module):
 
         Returns:
             tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
-                form of (time, band) and the simulated light curve values.
+            form of (time, band) and the simulated light curve values.
         """
         params = params if params is not None else self.init_params
         gp, inds = self._build_gp(self.X, params)
@@ -136,7 +137,7 @@ class MultiVarSim(eqx.Module):
 
         Returns:
             tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
-                form of (time, band) and the simulated light curve values.
+            form of (time, band) and the simulated light curve values.
         """
 
         # get full light curve
@@ -167,7 +168,7 @@ class MultiVarSim(eqx.Module):
 
         Returns:
             tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
-                form of (time, band) and the simulated light curve values.
+            form of (time, band) and the simulated light curve values.
         """
         # convert sim_X to JAXArray and ensure band is int
         sim_X = (jnp.asarray(sim_X[0]), jnp.asarray(sim_X[1]).astype(int))
@@ -211,7 +212,7 @@ class MultiVarSim(eqx.Module):
 
         Returns:
             tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
-                form of (time, band) and the simulated light curve values.
+            form of (time, band) and the simulated light curve values.
         """
         # convert sim_X to JAXArray and ensure band is int
         sim_X = (jnp.asarray(sim_X[0]), jnp.asarray(sim_X[1]).astype(int))
@@ -318,7 +319,8 @@ class UniVarSim(MultiVarSim):
         amp_scale_func(Callable, optional): A callable amplitude scaling function,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
+            
+            * `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
     """
 
     def __init__(
@@ -365,7 +367,7 @@ class UniVarSim(MultiVarSim):
 
         Returns:
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
-                light curve values).
+            light curve values).
         """
         params = params if params is not None else self.init_params
         mb_X, mb_y = super().full(key, params)
@@ -391,7 +393,7 @@ class UniVarSim(MultiVarSim):
 
         Returns:
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
-                light curve values).
+            light curve values).
         """
 
         # get full light curve
@@ -419,7 +421,7 @@ class UniVarSim(MultiVarSim):
 
         Returns:
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
-                light curve values).
+            light curve values).
         """
         params = params if params is not None else self.init_params
         full_t, full_y = self.full(lc_key, params)
@@ -449,7 +451,7 @@ class UniVarSim(MultiVarSim):
 
         Returns:
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
-                light curve values).
+            light curve values).
         """
         params = params if params is not None else self.init_params
         sim_X = (jnp.asarray(sim_t), jnp.zeros_like(sim_t))

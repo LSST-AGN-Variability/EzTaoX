@@ -706,7 +706,7 @@ class MultibandLowRank(tkq.Wrapper):
 
     The specific form of the cross-band Kronecker covariance matrix is given by
     Equation 13 of `Gordon et al. (2020) <https://arxiv.org/pdf/2007.05799>`_.
-    The implementation is inspired by this `tinygp` tutorial <https://tinygp.readthedocs.io/en/stable/tutorials/quasisep-custom.html#multivariate-quasiseparable-kernels>`_.
+    The implementation is inspired by `this tinygp tutorial <https://tinygp.readthedocs.io/en/stable/tutorials/quasisep-custom.html#multivariate-quasiseparable-kernels>`_.
 
     Args:
         params: A dictionary of string and array pairs, which are used in the
