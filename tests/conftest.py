@@ -3,8 +3,13 @@ import os
 import jax
 
 
-def pytest_configure(config):
+def pytest_addoption(parser):
     cache_dir = os.path.join(os.getcwd(), ".jax_cache")
+    parser.addoption("--jax_cache", action="store", default=cache_dir)
+
+
+def pytest_configure(config):
+    cache_dir = config.getoption("--jax_cache")
     jax.config.update("jax_compilation_cache_dir", cache_dir)
     jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
     jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
