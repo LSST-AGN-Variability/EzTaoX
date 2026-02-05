@@ -1,1 +1,1 @@
-[{"name": "simulator.UnivariateSimulatorSuite.time_run_sim", "idx": null, "pretty_name": "simulator.UnivariateSimulatorSuite.time_run_sim", "last_rev": 120, "last_value": 2.166217845000002, "last_err": 0.0, "prev_value": 2.0477510360000224, "change_rev": [118, 120]}]
+[{"name": "simulator.UnivariateSimulatorSuite.time_run_sim", "idx": null, "pretty_name": "simulator.UnivariateSimulatorSuite.time_run_sim", "last_rev": 121, "last_value": 2.0477510360000224, "last_err": 0.009442381702799067, "prev_value": null, "change_rev": null}]
