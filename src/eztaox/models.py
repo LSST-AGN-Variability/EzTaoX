@@ -44,11 +44,12 @@ class MultiVarModel(eqx.Module):
         lag_func(Callable, optional): A callable function for time delays between bands,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
-            has_jitter (bool): If True, assumes the input observational erros
-                are underestimated. Defaults to False.
-            has_lag (bool): If True, assumes time delays between time series in
-                each band. Defaults to False.
+
+            - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
+            - `has_jitter` (bool): If True, assumes the input observational erros
+              are underestimated. Defaults to False.
+            - `has_lag` (bool): If True, assumes time delays between time series in
+              each band. Defaults to False.
 
     Raises:
         TypeError: If base_kernel is not one from the kernels.quasisep module.
@@ -190,7 +191,7 @@ class MultiVarModel(eqx.Module):
 
         Returns:
             tuple[JAXArray, JAXArray]: A tuple of the mean GP prediction and its
-                uncertainty (square root of the predicted variance).
+            uncertainty (square root of the predicted variance).
         """
         # transform time axis
         new_X, _ = self.lag_transform(self.has_lag, params, X)
@@ -266,9 +267,10 @@ class UniVarModel(MultiVarModel):
         amp_scale_func(Callable, optional): A callable amplitude scaling function,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
-            has_jitter (bool): If True, assumes the input observational erros
-                are underestimated. Defaults to False.
+
+            - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
+            - `has_jitter` (bool): If True, assumes the input observational erros
+              are underestimated. Defaults to False.
 
     Raises:
         TypeError: If kernel is not one from the kernels.quasisep module.
@@ -324,7 +326,7 @@ class UniVarModel(MultiVarModel):
 
         Returns:
             tuple[JAXArray, JAXArray]: A tuple of the mean GP prediction and its
-                uncertainty (square root of the predicted variance).
+            uncertainty (square root of the predicted variance).
         """
         # build gp, cond
         gp, inds = self._build_gp(params)
