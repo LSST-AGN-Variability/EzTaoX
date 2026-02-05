@@ -34,7 +34,7 @@ dependencies = [
 dev = [
     "arviz",
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
-    "eztao", # Used for testing against EzTao calculations that are known to be correct
+    "eztao >= 0.5", # Used for testing against EzTao calculations that are known to be correct
     "black", # Used for static linting of files
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
