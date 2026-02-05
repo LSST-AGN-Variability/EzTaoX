@@ -54,6 +54,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 write_to = "src/eztaox/_version.py"
 
+[tool.poetry]
+name = "eztaox"
+version = "0.1.0"
+
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"
 
