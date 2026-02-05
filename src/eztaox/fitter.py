@@ -94,7 +94,7 @@ def simpleOptimizer(  # noqa: N802
 
     Returns:
         tuple[dict, tuple[dict, JAXArray, dict]]: Best parameters, (parameter history,
-            loss history, gradient history).
+        loss history, gradient history).
     """
 
     @jax.jit
