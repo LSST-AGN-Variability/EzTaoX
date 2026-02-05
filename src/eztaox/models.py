@@ -12,8 +12,8 @@ import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
 import tinygp
-import tinygp.kernels.quasisep as tkq
 import tinygp.kernels as tk
+import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
@@ -82,7 +82,6 @@ class MultiVarModel(eqx.Module):
         lag_func: Callable | None = None,
         **kwargs,
     ) -> None:
-
         # format inputs
         t = jnp.asarray(X[0])
         inds = jnp.argsort(t)
