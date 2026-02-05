@@ -31,9 +31,16 @@ jobs:
         sudo apt-get update
         uv pip install --system -e .[dev]
         if [ -f requirements.txt ]; then uv pip install --system -r requirements.txt; fi
+    - name: Cache JAX compilations
+      uses: actions/cache@v4
+      with:
+        path: ./jax_cache
+        key: jax-cache-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ env.JAX_VERSION }} 
+        restore-keys: |
+          jax-cache-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ env.JAX_VERSION }}
     - name: Run unit tests with pytest
       run: |
-        python -m pytest --cov=eztaox --cov-report=xml --jax_cache=${{ runner.temp }}
+        python -m pytest --cov=eztaox --cov-report=xml --jax_cache=./jax_cache
     - name: Upload coverage report to codecov
       uses: codecov/codecov-action@v5
       with:
@@ -58,10 +65,17 @@ jobs:
           uv pip compile --resolution=lowest-direct pyproject.toml -o requirements_lowest.txt
         fi
         uv pip install --constraint=requirements_lowest.txt -e .[dev]
+    - name: Cache JAX compilations
+      uses: actions/cache@v4
+      with:
+        path: ./jax_cache
+        key: jax-cache-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements_lowest.txt') }}
+        restore-keys: |
+          jax-cache-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements_lowest.txt') }}
     - name: List dependencies
       run: |
         pip list
     - name: Run unit tests with pytest
       run: |
         source venv/bin/activate
-        python -m pytest
+        python -m pytest --jax_cache=./jax_cache
