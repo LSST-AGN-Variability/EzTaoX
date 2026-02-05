@@ -232,3 +232,29 @@ def test_multivar_pred_unsorted_inputs(data, kernel, random) -> None:
     # check if the prediction is the same
     assert_allclose(mean_unsorted[idx], mean_sorted)
     assert_allclose(std_unsorted[idx], std_sorted)
+
+def test_aic_bic(data, kernel, random) -> None:
+    x, y, b = data
+
+    model_param = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "log_amp_scale": jnp.array(random.uniform(-1, 1, 2)),
+        "mean": jnp.array(random.uniform(-1, 1, 3)),
+        "log_jitter": jnp.array(random.uniform(-20, 5, 3)),
+    }
+
+    m = MultiVarModel(
+        (x, b), y, jnp.ones_like(x) * 0.1, kernel, 3, zero_mean=False, has_jitter=True
+    )
+    log_prob = m.log_prob(model_param)
+    n_params = len(jax.flatten_util.ravel_pytree(model_param)[0])
+    n_data = len(y)
+
+    aic = m.aic(log_prob, n_params)
+    bic = m.bic(log_prob, n_params, n_data)
+
+    expected_aic = 2 * n_params - 2 * log_prob
+    expected_bic = n_params * jnp.log(n_data) - 2 * log_prob
+
+    assert_allclose(aic, expected_aic)
+    assert_allclose(bic, expected_bic)
