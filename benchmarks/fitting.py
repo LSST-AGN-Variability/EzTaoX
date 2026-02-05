@@ -14,12 +14,12 @@ class KernelFittingSuite:
 
     def setup(self, n):
         self.X, self.y, self.diag = generate_data(n)
-        self.loss = self._precompile_loss(n)
         self.drw_params = {
             "log_kernel_param": jnp.log(jnp.array([100, 0.1])),
             "log_amp_delta": jnp.log(0.6),
             "lag": jnp.array(10),
         }
+        self.loss = self._precompile_loss(n)
 
     def _precompile_loss(self, n):
         """Precompile the JIT compiled loss function"""
