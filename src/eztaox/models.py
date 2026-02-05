@@ -176,7 +176,7 @@ class MultiVarModel(eqx.Module):
         Returns:
             JAXArray: AIC value.
         """
-        k = jax.flatten_util.ravel_pytree(params)[0].size
+        k = len(jax.flatten_util.ravel_pytree(params)[0])
         log_likelihood = self.log_prob(params)
         return 2 * k - 2 * log_likelihood
 
@@ -189,7 +189,7 @@ class MultiVarModel(eqx.Module):
             JAXArray: BIC value.
         """
         n = self.y.size
-        k = jax.flatten_util.ravel_pytree(params).size
+        k = len(jax.flatten_util.ravel_pytree(params)[0])
         log_likelihood = self.log_prob(params)
         return jnp.log(n) * k - 2 * log_likelihood
 
