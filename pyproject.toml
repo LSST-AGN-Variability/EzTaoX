@@ -34,8 +34,7 @@ dependencies = [
 dev = [
     "arviz",
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
-    "eztao",
-    "celerite",
+    "eztao", # Used for testing against EzTao calculations that are known to be correct
     "black", # Used for static linting of files
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
@@ -54,10 +53,6 @@ build-backend = "setuptools.build_meta"
 # build-backend = "poetry.core.masonry.api"
 [tool.setuptools_scm]
 write_to = "src/eztaox/_version.py"
-
-[tool.poetry]
-name = "eztaox"
-version = "0.1.0"
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"
