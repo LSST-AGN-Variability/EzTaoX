@@ -2,7 +2,37 @@
 
 import numpy as np
 
-from eztaox.ts_utils import downsampleByTime, formatlc
+from eztaox.ts_utils import _get_nearest_idx, downsampleByTime, formatlc
+
+
+def test_get_nearest_idx() -> None:
+    """Test the nearest index utility."""
+
+    tIn = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+
+    # Case: Simple, rounds to nearest
+    x = 0.1
+    expected = 0
+    res = int(_get_nearest_idx(tIn, x))
+    assert expected == res
+
+    # Case: Value in the middle of two elements (rounds down)
+    x = 4.5
+    expected = 4
+    res = int(_get_nearest_idx(tIn, x))
+    assert expected == res
+
+    # Case: Value less than least element (clamps to first index)
+    x = -0.1
+    expected = 0
+    res = int(_get_nearest_idx(tIn, x))
+    assert expected == res
+
+    # Case: Value greater than greatest element (clamps to last index)
+    x = 42.0
+    expected = 5
+    res = int(_get_nearest_idx(tIn, x))
+    assert expected == res
 
 
 def test_downsampleByTime() -> None:  # noqa: N802
