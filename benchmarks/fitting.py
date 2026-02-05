@@ -1,40 +1,12 @@
 """Benchmarks for EzTaoX kernel fitting"""
 
+import eztaox.kernels.quasisep as ekq
 import jax
 import jax.numpy as jnp
-import numpy as np
-import tinygp
-from eztao.carma import DRW_term
-from eztao.ts import addNoise, gpSimFull
+from eztaox.simulator import UniVarSim
 from tinygp import GaussianProcess, kernels
 
 jax.config.update("jax_enable_x64", True)
-
-
-@tinygp.helpers.dataclass
-class MB(tinygp.kernels.quasisep.Wrapper):
-    """GP class"""
-
-    amplitudes: jnp.ndarray
-    lags: jnp.ndarray
-
-    def coord_to_sortable(self, X):
-        return X[0]
-
-    def observation_model(self, X):
-        return self.amplitudes[X[1]] * self.kernel.observation_model(X[0])
-
-
-### helper functions ###
-def amp_transform(params):
-    return jnp.insert(jnp.atleast_1d(params["log_amp_delta"]), 0, 0.0)
-
-
-def lag_transform(X, lags):
-    t, band = X
-    new_t = t - lags[band]
-    inds = jnp.argsort(new_t)
-    return (new_t, band), inds
 
 
 class KernelFittingSuite:
@@ -42,66 +14,19 @@ class KernelFittingSuite:
 
     params = [20, 100, 1_000]
 
+    drw_params = {
+        "log_kernel_param": jnp.log(jnp.array([100, 0.1])),
+        "log_amp_delta": jnp.log(0.6),
+        "lag": jnp.array(10),
+    }
+
     def setup(self, n):
-        ## set up full data
-        amps = {"g": 0.35, "i": 0.25}
-        taus = {"g": 100, "i": 150}
-        snrs = {"g": 5, "i": 3}
-        noise_seeds = {"g": 111, "i": 2}
+        self.X, self.y, self.diag = generate_data(n)
+        self.loss = self._precompile_loss(n)
 
-        self.ts, self.ys, self.yerrs = {}, {}, {}
-        self.ys_noisy = {}
-        seed = 1
+    def _precompile_loss(self, n):
+        """Precompile the JIT compiled loss function"""
 
-        for band in "gi":
-            DRW_kernel = DRW_term(np.log(amps[band]), np.log(taus[band]))
-            t, y, yerr = gpSimFull(
-                DRW_kernel,
-                snrs[band],
-                365 * 10,
-                n,
-                lc_seed=seed,
-            )
-
-            # add to dict
-            self.ts[band] = t
-            self.ys[band] = y
-            self.yerrs[band] = yerr
-            self.ys_noisy[band] = addNoise(
-                self.ys[band], self.yerrs[band], seed=noise_seeds[band] + seed
-            )
-
-        inds = jnp.argsort(jnp.concatenate((self.ts["g"], self.ts["i"])))
-        X = (
-            jnp.concatenate((self.ts["g"], self.ts["i"]))[inds][:n],
-            jnp.concatenate(
-                (
-                    jnp.zeros_like(self.ts["g"], dtype=int),
-                    jnp.ones_like(self.ts["i"], dtype=int),
-                )
-            )[inds][:n],
-        )
-        self.ys_noisy["g"] -= jnp.median(self.ys_noisy["g"])
-        self.ys_noisy["i"] -= jnp.median(self.ys_noisy["i"])
-        y = jnp.concatenate((self.ys_noisy["g"], self.ys_noisy["i"]))[inds][:n]
-        diag = jnp.concatenate((self.yerrs["g"], self.yerrs["i"]))[inds][:n] ** 2
-
-        self.params = {
-            "log_kernel_param": jnp.log(jnp.array([100, 0.1])),
-            "log_amp_delta": jnp.log(0.6),
-            "lag": jnp.array(10),
-        }
-
-        self.X = X
-        self.y = y
-        self.diag = diag
-
-        return
-
-    # def time_run_setup(self, n):
-    #    return self
-
-    def time_run_drw_fitting(self, n):
         @jax.jit
         def loss(params):
             kernel = kernels.quasisep.Exp(*jnp.exp(params["log_kernel_param"]))
@@ -114,4 +39,53 @@ class KernelFittingSuite:
             )
             return -gp.log_probability(self.y)
 
-        loss(self.params).block_until_ready()
+        loss(self.drw_params).block_until_ready()
+        return loss
+
+    def time_run_drw_fitting(self, n):
+        self.loss(self.drw_params).block_until_ready()
+
+
+def generate_lc(n, band):
+    amps = {"g": 0.35, "i": 0.25}
+    taus = {"g": 100, "i": 150}
+    snrs = {"g": 5, "i": 3}
+    noise_seeds = {"g": 111, "i": 2}
+    tau_true = taus[band]
+    amps_true = amps[band]
+    drw_true = ekq.Exp(scale=tau_true, sigma=amps_true)
+    log_kernel_param = jnp.stack([jnp.log(tau_true), jnp.log(amps_true)])
+    t = jnp.arange(0.0, n, 1.0)
+    s = UniVarSim(
+        drw_true,
+        min_dt=0.01,
+        max_dt=float(t[-1]),
+        init_params={"log_kernel_param": log_kernel_param},
+        zero_mean=True,
+    )
+    lc_key = jax.random.PRNGKey(11)
+    t, lc = s.fixed_input(t, lc_key)
+    noise_key = jax.random.PRNGKey(noise_seeds[band])
+    yerr = jax.random.lognormal(noise_key, shape=lc.shape) * (lc / snrs[band])
+    return t, lc + yerr, jnp.abs(yerr)
+
+
+def generate_data(n):
+    """Setup data for fitting"""
+    t_g, lc_g, yerr_g = generate_lc(n, "g")
+    t_i, lc_i, yerr_i = generate_lc(n, "i")
+    inds = jnp.argsort(jnp.concatenate((t_g, t_i)))
+    X = (
+        jnp.concatenate((t_g, t_i))[inds],
+        jnp.concatenate(
+            (
+                jnp.zeros_like(t_g, dtype=int),
+                jnp.ones_like(t_i, dtype=int),
+            )
+        )[inds],
+    )
+    lc_g -= jnp.median(lc_g)
+    lc_i -= jnp.median(lc_i)
+    y = jnp.concatenate((lc_g, lc_i))[inds]
+    diag = jnp.concatenate((yerr_g, yerr_i))[inds] ** 2
+    return X, y, diag
