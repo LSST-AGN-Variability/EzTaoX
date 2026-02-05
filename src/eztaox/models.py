@@ -11,14 +11,13 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
-import tinygp
 import tinygp.kernels as tk
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
-from eztaox.kernels import direct, quasisep
+from eztaox.kernels import quasisep
 
 
 class MultiVarModel(eqx.Module):
@@ -251,105 +250,6 @@ class MultiVarModel(eqx.Module):
                 kernel,
                 (t[inds], band[inds]),
                 **gp_kwargs,
-            ),
-            inds,
-        )
-
-
-class MultiVarModelFFT(MultiVarModel):
-    """MultiVarModelFFT is a subclass of MultiVarModel for modeling multivariate
-    time series data using Gaussian Processes with FFT-based transfer functions.
-
-    This class extends the MultiVarModel by adding support for full-rank
-    cross-band covariance matrices and user-defined transfer functions.
-
-    The transfer_function needs to have the form:
-    def f(X, **kwargs):
-        # Some calculation
-        p = jax.scipy.stats.norm.pdf(X[0], 5)
-        return p
-    See transfer_functions.py module
-
-    Args:
-        has_decorrelation (bool): Whether to add a decorrelation matrix to the
-            kernel. Default is False.
-        transfer_function (None | Callable): User-defined transfer function to
-            use. Default is None.
-
-    ..note::
-        This model is still in development, please use with caution.
-    """
-
-    has_decorrelation: bool = False
-    transfer_function: None | Callable = None
-
-    def __init__(
-        self,
-        X: JAXArray,
-        y: JAXArray | NDArray,
-        yerr: JAXArray | NDArray,
-        kernel: tinygp.kernels.Kernel,
-        **kwargs,
-    ) -> None:
-        self.X = (jnp.asarray(X[0]), jnp.asarray(X[1], dtype=int))
-        self.diag = yerr**2
-        self.y = y
-        self.kernel_def = jax.flatten_util.ravel_pytree(kernel)[1]
-        self.zero_mean = kwargs.get("zero_mean", True)
-        self.has_jitter = kwargs.get("has_jitter", False)
-        self.has_lag = kwargs.get("has_lag", False)
-        self.has_decorrelation = kwargs.get("has_decorrelation", False)
-        self.transfer_function = kwargs.get("transfer_function", None)
-
-    def _build_gp(
-        self, params: dict[str, JAXArray]
-    ) -> tuple[GaussianProcess, JAXArray]:
-        # log amp + mean
-        log_amps = self.amp_transform(params)
-        means = partial(
-            MultiVarModel.mean_func, self.zero_mean, log_amps.shape[0], params
-        )
-
-        # time axis transform: t and band are not sorted,
-        # inds gives the sorted indices for the new_t
-        X, inds = self.lag_transform(self.X, self.has_lag, params)
-        t = X[0]
-        band = X[1]
-
-        # add jitter to the diagonal
-        if self.has_jitter is True:
-            diags = self.diag[inds] + (jnp.exp(params["log_jitter"]) ** 2)[band[inds]]
-        else:
-            diags = self.diag[inds]
-
-        # def kernel
-        if self.transfer_function is None:
-            kernel = direct.MultibandLowRank(
-                amplitudes=jnp.exp(log_amps),
-                kernel=self.kernel_def(jnp.exp(params["log_kernel_param"])),
-            )
-        # full transfer function calculation
-        else:
-            kernel = direct.MultibandFFT(
-                amplitudes=jnp.exp(log_amps),
-                kernel=self.kernel_def(jnp.exp(params["log_kernel_param"])),
-                transfer_function=jax.tree_util.Partial(self.transfer_function),
-                **params,
-            )
-        # add the decorrelation matrix
-        if self.has_decorrelation is True:
-            nBand = params["log_amp_delta"].size + 1
-            log_diagonal = jnp.zeros(nBand)
-            kernel = direct.MultibandFullRank(
-                kernel, jnp.exp(log_diagonal), params["off_diagonal"]
-            )
-
-        return (
-            GaussianProcess(
-                kernel,
-                (t[inds], band[inds]),
-                diag=diags,
-                mean=means,
             ),
             inds,
         )
