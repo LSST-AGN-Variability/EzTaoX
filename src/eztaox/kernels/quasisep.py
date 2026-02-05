@@ -800,15 +800,7 @@ class LaguerreSeries(Quasisep):
     kernel: Kernel
     order: int = eqx.field(static=True)
     n_quad: int = eqx.field(static=True)
-
-    def __post_init__(self):
-        if not hasattr(self.kernel, "scale"):
-            raise ValueError("Kernel must have a 'scale' attribute")
-
-    @property
-    def scale(self) -> jax.Array | float:
-        """Scale parameter from the wrapped kernel."""
-        return self.kernel.scale
+    scale: float = eqx.field(static=True)
 
     def _quadrature(self) -> tuple[NDArray, NDArray]:
         """Get quadrature nodes and weights."""
@@ -844,10 +836,10 @@ class LaguerreSeries(Quasisep):
         """Block diagonal of scaled stationary covariances."""
         basis = self._basis()
         return jax.scipy.linalg.block_diag(
-            *[
+            *(
                 c * b.stationary_covariance()
-                for c, b in zip(self._coeffs(), basis, strict=False)
-            ]
+                for c, b in zip(self._coeffs(), basis, strict=True)
+            )
         )
 
     def observation_model(self, X: jax.Array) -> jax.Array:
