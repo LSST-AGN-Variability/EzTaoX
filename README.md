@@ -9,7 +9,7 @@
 [![codecov](https://codecov.io/gh/LSST-AGN-Variability/EzTaoX/branch/main/graph/badge.svg)](https://codecov.io/gh/LSST-AGN-Variability/EzTaoX)
 [![benchmarks](https://img.shields.io/github/actions/workflow/status/LSST-AGN-Variability/EzTaoX/asv-main.yml?label=benchmarks)](https://LSST-AGN-Variability.github.io/EzTaoX/)
 
-<!--TODO: the mybinder badge-->
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LSST-AGN-Variability/EzTaoX/HEAD?urlpath=docs%2Fnotebooks)
 
 `EzTaoX` is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of `tinygp`---a scalable GP library in `JAX`---`EzTaoX` is fast, modular, and integrates seamlessly with the `JAX` ecosystem for statistical inference and modern machine learning.
 

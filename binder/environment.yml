@@ -1,0 +1,13 @@
+name: eztaox
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - matplotlib
+  - eztaox
+  - arviz
+  - celerite
+  - pip
+  - pip:
+    - eztao
