@@ -71,19 +71,18 @@ def test_laguerre_inv() -> None:
 
 
 @pytest.mark.parametrize(
-    ("kernel", "laguerre_scale", "atol"),
+    ("kernel", "atol"),
     [
-        (quasisep.Exp(scale=10.0, sigma=5.0), 10.0, 1e-9),
-        (quasisep.Matern32(scale=10.0, sigma=0.4), 10.0 / np.sqrt(3), 1e-3),
-        # (tinygp.kernels.ExpSquared(scale=10.0), 10.0, 1e-2),
+        (quasisep.Exp(scale=10.0, sigma=5.0), 1e-9),
+        (quasisep.Matern32(scale=10.0, sigma=0.4), 1e-3),
     ],
 )
-def test_laguerre_series(kernel, laguerre_scale, atol) -> None:
+def test_laguerre_series(kernel, atol) -> None:
     """Test LaguerreSeries approximation of kernels."""
     test_x = np.r_[0, np.geomspace(1e-2, 1e2, 10)]
     dx_matrix = jnp.abs(test_x[:, None] - test_x[None, :])
 
-    laguerre = LaguerreSeries(kernel=kernel, order=10, n_quad=100, scale=laguerre_scale)
+    laguerre = LaguerreSeries(kernel=kernel, order=10, n_quad=100)
 
     # Check parameter count matches
     kernel_leaves = jax.tree_util.tree_leaves(kernel)
@@ -129,15 +128,13 @@ def simulate(kernel, tau, sigma):
 
 
 @pytest.mark.parametrize(
-    ("kernel_cls", "order", "laguerre_scale_factor", "atol"),
+    ("kernel_cls", "order", "atol"),
     [
-        (quasisep.Exp, 2, 1.0, 1e-7),
-        (quasisep.Matern32, 3, 1 / np.sqrt(3), 1e-3),
+        (quasisep.Exp, 2, 1e-7),
+        (quasisep.Matern32, 3, 1e-3),
     ],
 )
-def test_laguerre_decomposition_kernel_sim(
-    kernel_cls, order, laguerre_scale_factor, atol
-) -> None:
+def test_laguerre_decomposition_kernel_sim(kernel_cls, order, atol) -> None:
     """End-to-end test of laguerre decomposition for fitting."""
     tau_true = 412.0
     sigma_true = 0.9
@@ -147,7 +144,9 @@ def test_laguerre_decomposition_kernel_sim(
     expected_t, expected_y = simulate(kernel, tau=tau_true, sigma=sigma_true)
 
     decomposed_kernel = LaguerreSeries(
-        kernel, order=order, n_quad=50, scale=tau_true * laguerre_scale_factor
+        kernel,
+        order=order,
+        n_quad=50,
     )
     actual_t, actual_y = simulate(decomposed_kernel, tau=tau_true, sigma=sigma_true)
 
@@ -156,15 +155,13 @@ def test_laguerre_decomposition_kernel_sim(
 
 
 @pytest.mark.parametrize(
-    ("kernel_cls", "order", "laguerre_scale_factor", "rtol"),
+    ("kernel_cls", "order", "rtol"),
     [
-        (quasisep.Exp, 2, 1.0, 1e-2),
-        (quasisep.Matern32, 3, 1 / np.sqrt(3), 1e-2),
+        (quasisep.Exp, 2, 1e-4),
+        (quasisep.Matern32, 4, 1e-2),
     ],
 )
-def test_laguerre_decomposition_kernel_fit(
-    kernel_cls, order, laguerre_scale_factor, rtol
-) -> None:
+def test_laguerre_decomposition_kernel_fit(kernel_cls, order, rtol) -> None:
     def init_sampler():
         # GP kernel param
         log_drw_scale = numpyro.sample(
@@ -180,7 +177,7 @@ def test_laguerre_decomposition_kernel_fit(
         return sample_params
 
     fit_key = jax.random.PRNGKey(1)
-    n_sample = 10_000
+    n_sample = 100
     n_best = 10  # it seems like this number needs to be high
 
     true_tau = 78.55
@@ -196,9 +193,7 @@ def test_laguerre_decomposition_kernel_fit(
     orig_params = jnp.exp(orig_ln_params["log_kernel_param"])
     assert_allclose(orig_params, jnp.array([true_tau, true_sigma]), rtol=1e-1)
 
-    decomposed_kernel = LaguerreSeries(
-        orig_kernel, order=order, n_quad=50, scale=laguerre_scale_factor * true_tau
-    )
+    decomposed_kernel = LaguerreSeries(orig_kernel, order=order, n_quad=100)
     decomposed_model = UniVarModel(t, y, yerr, decomposed_kernel, zero_mean=True)
     decomposed_ln_params, decomposed_ll = random_search(
         decomposed_model, init_sampler, fit_key, n_sample, n_best

@@ -5,6 +5,7 @@ achieve a O(N) scaling. This module extends the `tinygp.kernels.quasisep` module
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import equinox as eqx
@@ -800,32 +801,50 @@ class LaguerreSeries(Quasisep):
     kernel: Kernel
     order: int = eqx.field(static=True)
     n_quad: int = eqx.field(static=True)
-    scale: float = eqx.field(static=True)
+
+    def __post_init__(self):
+        if not hasattr(self.kernel, "scale"):
+            raise ValueError("Kernel must have a 'scale' attribute")
+
+    @property
+    def _vmap_func(self) -> Callable[[jax.Array], jax.Array]:
+        return jax.vmap(lambda x: self.kernel.evaluate(x, jnp.array(0.0)))
 
     def _quadrature(self) -> tuple[NDArray, NDArray]:
         """Get quadrature nodes and weights."""
         return np.polynomial.laguerre.laggauss(self.n_quad)
 
-    def _lag_vals(self, nodes: NDArray) -> NDArray:
+    def _laguerre_vals(self, nodes: NDArray) -> NDArray:
         """Evaluate Laguerre polynomials at 2*nodes for orders 0..order."""
         return np.polynomial.laguerre.lagval(2 * nodes, np.eye(self.order + 1)).T
+
+    def _scale(self):
+        nodes, _ = self._quadrature()
+        kernel_scale = self.kernel.scale
+        x_nodes = nodes * kernel_scale
+        ln_f_vals = jnp.log(self._vmap_func(x_nodes))
+        fit_scale = -jnp.sum(jnp.square(x_nodes)) / jnp.sum(ln_f_vals * x_nodes)
+        # Clip for bad fits
+        fit_scale = jnp.clip(fit_scale, 1e-2 * kernel_scale, 1e2 * kernel_scale)
+        return fit_scale
 
     def _coeffs(self) -> jax.Array:
         """Compute Laguerre coefficients from the wrapped kernel."""
         nodes, weights = self._quadrature()
-        lag_vals = self._lag_vals(nodes)
+        laguerre_vals = self._laguerre_vals(nodes)
+        laguerre_scale = self._scale()
 
-        func = jax.vmap(lambda x: self.kernel.evaluate(x, jnp.array(0.0)))
-        x_nodes = nodes * self.scale
-        f_vals = func(x_nodes)
+        x_nodes = nodes * laguerre_scale
+        f_vals = self._vmap_func(x_nodes)
 
-        prefactor = jnp.sqrt(2.0 * self.scale)
+        prefactor = jnp.sqrt(2.0 * laguerre_scale)
         weighted_signal = weights * f_vals
-        return prefactor * (weighted_signal @ lag_vals)
+        return prefactor * (weighted_signal @ laguerre_vals)
 
     def _basis(self) -> list[_Laguerre]:
         """Create Laguerre basis functions for each order."""
-        return [_Laguerre(order=i, scale=self.scale) for i in range(self.order + 1)]
+        laguerre_scale = self._scale()
+        return [_Laguerre(order=i, scale=laguerre_scale) for i in range(self.order + 1)]
 
     def design_matrix(self) -> jax.Array:
         """Block diagonal of individual design matrices."""
