@@ -61,3 +61,17 @@ def formatlc(
     ).astype(int)
 
     return (tss, band_idxs), yss, yerrss
+
+
+def add_noise(y: JAXArray, yerr: JAXArray, key: jax.random.PRNGKey) -> JAXArray:
+    """
+    Add Gaussian noise to a time series given measurement uncertainties.
+    JAX-compatible (works with jit/vmap).
+    """
+    y = jnp.asarray(y)
+    yerr = jnp.asarray(yerr)
+
+    # JAX needs an explicit PRNG key
+    noise = jax.random.normal(key, shape=y.shape, dtype=y.dtype) * yerr
+
+    return y + noise
