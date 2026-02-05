@@ -1,4 +1,4 @@
-name: eztao
+name: eztaox
 channels:
   - conda-forge
 dependencies:
