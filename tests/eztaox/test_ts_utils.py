@@ -65,10 +65,11 @@ def test_formatlc() -> None:
     # Verify outputs
     expected_X = (
         np.array([1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0]),
-        np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0]),
+        np.array([0, 0, 0, 1, 1, 1, 2, 2, 2]),
     )
     assert np.allclose(X[0], expected_X[0])
     assert np.allclose(X[1], expected_X[1])
+    assert X[1][0].dtype == int
 
     expected_y = np.array([-0.2, 0.7, 0.1, -0.2, 0.7, 0.1, -0.2, 0.7, 0.1])
     assert np.allclose(y, expected_y)
