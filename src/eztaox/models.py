@@ -168,6 +168,31 @@ class MultiVarModel(eqx.Module):
         gp, inds = self._build_gp(params)
         return gp.log_probability(y=self.y[inds]) + self.log_prior(params)
 
+    def AIC(self, params: dict[str, JAXArray]) -> JAXArray:
+        """Calculate the Akaike Information Criterion (AIC) for the model.
+
+        Args:
+            params (dict[str, JAXArray]): Model parameters.
+        Returns:
+            JAXArray: AIC value.
+        """
+        k = sum(p.size for p in params.values())
+        log_likelihood = self.log_prob(params)
+        return 2 * k - 2 * log_likelihood
+
+    def BIC(self, params: dict[str, JAXArray]) -> JAXArray:
+        """Calculate the Bayesian Information Criterion (BIC) for the model.
+
+        Args:
+            params (dict[str, JAXArray]): Model parameters.
+        Returns:
+            JAXArray: BIC value.
+        """
+        n = self.y.size
+        k = sum(p.size for p in params.values())
+        log_likelihood = self.log_prob(params)
+        return jnp.log(n) * k - 2 * log_likelihood
+
     def sample(self, params: dict[str, JAXArray]) -> None:
         """A convience function for intergrating with numpyro for MCMC sampling.
 
