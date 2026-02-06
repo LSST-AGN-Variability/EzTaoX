@@ -1,4 +1,4 @@
-"""Benchmarks for EzTaoX"""
+"""Benchmarks for EzTaoX simulation"""
 
 import eztaox.kernels.quasisep as ekq
 import jax
