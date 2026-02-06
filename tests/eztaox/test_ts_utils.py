@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from eztaox.ts_utils import _get_nearest_idx, downsampleByTime, formatlc
+from eztaox.ts_utils import _get_nearest_idx, add_noise, downsampleByTime, formatlc
 
 
 def test_get_nearest_idx() -> None:
@@ -76,3 +76,28 @@ def test_formatlc() -> None:
 
     expected_yerr = np.array([0.08, 0.1, 0.03, 0.08, 0.1, 0.03, 0.08, 0.1, 0.03])
     assert np.allclose(yerr, expected_yerr)
+
+
+def test_addNoise() -> None:  # noqa: N802
+    """Test the noise addition utility."""
+
+    import jax
+    import jax.numpy as jnp
+    from scipy.stats import kstest
+
+    key = jax.random.PRNGKey(0)
+    key, k1, k2, k3 = jax.random.split(key, 4)
+    y = jax.random.normal(k1, (10000,))
+    yerr = jax.random.uniform(k2, (10000,), minval=0.1, maxval=0.5)
+
+    # Add noise
+    noisy_y = add_noise(y, yerr, k3)
+    # Verify that noise has been added (not equal to original)
+    assert not jnp.allclose(noisy_y, y)
+
+    # Verify that the noise is Gaussian
+    std_diff = (noisy_y - y) / yerr
+    res = kstest(std_diff, "norm", args=(0, 1))
+
+    print(res.pvalue)
+    assert res.pvalue > 0.05  # Fail if p-value < 5%
