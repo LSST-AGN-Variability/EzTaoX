@@ -55,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+prof/
+.jax_cache/
 
 # Translations
 *.mo
