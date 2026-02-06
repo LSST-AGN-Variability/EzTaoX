@@ -67,12 +67,13 @@ def add_noise(y: JAXArray, yerr: JAXArray, key: jax.random.PRNGKey) -> JAXArray:
     """
     Add Gaussian noise to a time series given measurement uncertainties.
     JAX-compatible (works with jit/vmap).
-    
+
     Args:
         y (JAXArray): Input values to which noise will be added.
         yerr (JAXArray): Associated errors for the input values.
-        key (jax.random.PRNGKey): Pseudorandom number generator key used to draw the noise samples.
-    
+        key (jax.random.PRNGKey): Pseudorandom number generator key used to
+            draw the noise samples.
+
     Returns:
         JAXArray: Array of the same shape as ``y`` with additive Gaussian noise applied.
     """
