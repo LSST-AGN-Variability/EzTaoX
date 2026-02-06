@@ -11,6 +11,7 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
+import tinygp.kernels as tk
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
@@ -73,7 +74,7 @@ class MultiVarModel(eqx.Module):
         X: tuple[JAXArray | NDArray, JAXArray | NDArray],
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        base_kernel: quasisep.Quasisep,
+        base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
         multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
         mean_func: Callable | None = None,
@@ -81,9 +82,6 @@ class MultiVarModel(eqx.Module):
         lag_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        if not isinstance(base_kernel, quasisep.Quasisep):
-            raise TypeError("This model only takes quasiseperable kernels.")
-
         # format inputs
         t = jnp.asarray(X[0])
         inds = jnp.argsort(t)
@@ -268,13 +266,18 @@ class MultiVarModel(eqx.Module):
             kernel=self.base_kernel_def(jnp.exp(new_params["log_kernel_param"])),
         )
 
+        gp_kwargs = {
+            "diag": diags[inds],
+            "mean": means,
+        }
+        if isinstance(kernel, tkq.Quasisep):
+            gp_kwargs["assume_sorted"] = True
+
         return (
             GaussianProcess(
                 kernel,
                 (t[inds], band[inds]),
-                diag=diags[inds],
-                mean=means,
-                assume_sorted=True,
+                **gp_kwargs,
             ),
             inds,
         )
