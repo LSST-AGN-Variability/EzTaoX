@@ -1,4 +1,50 @@
 {
+    "fitting.KernelFittingSuite.time_run_exp_fitting": {
+        "code": "class KernelFittingSuite:\n    def time_run_exp_fitting(self, _):\n        self.loss_exp(self.fitting_params).block_until_ready()\n\n    def setup(self, n):\n        X, y, diag = generate_data(n)\n        fitting_params = {\n            \"log_kernel_param\": jnp.log(jnp.array([100, 0.1])),\n            \"log_amp_delta\": jnp.log(0.6),\n            \"lag\": jnp.array(10),\n        }\n        self.loss_exp = _precompile_exp_loss(X, y, diag, fitting_params)\n        self.loss_m32 = _precompile_m32_loss(X, y, diag, fitting_params)\n        self.fitting_params = fitting_params",
+        "min_run_count": 2,
+        "name": "fitting.KernelFittingSuite.time_run_exp_fitting",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "20",
+                "100",
+                "1000"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "type": "time",
+        "unit": "seconds",
+        "version": "8d7060d346562a7f82266259a6e58b76c03eba5369098e13ece44cb68c7b62fb",
+        "warmup_time": -1
+    },
+    "fitting.KernelFittingSuite.time_run_m32_fitting": {
+        "code": "class KernelFittingSuite:\n    def time_run_m32_fitting(self, _):\n        self.loss_m32(self.fitting_params).block_until_ready()\n\n    def setup(self, n):\n        X, y, diag = generate_data(n)\n        fitting_params = {\n            \"log_kernel_param\": jnp.log(jnp.array([100, 0.1])),\n            \"log_amp_delta\": jnp.log(0.6),\n            \"lag\": jnp.array(10),\n        }\n        self.loss_exp = _precompile_exp_loss(X, y, diag, fitting_params)\n        self.loss_m32 = _precompile_m32_loss(X, y, diag, fitting_params)\n        self.fitting_params = fitting_params",
+        "min_run_count": 2,
+        "name": "fitting.KernelFittingSuite.time_run_m32_fitting",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "20",
+                "100",
+                "1000"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "type": "time",
+        "unit": "seconds",
+        "version": "1cb1738d950119f7be5e1755594df0474356c08e93c982252fe4d33b59a71359",
+        "warmup_time": -1
+    },
     "simulator.UnivariateSimulatorSuite.time_run_sim": {
         "code": "class UnivariateSimulatorSuite:\n    def time_run_sim(self):\n        return self.s.fixed_input(self.t, self.lc_key)\n\n    def setup(self):\n        tau_true = 5.891242982962032\n        sigma_true = 0.13896505738419102\n        drw_true = ekq.Exp(scale=tau_true, sigma=sigma_true)\n        log_kernel_param = jnp.stack([jnp.log(tau_true), jnp.log(sigma_true)])\n        self.t = jnp.arange(0.0, 4000.0, 1.0)\n        self.s = UniVarSim(\n            drw_true,\n            min_dt=0.01,\n            max_dt=float(self.t[-1]),\n            init_params={\"log_kernel_param\": log_kernel_param},\n            zero_mean=True,\n        )\n        self.lc_key = jax.random.PRNGKey(11)",
         "min_run_count": 2,
