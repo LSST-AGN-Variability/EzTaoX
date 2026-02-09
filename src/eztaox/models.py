@@ -21,7 +21,7 @@ from eztaox.kernels import quasisep
 
 class MultiVarModel(eqx.Module):
     """
-    An interface for modeling multivariate/mutli-band time series using GPs.
+    An interface for modeling multivariate/multi-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This
