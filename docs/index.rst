@@ -33,7 +33,7 @@ between light curves; the CCF reaches its maximum when one light curve is shifte
 amount corresponding to the intrinsic lag. 
 These methods are typically fast and computationally efficient, but are limited to lag estimation and 
 do not provide a full characterization of the underlying variability process.
-The second category consists of methods that model each observed light curves as the convolution of 
+The second category consists of methods that model each observed light curve as the convolution of 
 an unknown driving continuum with a time-lag distribution, represented by a transfer function.
 While such methods provide a more comprehensive treatment by jointly modeling variability and inter-band lags, 
 they are often computationally demanding.
@@ -56,7 +56,7 @@ MultiBand Modeling Basics
 
 The ``EzTaoX`` multi-band model assumes light curves in different bands are generated from the same 
 underlying latent GP, however, with different amplitudes in each band. 
-In addition, light curves in different band can posses time delays with respect to each other. 
+In addition, light curves in different bands can posses time delays with respect to each other. 
 The corresponding kernel function is written as:
 :math:`k(|t_j - t_i|) = S_{1}S_{2}\,k_{\rm latent}(|t_j - t_i - \tau_{\rm lag}|)`
 where :math:`S` is a scale factor to transform the amplitude of the underlying latent GP to 
@@ -86,12 +86,12 @@ Code Structure
 
     - ``direct``: Kernels following a :math:`O(N^3)` computational complexity.
     - ``quasisep``: Kernels following a :math:`O(N)` computational complexity. 
-      This module consists of kernels from in the ``tinygp.kernels.quasisep`` module, and modified to 
+      This module consists of kernels from the ``tinygp.kernels.quasisep`` module, and modified to 
       provide new functionalities. 
 - ``models``: Light curve models module; the fundamental interface of `EzTaoX` for performing light curve modeling. 
   See tutorials linked below for usage examples.
 - ``fitter``: A module of fitter functions. See tutorials linked below for usage examples.
-- ``kernel_stat2``: A module of classes/functions to calculate 2nd order statistic of any (and combinations of) 
+- ``kernel_stat2``: A module of classes/functions to calculate 2nd order statistics of any (and combinations of) 
   GP kernels included in the ``kernels.quasisep`` module 
 - ``simulator``: A module providing classes to simulate GP time series given input kernels. 
 - ``ts_utils``: A module of utility functions for time-series/light-curve processing. 
@@ -99,7 +99,7 @@ Code Structure
 Note: ``direct`` vs ``quasisep``
 ---------------------------------------------------------------
 
-``tinygp`` provides two solver for GP kernels: ``direct`` and ``quasisep``. 
+``tinygp`` provides two solvers for GP kernels: ``direct`` and ``quasisep``. 
 The ``direct`` solver follows the standard approach to perform linear algebra operations needed to evaluate the 
 GP likelihood function. The standard approach can be applied to a broader range of GP kernels, however, 
 obeys a :math:`O(N^3)` computational scaling, where N is the number of data points in the provided time series. 
@@ -125,7 +125,9 @@ Please see `here <https://tinygp.readthedocs.io/en/stable/api/kernels.quasisep.h
 - `SHO`: The noise-driven simple harmonic oscillator kernel.
 - `Celerite`: The base kernel of the `celerite` algorithm. This kernel is not recommended to use directly.
 - `Lorentzian`: The Lorentzian kernel. The product of an `Exp` and a `Cosine` kernel, and the scales of which are correlated. See the doc string for the definition. 
-- `CARMA`: Continuous-time auto-regressive moving-average (CARMA) kernel. In the current version, CARMA process that are more complex than CAMRA(2,1) might raise bugs. 
+- `CARMA`: Continuous-time auto-regressive moving-average (CARMA) kernel. In the current version, CARMA processes that are more complex than CARMA(2,1) might raise bugs.
+- `MultibandLowRank`: A multiband kernel implementating a low-rank Kronecker covariance structure.
+- `LaguerreSeries`: Laguerre series approximation of a stationary kernel.
 
 **Note:** You can build new kernels from combining kernels in the list above, and the new kernel will still work in the `EzTaoX` framework.
 
