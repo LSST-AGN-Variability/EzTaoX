@@ -1,6 +1,6 @@
 exclude: '^.md'
 default_language_version:
-    python: python3.12
+    python: python3.11
 
 
 repos:
