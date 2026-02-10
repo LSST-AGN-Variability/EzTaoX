@@ -1,8 +1,9 @@
 """Benchmarks for EzTaoX simulation"""
 
-import eztaox.kernels.quasisep as ekq
 import jax
 import jax.numpy as jnp
+
+import eztaox.kernels.quasisep as ekq
 from eztaox.simulator import UniVarSim
 
 
