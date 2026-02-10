@@ -1,11 +1,12 @@
 """Benchmarks for EzTaoX kernel fitting"""
 
-import eztaox.kernels.quasisep as ekq
 import jax
 import jax.numpy as jnp
 import tinygp
-from eztaox.simulator import UniVarSim
 from tinygp import GaussianProcess, kernels
+
+import eztaox.kernels.quasisep as ekq
+from eztaox.simulator import UniVarSim
 
 
 class KernelFittingSuite:
