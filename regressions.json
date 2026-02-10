@@ -1,1 +1,1 @@
-{"regressions": []}
+{"regressions": [["simulator.UnivariateSimulatorSuite.time_run_sim", "graphs/Cython/branch-HEAD/build/env-OMP_NUM_THREADS-1/machine-gh-runner/packaging/python-3.12/simulator.UnivariateSimulatorSuite.time_run_sim.json", {}, null, 5.363765072499994, 2.03697934500002, [[null, 162, 2.03697934500002, 5.363765072499994]]]]}
