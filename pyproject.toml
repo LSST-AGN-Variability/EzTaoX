@@ -68,6 +68,7 @@ ruff = "^0.15.0"
 matplotlib = ">3.7.0"
 arviz = "^0.20.0"
 ipywidgets = "^8.1.5"
+black = "^26.1.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.0.0"
@@ -76,13 +77,6 @@ nox = "^2025.0.0"
 nox-poetry = "^1.2.0"
 celerite = "^0.4.0"
 eztao = {git = "https://github.com/ywx649999311/EzTao.git"}
-
-
-[tool.poetry.group.docs.dependencies]
-toml = "^0.10.2"
-Sphinx = "^8.0.0"
-nbsphinx = "^0.9.0"
-sphinx-copybutton = "^0.5.2"
 
 [tool.jupytext]
 formats = "ipynb,py:percent"
