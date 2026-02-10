@@ -92,6 +92,9 @@ addopts = "--doctest-modules --doctest-glob=*.rst"
 [tool.black]
 line-length = 88
 
+[tool.ruff]
+src = ["src", "tests"]
+
 [tool.ruff.lint]
 select = [
     # pycodestyle
