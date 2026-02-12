@@ -233,7 +233,6 @@ def test_multivar_pred_unsorted_inputs(data, kernel, random) -> None:
     assert_allclose(mean_unsorted[idx], mean_sorted)
     assert_allclose(std_unsorted[idx], std_sorted)
 
-<<<<<<< HEAD:tests/eztaox/test_models_quasisep.py
 
 def test_aic_bic(data, kernel, random) -> None:
     x, y, b = data
@@ -260,7 +259,8 @@ def test_aic_bic(data, kernel, random) -> None:
 
     assert_allclose(aic, expected_aic)
     assert_allclose(bic, expected_bic)
-=======
+
+
 def test_univar_qs_vs_nonqs_exp_same(data, random):
     x, y, _ = data
     yerr = jnp.ones_like(x) * 0.1
@@ -308,4 +308,3 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
     assert_allclose(g_qs["log_kernel_param"], g_nonqs["log_kernel_param"])
     assert_allclose(g_qs["mean"], g_nonqs["mean"])
     assert_allclose(g_qs["log_jitter"], g_nonqs["log_jitter"])
->>>>>>> 6413b80 (add univar non-qs to qs test):tests/test_models_quasisep.py
