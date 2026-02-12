@@ -22,7 +22,7 @@ from eztaox.kernels import quasisep
 
 class MultiVarModel(eqx.Module):
     """
-    An interface for modeling multivariate/mutli-band time series using GPs.
+    An interface for modeling multivariate/multi-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This
@@ -45,11 +45,12 @@ class MultiVarModel(eqx.Module):
         lag_func(Callable, optional): A callable function for time delays between bands,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
-            has_jitter (bool): If True, assumes the input observational erros
-                are underestimated. Defaults to False.
-            has_lag (bool): If True, assumes time delays between time series in
-                each band. Defaults to False.
+
+            - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
+            - `has_jitter` (bool): If True, assumes the input observational erros
+              are underestimated. Defaults to False.
+            - `has_lag` (bool): If True, assumes time delays between time series in
+              each band. Defaults to False.
 
     Raises:
         TypeError: If base_kernel is not one from the kernels.quasisep module.
@@ -166,6 +167,33 @@ class MultiVarModel(eqx.Module):
         gp, inds = self._build_gp(params)
         return gp.log_probability(y=self.y[inds]) + self.log_prior(params)
 
+    def aic(self, params: dict[str, JAXArray]) -> JAXArray:
+        """Calculate the Akaike Information Criterion (AIC) for the model.
+
+        Args:
+            params (dict[str, JAXArray]): Model parameters.
+        Returns:
+            JAXArray: AIC value.
+        """
+        k = len(jax.flatten_util.ravel_pytree(params)[0])
+        gp, inds = self._build_gp(params)
+        log_likelihood = gp.log_probability(y=self.y[inds])
+        return 2 * k - 2 * log_likelihood
+
+    def bic(self, params: dict[str, JAXArray]) -> JAXArray:
+        """Calculate the Bayesian Information Criterion (BIC) for the model.
+
+        Args:
+            params (dict[str, JAXArray]): Model parameters.
+        Returns:
+            JAXArray: BIC value.
+        """
+        n = self.y.size
+        k = len(jax.flatten_util.ravel_pytree(params)[0])
+        gp, inds = self._build_gp(params)
+        log_likelihood = gp.log_probability(y=self.y[inds])
+        return jnp.log(n) * k - 2 * log_likelihood
+
     def sample(self, params: dict[str, JAXArray]) -> None:
         """A convience function for intergrating with numpyro for MCMC sampling.
 
@@ -188,7 +216,7 @@ class MultiVarModel(eqx.Module):
 
         Returns:
             tuple[JAXArray, JAXArray]: A tuple of the mean GP prediction and its
-                uncertainty (square root of the predicted variance).
+            uncertainty (square root of the predicted variance).
         """
         # transform time axis
         new_X, _ = self.lag_transform(self.has_lag, params, X)
@@ -269,9 +297,10 @@ class UniVarModel(MultiVarModel):
         amp_scale_func(Callable, optional): A callable amplitude scaling function,
             defaults to None.
         **kwargs: Additional keyword arguments.
-            zero_mean (bool): If True, assumes zero-mean GP. Defaults to True.
-            has_jitter (bool): If True, assumes the input observational erros
-                are underestimated. Defaults to False.
+
+            - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
+            - `has_jitter` (bool): If True, assumes the input observational erros
+              are underestimated. Defaults to False.
 
     Raises:
         TypeError: If kernel is not one from the kernels.quasisep module.
@@ -327,7 +356,7 @@ class UniVarModel(MultiVarModel):
 
         Returns:
             tuple[JAXArray, JAXArray]: A tuple of the mean GP prediction and its
-                uncertainty (square root of the predicted variance).
+            uncertainty (square root of the predicted variance).
         """
         # build gp, cond
         gp, inds = self._build_gp(params)

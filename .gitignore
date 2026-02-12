@@ -55,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+prof/
+.jax_cache/
 
 # Translations
 *.mo
@@ -179,3 +181,6 @@ _html/
 
 # Project initialization script
 .initialize_new_project.sh
+
+# Poetry
+poetry.lock

@@ -4,7 +4,7 @@ Notebooks
 These notebooks are available for live experimentation in a binder instance.
 
 .. image:: https://mybinder.org/badge_logo.svg
-  :target: https://mybinder.org/v2/gh/LSST-AGN-Variability/EzTaoX/HEAD?urlpath=docs%2Fnotebooks
+  :target: https://mybinder.org/v2/gh/LSST-AGN-Variability/EzTaoX/HEAD?urlpath=/lab/tree/docs/notebooks
 
 .. toctree::
 
