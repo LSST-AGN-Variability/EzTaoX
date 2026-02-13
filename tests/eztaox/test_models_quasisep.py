@@ -298,6 +298,10 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
         "log_jitter": log_jitter,
     }
 
+    # Reformat params
+    lk = p_nonqs["log_kernel_param"]
+    p_nonqs["log_kernel_param"] = jnp.stack([lk[1], 0.5 * lk[0]])
+
     # Log-prob equality
     assert_allclose(m_qs.log_prob(p_qs), m_nonqs.log_prob(p_nonqs))
 
