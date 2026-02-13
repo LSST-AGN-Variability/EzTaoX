@@ -73,7 +73,7 @@ class MultiVarModel(eqx.Module):
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
-        multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
+        multiband_kernel: tkq.Wrapper | None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
@@ -94,6 +94,11 @@ class MultiVarModel(eqx.Module):
         self.nBand = nBand
 
         # assign callables/classes
+        if multiband_kernel is None:
+            if isinstance(base_kernel, quasisep.Quasisep):
+                multiband_kernel = quasisep.MultibandLowRank
+            else:
+                multiband_kernel = direct.MultibandLowRank
         self.multiband_kernel = multiband_kernel
         self.mean_func = mean_func
         self.amp_scale_func = amp_scale_func
