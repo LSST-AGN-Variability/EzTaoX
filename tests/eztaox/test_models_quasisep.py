@@ -8,6 +8,7 @@ from numpy import random as np_random
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 from tinygp.test_utils import assert_allclose
+from tinygp.kernels import Exp as Exp_nonqs
 
 from eztaox.kernels import quasisep
 from eztaox.models import MultiVarModel, UniVarModel
@@ -271,9 +272,7 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
     # Quasisep kernel
     k_qs = quasisep.Exp(sigma=sigma, scale=scale)
 
-    # Non-quasisep tinygp kernel
-    from tinygp.kernels import Exp as Exp_nonqs
-    
+    # Non-quasisep tinygp kernel    
     k_nonqs = sigma**2 * Exp_nonqs(scale=scale)
 
     mean = jnp.array(random.uniform(-1, 1))
