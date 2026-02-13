@@ -273,6 +273,7 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
 
     # Non-quasisep tinygp kernel
     from tinygp.kernels import Exp as Exp_nonqs
+    
     k_nonqs = sigma**2 * Exp_nonqs(scale=scale)
 
     mean = jnp.array(random.uniform(-1, 1))
