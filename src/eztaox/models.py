@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
-from eztaox.kernels import quasisep
+from eztaox.kernels import quasisep, direct
 
 
 class MultiVarModel(eqx.Module):
