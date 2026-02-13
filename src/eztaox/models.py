@@ -51,9 +51,6 @@ class MultiVarModel(eqx.Module):
               are underestimated. Defaults to False.
             - `has_lag` (bool): If True, assumes time delays between time series in
               each band. Defaults to False.
-
-    Raises:
-        TypeError: If base_kernel is not one from the kernels.quasisep module.
     """
 
     X: tuple[JAXArray, JAXArray]
@@ -301,9 +298,6 @@ class UniVarModel(MultiVarModel):
             - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
             - `has_jitter` (bool): If True, assumes the input observational erros
               are underestimated. Defaults to False.
-
-    Raises:
-        TypeError: If kernel is not one from the kernels.quasisep module.
     """
 
     def __init__(
@@ -311,7 +305,7 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: quasisep.Quasisep,
+        kernel: tk.Kernel | quasisep.Quasisep,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         **kwargs,
