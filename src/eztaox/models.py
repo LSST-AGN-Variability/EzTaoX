@@ -11,12 +11,13 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
+import tinygp.kernels as tk
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
-from eztaox.kernels import quasisep
+from eztaox.kernels import direct, quasisep
 
 
 class MultiVarModel(eqx.Module):
@@ -50,9 +51,6 @@ class MultiVarModel(eqx.Module):
               are underestimated. Defaults to False.
             - `has_lag` (bool): If True, assumes time delays between time series in
               each band. Defaults to False.
-
-    Raises:
-        TypeError: If base_kernel is not one from the kernels.quasisep module.
     """
 
     X: tuple[JAXArray, JAXArray]
@@ -73,17 +71,14 @@ class MultiVarModel(eqx.Module):
         X: tuple[JAXArray | NDArray, JAXArray | NDArray],
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        base_kernel: quasisep.Quasisep,
+        base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
-        multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
+        multiband_kernel: tkq.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        if not isinstance(base_kernel, quasisep.Quasisep):
-            raise TypeError("This model only takes quasiseperable kernels.")
-
         # format inputs
         t = jnp.asarray(X[0])
         inds = jnp.argsort(t)
@@ -99,6 +94,11 @@ class MultiVarModel(eqx.Module):
         self.nBand = nBand
 
         # assign callables/classes
+        if multiband_kernel is None:
+            if isinstance(base_kernel, quasisep.Quasisep):
+                multiband_kernel = quasisep.MultibandLowRank
+            else:
+                multiband_kernel = direct.MultibandLowRank
         self.multiband_kernel = multiband_kernel
         self.mean_func = mean_func
         self.amp_scale_func = amp_scale_func
@@ -268,13 +268,18 @@ class MultiVarModel(eqx.Module):
             kernel=self.base_kernel_def(jnp.exp(new_params["log_kernel_param"])),
         )
 
+        gp_kwargs = {
+            "diag": diags[inds],
+            "mean": means,
+        }
+        if isinstance(kernel, tkq.Quasisep):
+            gp_kwargs["assume_sorted"] = True
+
         return (
             GaussianProcess(
                 kernel,
                 (t[inds], band[inds]),
-                diag=diags[inds],
-                mean=means,
-                assume_sorted=True,
+                **gp_kwargs,
             ),
             inds,
         )
@@ -298,9 +303,6 @@ class UniVarModel(MultiVarModel):
             - `zero_mean` (bool): If True, assumes zero-mean GP. Defaults to True.
             - `has_jitter` (bool): If True, assumes the input observational erros
               are underestimated. Defaults to False.
-
-    Raises:
-        TypeError: If kernel is not one from the kernels.quasisep module.
     """
 
     def __init__(
@@ -308,7 +310,7 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: quasisep.Quasisep,
+        kernel: tk.Kernel | quasisep.Quasisep,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         **kwargs,

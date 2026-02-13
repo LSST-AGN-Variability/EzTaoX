@@ -19,7 +19,7 @@ class MultibandLowRank(tinygp.kernels.Kernel):
     The implementation is inspired by `this tinygp tutorial <https://tinygp.readthedocs.io/en/stable/tutorials/quasisep-custom.html#multivariate-quasiseparable-kernels>`_.
     """
 
-    amplitudes: jnp.ndarray
+    params: dict[str, JAXArray]
     kernel: tinygp.kernels.Kernel
 
     def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
@@ -28,10 +28,9 @@ class MultibandLowRank(tinygp.kernels.Kernel):
 
     def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
         # TODO: Write docstring.
+        amplitudes = self.params["amplitudes"]
         return (
-            self.amplitudes[X1[1]]
-            * self.amplitudes[X2[1]]
-            * self.kernel.evaluate(X1[0], X2[0])
+            amplitudes[X1[1]] * amplitudes[X2[1]] * self.kernel.evaluate(X1[0], X2[0])
         )
 
 
