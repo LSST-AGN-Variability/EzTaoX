@@ -19,6 +19,8 @@ from tinygp.helpers import JAXArray
 from tinygp.kernels import Kernel
 from tinygp.kernels.quasisep import _prod_helper
 
+from eztaox.kernels.eqx_utils import find_param_by_name
+
 
 class Quasisep(tkq.Quasisep):
     """
@@ -803,8 +805,8 @@ class LaguerreSeries(Quasisep):
     n_quad: int = eqx.field(static=True)
 
     def __post_init__(self):
-        if not hasattr(self.kernel, "scale"):
-            raise ValueError("Kernel must have a 'scale' attribute")
+        if find_param_by_name(self.kernel, "scale") is None:
+            raise ValueError("Kernel must have a 'scale' parameter.")
 
     @property
     def _vmap_func(self) -> Callable[[jax.Array], jax.Array]:
@@ -820,7 +822,8 @@ class LaguerreSeries(Quasisep):
 
     def _scale(self):
         nodes, _ = self._quadrature()
-        kernel_scale = self.kernel.scale
+        kernel_scales = find_param_by_name(self.kernel, "scale")
+        kernel_scale = sum(kernel_scales) / len(kernel_scales)
         x_nodes = nodes * kernel_scale
         ln_f_vals = jnp.log(self._vmap_func(x_nodes))
         fit_scale = -jnp.sum(jnp.square(x_nodes)) / jnp.sum(ln_f_vals * x_nodes)
