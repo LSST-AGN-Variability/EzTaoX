@@ -297,7 +297,7 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
         "mean": mean,
         "log_jitter": log_jitter,
     }
-    
+
     # Log-prob equality
     assert_allclose(m_qs.log_prob(p_qs), m_nonqs.log_prob(p_nonqs))
 
