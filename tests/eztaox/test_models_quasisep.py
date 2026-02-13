@@ -309,6 +309,10 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
     g_qs = jax.grad(m_qs.log_prob)(p_qs)
     g_nonqs = jax.grad(m_nonqs.log_prob)(p_nonqs)
 
+    # Reformat gradients
+    gk_nonqs = g_nonqs["log_kernel_param"]
+    g_nonqs["log_kernel_param"] = jnp.stack([gk_nonqs[1], 2.0 * gk_nonqs[0]])
+
     assert_allclose(g_qs["log_kernel_param"], g_nonqs["log_kernel_param"])
     assert_allclose(g_qs["mean"], g_nonqs["mean"])
     assert_allclose(g_qs["log_jitter"], g_nonqs["log_jitter"])
