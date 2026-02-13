@@ -30,9 +30,7 @@ class MultibandLowRank(tinygp.kernels.Kernel):
         # TODO: Write docstring.
         amplitudes = self.params["amplitudes"]
         return (
-            amplitudes[X1[1]]
-            * amplitudes[X2[1]]
-            * self.kernel.evaluate(X1[0], X2[0])
+            amplitudes[X1[1]] * amplitudes[X2[1]] * self.kernel.evaluate(X1[0], X2[0])
         )
 
 
