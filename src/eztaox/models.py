@@ -73,7 +73,7 @@ class MultiVarModel(eqx.Module):
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
-        multiband_kernel: tkq.Wrapper | None,
+        multiband_kernel: tkq.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
