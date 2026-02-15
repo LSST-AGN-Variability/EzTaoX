@@ -7,6 +7,7 @@ import pytest
 from numpy import random as np_random
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
+from tinygp.kernels import Exp as Exp_nonqs
 from tinygp.test_utils import assert_allclose
 
 from eztaox.kernels import quasisep
@@ -259,3 +260,56 @@ def test_aic_bic(data, kernel, random) -> None:
 
     assert_allclose(aic, expected_aic)
     assert_allclose(bic, expected_bic)
+
+
+def test_univar_qs_vs_nonqs_exp_same(data, random):
+    x, y, _ = data
+    yerr = jnp.ones_like(x) * 0.1
+
+    sigma = 1.8
+    scale = 1.5
+
+    # Quasisep kernel
+    k_qs = quasisep.Exp(sigma=sigma, scale=scale)
+
+    # Non-quasisep tinygp kernel
+    k_nonqs = sigma**2 * Exp_nonqs(scale=scale)
+
+    mean = jnp.array(random.uniform(-1, 1))
+    log_jitter = jnp.array(random.uniform(-20, 5))
+
+    # Build models
+    m_qs = UniVarModel(x, y, yerr, k_qs, zero_mean=False, has_jitter=True)
+    m_nonqs = UniVarModel(x, y, yerr, k_nonqs, zero_mean=False, has_jitter=True)
+
+    # Each model gets params built from its own kernel pytree
+    theta_qs, _ = jax.flatten_util.ravel_pytree(k_qs)
+    theta_nonqs, _ = jax.flatten_util.ravel_pytree(k_nonqs)
+
+    p_qs = {
+        "log_kernel_param": jnp.log(theta_qs),
+        "mean": mean,
+        "log_jitter": log_jitter,
+    }
+
+    p_nonqs = {
+        "log_kernel_param": jnp.log(theta_nonqs),
+        "mean": mean,
+        "log_jitter": log_jitter,
+    }
+
+    # Log-prob equality
+    assert_allclose(m_qs.log_prob(p_qs), m_nonqs.log_prob(p_nonqs))
+
+    # Gradient equality
+    g_qs = jax.grad(m_qs.log_prob)(p_qs)
+    g_nonqs = jax.grad(m_nonqs.log_prob)(p_nonqs)
+
+    # Reformat gradient dict structure with consistent kernel PyTree parameter layout
+    # due to different QS vs. non-QS kernel implementations in tinygp
+    gk_nonqs = g_nonqs["log_kernel_param"]
+    g_nonqs["log_kernel_param"] = jnp.stack([gk_nonqs[1], 2.0 * gk_nonqs[0]])
+
+    assert_allclose(g_qs["log_kernel_param"], g_nonqs["log_kernel_param"])
+    assert_allclose(g_qs["mean"], g_nonqs["mean"])
+    assert_allclose(g_qs["log_jitter"], g_nonqs["log_jitter"])
