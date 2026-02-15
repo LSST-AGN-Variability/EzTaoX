@@ -305,7 +305,8 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
     g_qs = jax.grad(m_qs.log_prob)(p_qs)
     g_nonqs = jax.grad(m_nonqs.log_prob)(p_nonqs)
 
-    # Reformat gradients
+    # Reformat gradient dict structure with consistent kernel PyTree parameter layout
+    # required because QS/non-QS kernel implementations result in different PyTree structures
     gk_nonqs = g_nonqs["log_kernel_param"]
     g_nonqs["log_kernel_param"] = jnp.stack([gk_nonqs[1], 2.0 * gk_nonqs[0]])
 
