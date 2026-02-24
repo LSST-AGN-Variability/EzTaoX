@@ -13,5 +13,3 @@ sphinx-rtd-theme>=3.0
 
 ## Notebook requirements
 arviz
-celerite
-eztao

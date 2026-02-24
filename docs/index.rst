@@ -137,10 +137,11 @@ Tutorials
 
 A preliminary list of tutorials to help users getting started:
 
-* :doc:`MultibandFitting <notebooks/01_MultibandFitting>`: Demonstrating the workflow of conducting multi-band fitting.
-* :doc:`Damped Harmonic Oscillator <notebooks/02_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
+* :doc:`Damped Random Walk <notebooks/01_DRW>`: Demonstrating fitting to a damped random walk.
+* :doc:`Multiband Fitting <notebooks/02_Multiband>`: Demonstrating the workflow of conducting multi-band fitting.
+* :doc:`Damped Harmonic Oscillator <notebooks/03_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
   In this notebook, we are fitting the CARMA(2,1) process, which is also known as the damped harmonic oscillator (DHO) process.
-* :doc:`Damped Random Walk <notebooks/03_DRW>`: Demonstrating fitting to a damped random walk.
+
 
 These notebooks are also available for live experimentation in a binder instance.
 

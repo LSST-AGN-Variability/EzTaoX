@@ -8,6 +8,7 @@ These notebooks are available for live experimentation in a binder instance.
 
 .. toctree::
 
-    Multiband GP Fitting <notebooks/01_MultibandFitting>
-    Damped Harmonic Oscillator (DHO) Fitting <notebooks/02_DHO>
-    Damped Random Walk (DRW) Fitting <notebooks/03_DRW>
+    Damped Random Walk (DRW) <notebooks/01_DRW>
+    Multiband GP Fitting <notebooks/02_Multiband>
+    Damped Harmonic Oscillator (DHO) <notebooks/03_DHO>
+    
