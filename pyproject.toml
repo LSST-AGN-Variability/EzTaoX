@@ -78,9 +78,9 @@ nox-poetry = "^1.2.0"
 celerite = "^0.4.0"
 eztao = {git = "https://github.com/ywx649999311/EzTao.git"}
 
-[tool.jupytext]
-formats = "ipynb,py:percent"
-notebook_metadata_filter="-all"
+# [tool.jupytext]
+# formats = "ipynb,py:percent"
+# notebook_metadata_filter="-all"
 
 [tool.pytest.ini_options]
 testpaths = [
