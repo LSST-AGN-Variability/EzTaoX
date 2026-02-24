@@ -13,10 +13,10 @@ from eztaox.kernels.quasisep import Quasisep
 
 
 class TransferFunction(eqx.Module):
-    """Base class for transfer functions Ψ(Δt).
+    """Base class for transfer functions :math:`\\Psi(\\Delta t)`.
 
-    Normalized so that ∫₋∞^∞ Ψ(Δt) dΔt = 1.
-    """
+    Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
+    """  # noqa: E501
 
     width: float
     shift: JAXArray | float = eqx.field(default_factory=lambda: jnp.zeros(()))
@@ -29,12 +29,12 @@ class TransferFunction(eqx.Module):
 
 
 class GaussianTransferFunction(TransferFunction):
-    """Gaussian transfer function: Ψ(s) ∝ exp(-((s - shift)/w)²)."""
+    """Gaussian transfer function: :math:`\\Psi(s)\\propto\\exp(-((s-\\mathrm{shift})/w)^2)`."""  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that ∫₋∞^∞ Ψ(s) ds = 1.
+        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`.
         """
         dt = X2 - X1 - self.shift
         norm = jnp.sqrt(jnp.pi) * self.width
@@ -42,12 +42,12 @@ class GaussianTransferFunction(TransferFunction):
 
 
 class ExponentialTransferFunction(TransferFunction):
-    """Exponential transfer function: Ψ(s) = (1/w) exp(-|s - shift|/w)."""
+    """Exponential transfer function: :math:`\\Psi(s)=(1/w)\\exp(-|s-\\mathrm{shift}|/w)`."""  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that ∫₋∞^∞ Ψ(s) ds = 1.
+        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`.
         """
         dt = X2 - X1 - self.shift
         norm = 2.0 * self.width
@@ -57,13 +57,15 @@ class ExponentialTransferFunction(TransferFunction):
 class CausalGaussianTransferFunction(TransferFunction):
     """Causal Gaussian transfer function.
 
-    Ψ(s) ∝ exp(-((s - shift)/w)²) for s ≥ 0, zero otherwise.
+    :math:`\\Psi(s)\\propto\\exp(-((s-\\mathrm{shift})/w)^2)` for
+    :math:`s\\ge 0`, zero otherwise.
     """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that ∫₋∞^∞ Ψ(s) ds = 1 for any shift.
+        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`
+        for any shift.
         """
         ds = X2 - X1
         dt = ds - self.shift
@@ -79,13 +81,15 @@ class CausalGaussianTransferFunction(TransferFunction):
 class CausalExponentialTransferFunction(TransferFunction):
     """Causal exponential transfer function.
 
-    Ψ(s) = (1/w) exp(-(s - shift)/w) for s ≥ shift, zero otherwise.
+    :math:`\\Psi(s)=(1/w)\\exp(-(s-\\mathrm{shift})/w)` for
+    :math:`s\\ge\\mathrm{shift}`, zero otherwise.
     """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that ∫₋∞^∞ Ψ(s) ds = 1 for any shift ≥ 0.
+        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`
+        for any :math:`\\mathrm{shift}\\ge 0`.
         """
         dt = X2 - X1 - self.shift
         return jnp.where(dt >= 0, jnp.exp(-dt / self.width) / self.width, 0.0)
@@ -95,11 +99,12 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
     """Kernel convolved with a transfer function via FFT.
 
     Computes the convolved kernel using the Wiener-Khinchin relation:
-        S_conv(f) = S_base(f) × |Ψ̂(f)|²
-        k_conv(τ) = IFFT[S_conv](τ)
+        :math:`S_{\\mathrm{conv}}(f)=S_{\\mathrm{base}}(f)\\,|\\hat{\\Psi}(f)|^2`
+        :math:`k_{\\mathrm{conv}}(\\tau)=\\mathrm{IFFT}[S_{\\mathrm{conv}}](\\tau)`
 
-    where Ψ̂ is the Fourier transform of the transfer function and
-    S_base is the power spectral density of the base kernel.
+    where :math:`\\hat{\\Psi}` is the Fourier transform of the transfer function
+    and :math:`S_{\\mathrm{base}}` is the power spectral density of the base
+    kernel.
     """
 
     # We actually need .power(), so it could be extended to "direct" kernels
