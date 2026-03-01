@@ -32,7 +32,7 @@ jobs:
         uv pip install --system -e .[dev]
         if [ -f requirements.txt ]; then uv pip install --system -r requirements.txt; fi
     - name: Cache JAX compilations
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ./jax_cache
         key: jax-cache-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ env.JAX_VERSION }} 
@@ -66,7 +66,7 @@ jobs:
         fi
         uv pip install --constraint=requirements_lowest.txt -e .[dev]
     - name: Cache JAX compilations
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ./jax_cache
         key: jax-cache-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements_lowest.txt') }}
