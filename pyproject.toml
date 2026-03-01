@@ -63,7 +63,7 @@ poetry-plugin-export = ">=1.9"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.0"
-pre-commit = "^3.5.0"
+pre-commit = "^4.5.1"
 ruff = "^0.15.0"
 matplotlib = ">3.7.0"
 arviz = "^0.20.0"
