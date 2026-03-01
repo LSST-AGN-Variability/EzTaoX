@@ -71,7 +71,7 @@ ipywidgets = "^8.1.5"
 black = "^26.1.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^8.0.0"
+pytest = "^9.0.2"
 pytest-cov = "^6.0.0"
 nox = "^2025.0.0"
 nox-poetry = "^1.2.0"
