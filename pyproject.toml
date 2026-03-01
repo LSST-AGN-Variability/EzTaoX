@@ -73,7 +73,7 @@ black = "^26.1.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^8.0.0"
 pytest-cov = "^6.0.0"
-nox = "^2025.0.0"
+nox = "^2026.2.9"
 nox-poetry = "^1.2.0"
 celerite = "^0.4.0"
 eztao = {git = "https://github.com/ywx649999311/EzTao.git"}
