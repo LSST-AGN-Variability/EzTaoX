@@ -43,7 +43,7 @@ def kernel(request) -> ekq.Kernel:
     return request.param
 
 
-def is_sorted(arr) -> bool:
+def _is_sorted(arr) -> bool:
     """Check if an array is sorted in non-decreasing order."""
     return jnp.all(arr[:-1] <= arr[1:])
 
@@ -102,7 +102,7 @@ def test_simulator_run_univarsim(kernel) -> None:
     assert sim_t.shape == sim_y.shape == t.shape
     assert not jnp.isnan(sim_t).any()
     assert not jnp.isnan(sim_y).any()
-    assert is_sorted(sim_t)
+    assert _is_sorted(sim_t)
 
 
 def test_simulator_fixed_input_fast() -> None:
@@ -159,13 +159,13 @@ def test_simulator_multivar(kernel) -> None:
     nband = 2
     main_key = jax.random.PRNGKey(101)
     sim_keys = jax.random.split(main_key, 5)
+    sim_params = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "log_amp_scale": jnp.array([0.0]),
+        "lag": 10.0,
+    }
 
     for has_lag in [False, True]:
-        sim_params = {
-            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
-            "log_amp_scale": jnp.array([0.0]),
-            "lag": 10.0,
-        }
         s = MultiVarSim(kernel, mindt, maxdt, nband, sim_params, has_lag=has_lag)
 
         # full simulation
@@ -173,16 +173,16 @@ def test_simulator_multivar(kernel) -> None:
         assert not jnp.isnan(simX_full[0]).any()
         assert not jnp.isnan(simX_full[1]).any()
         assert not jnp.isnan(simY_full).any()
-        assert is_sorted(simX_full[0][simX_full[1] == 0])
-        assert is_sorted(simX_full[0][simX_full[1] == 1])
+        assert _is_sorted(simX_full[0][simX_full[1] == 0])
+        assert _is_sorted(simX_full[0][simX_full[1] == 1])
 
         # random simulation
         simX_rand, simY_rand = s.random(1000, sim_keys[1], sim_keys[2])
         assert not jnp.isnan(simX_rand[0]).any()
         assert not jnp.isnan(simX_rand[1]).any()
         assert not jnp.isnan(simY_rand).any()
-        assert is_sorted(simX_rand[0][simX_rand[1] == 0])
-        assert is_sorted(simX_rand[0][simX_rand[1] == 1])
+        assert _is_sorted(simX_rand[0][simX_rand[1] == 0])
+        assert _is_sorted(simX_rand[0][simX_rand[1] == 1])
 
         # fixed input simulation
         inputX = (jnp.linspace(0, 100, 6), jnp.asarray([0, 1, 0, 1, 0, 1]))
@@ -190,13 +190,13 @@ def test_simulator_multivar(kernel) -> None:
         assert not jnp.isnan(simX_fixed[0]).any()
         assert not jnp.isnan(simX_fixed[1]).any()
         assert not jnp.isnan(simY_fixed).any()
-        assert is_sorted(simX_fixed[0][simX_fixed[1] == 0])
-        assert is_sorted(simX_fixed[0][simX_fixed[1] == 1])
+        assert _is_sorted(simX_fixed[0][simX_fixed[1] == 0])
+        assert _is_sorted(simX_fixed[0][simX_fixed[1] == 1])
 
         # fixed input fast simulation
         simX_fixed_fast, simY_fixed_fast = s.fixed_input_fast(inputX, sim_keys[4])
         assert not jnp.isnan(simX_fixed_fast[0]).any()
         assert not jnp.isnan(simX_fixed_fast[1]).any()
         assert not jnp.isnan(simY_fixed_fast).any()
-        assert is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 0])
-        assert is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 1])
+        assert _is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 0])
+        assert _is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 1])
