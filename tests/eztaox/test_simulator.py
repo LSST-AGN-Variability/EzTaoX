@@ -185,8 +185,18 @@ def test_simulator_multivar(kernel) -> None:
         assert _is_sorted(simX_rand[0][simX_rand[1] == 1])
 
         # fixed input simulation
-        inputX = (jnp.linspace(0, 100, 6), jnp.asarray([0, 1, 0, 1, 0, 1]))
+        inputX = (jnp.linspace(0, 100, 6), jnp.asarray([0, 1, 1, 1, 0, 1]))
         simX_fixed, simY_fixed = s.fixed_input(inputX, sim_keys[3])
+        assert (
+            simX_fixed[0][inputX[1] == 0].shape
+            == simY_fixed[inputX[1] == 0].shape
+            == inputX[0][inputX[1] == 0].shape
+        )
+        assert (
+            simX_fixed[0][inputX[1] == 1].shape
+            == simY_fixed[inputX[1] == 1].shape
+            == inputX[0][inputX[1] == 1].shape
+        )
         assert not jnp.isnan(simX_fixed[0]).any()
         assert not jnp.isnan(simX_fixed[1]).any()
         assert not jnp.isnan(simY_fixed).any()
@@ -195,6 +205,16 @@ def test_simulator_multivar(kernel) -> None:
 
         # fixed input fast simulation
         simX_fixed_fast, simY_fixed_fast = s.fixed_input_fast(inputX, sim_keys[4])
+        assert (
+            simX_fixed_fast[0][inputX[1] == 0].shape
+            == simY_fixed_fast[inputX[1] == 0].shape
+            == inputX[0][inputX[1] == 0].shape
+        )
+        assert (
+            simX_fixed_fast[0][inputX[1] == 1].shape
+            == simY_fixed_fast[inputX[1] == 1].shape
+            == inputX[0][inputX[1] == 1].shape
+        )
         assert not jnp.isnan(simX_fixed_fast[0]).any()
         assert not jnp.isnan(simX_fixed_fast[1]).any()
         assert not jnp.isnan(simY_fixed_fast).any()
