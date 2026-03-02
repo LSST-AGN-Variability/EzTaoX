@@ -11,6 +11,11 @@ import eztaox.kernels.quasisep as ekq
 from eztaox.simulator import UniVarSim
 
 
+def is_sorted(arr) -> bool:
+    """Check if an array is sorted in non-decreasing order."""
+    return jnp.all(arr[:-1] <= arr[1:])
+
+
 ## Empirical structure function calculation
 def _sf2(t, y, bins):
     """Calculate structure function squared
@@ -45,7 +50,7 @@ def _sf2(t, y, bins):
     return SFs, (bin_edgs[0:-1] + bin_edgs[1:]) / 2
 
 
-def test_simulator_run_univarsim() -> None:
+def test_simulator_run_univarsim(random) -> None:
     """
     Test that the UniVarSim runs without error.
     """
@@ -66,6 +71,9 @@ def test_simulator_run_univarsim() -> None:
 
     sim_t, sim_y = s.fixed_input(t, jax.random.PRNGKey(11))
     assert sim_t.shape == sim_y.shape == t.shape
+    assert not jnp.isnan(sim_t).any()
+    assert not jnp.isnan(sim_y).any()
+    assert is_sorted(sim_t)
 
 
 def test_simulator_fixed_input_fast() -> None:
@@ -90,11 +98,12 @@ def test_simulator_fixed_input_fast() -> None:
     nbins = 10
     input_t = jnp.linspace(mindt, maxdt, npt)
     bins = np.logspace(np.log10(maxdt / npt), np.log10(maxdt), nbins)
+    sim_keys = jax.random.split(master_key, nsim)
 
     ## simulate using fixed_input
     SFs_fixed_input = []
     for i in range(nsim):
-        key_sim = jax.random.PRNGKey(i)
+        key_sim = sim_keys[i]
         sim_t, sim_y = s.fixed_input(input_t, key_sim)
         SFs, _ = _sf2(sim_t, sim_y, bins=bins)
         SFs_fixed_input.append(SFs)
@@ -103,7 +112,7 @@ def test_simulator_fixed_input_fast() -> None:
     ## simulate using fixed_input_fast
     SFs_fixed_input_fast = []
     for i in range(nsim):
-        key_sim = jax.random.PRNGKey(i)
+        key_sim, _ = jax.random.split(sim_keys[i], 2)
         sim_t, sim_y = s.fixed_input_fast(input_t, key_sim)
         SFs, _ = _sf2(sim_t, sim_y, bins=bins)
         SFs_fixed_input_fast.append(SFs)
