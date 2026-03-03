@@ -38,7 +38,7 @@ from eztaox.simulator import MultiVarSim, UniVarSim
         * ekq.Matern52(1.5)
         + ekq.CARMA(alpha=jnp.array([1.4, 2.3, 1.5]), beta=jnp.array([0.1, 0.5]))
         * ekq.SHO(omega=1.5, quality=0.1, sigma=1.3),
-        #1.5 * Exp_nonqs(scale=1.8),
+        # 1.5 * Exp_nonqs(scale=1.8),
     ]
 )
 def kernel(request) -> ekq.Kernel:
