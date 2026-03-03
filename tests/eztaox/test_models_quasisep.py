@@ -313,3 +313,50 @@ def test_univar_qs_vs_nonqs_exp_same(data, random):
     assert_allclose(g_qs["log_kernel_param"], g_nonqs["log_kernel_param"])
     assert_allclose(g_qs["mean"], g_nonqs["mean"])
     assert_allclose(g_qs["log_jitter"], g_nonqs["log_jitter"])
+
+
+def test_multivar_qs_vs_nonqs_exp_same(data, random) -> None:
+    """QS vs non-QS Exp kernel equivalence in MultiVarModel."""
+    t, y, b = data
+    yerr = jnp.ones_like(t) * 0.1
+
+    sigma = 1.8
+    scale = 1.5
+
+    # kernels
+    k_qs = quasisep.Exp(sigma=sigma, scale=scale)
+    k_nonqs = sigma**2 * Exp_nonqs(scale=scale)
+
+    # shared params
+    mean = jnp.array(random.uniform(-1, 1))
+    log_jitter = jnp.array(random.uniform(-20, 5))
+
+    # MultiVarModel default amp/scale expects log_amp_scale for bands 1..nBand-1
+    nBand = 3
+    log_amp_scale = jnp.zeros(
+        (nBand - 1,)
+    )  # keep equivalence test focused on kernel only
+
+    # build models
+    m_qs = MultiVarModel((t, b), y, yerr, k_qs, nBand=nBand, has_jitter=True)
+    m_nonqs = MultiVarModel((t, b), y, yerr, k_nonqs, nBand=nBand, has_jitter=True)
+
+    # flatten each kernel separately
+    theta_qs, _ = jax.flatten_util.ravel_pytree(k_qs)
+    theta_nonqs, _ = jax.flatten_util.ravel_pytree(k_nonqs)
+
+    p_qs = {
+        "log_kernel_param": jnp.log(theta_qs),
+        "mean": mean,
+        "log_jitter": log_jitter,
+        "log_amp_scale": log_amp_scale,
+    }
+    p_nonqs = {
+        "log_kernel_param": jnp.log(theta_nonqs),
+        "mean": mean,
+        "log_jitter": log_jitter,
+        "log_amp_scale": log_amp_scale,
+    }
+
+    # log-prob equality
+    assert_allclose(m_qs.log_prob(p_qs), m_nonqs.log_prob(p_nonqs))
