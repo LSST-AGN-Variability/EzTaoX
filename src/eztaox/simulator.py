@@ -7,7 +7,6 @@ import equinox as eqx
 import jax
 import jax.flatten_util
 import jax.numpy as jnp
-
 import tinygp.kernels as tk
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray

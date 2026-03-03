@@ -9,7 +9,8 @@ import pytest
 from scipy.stats import binned_statistic, ks_2samp
 
 import eztaox.kernels.quasisep as ekq
-from tinygp.kernels import Exp as Exp_nonqs
+
+# from tinygp.kernels import Exp as Exp_nonqs
 from eztaox.simulator import MultiVarSim, UniVarSim
 
 
