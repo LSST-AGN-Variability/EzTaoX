@@ -8,7 +8,6 @@ import jax
 import jax.numpy as jnp
 import jaxopt
 import optax
-from numpyro.handlers import seed
 from tinygp.helpers import JAXArray
 
 from eztaox.models import MultiVarModel, UniVarModel
@@ -47,7 +46,7 @@ def random_search(
 
     # init samples
     init_keys = jax.random.split(prng_key, int(nSample))
-    batched_samples = jax.vmap(lambda k: seed(initSampler, rng_seed=k)())(init_keys)
+    batched_samples = jax.vmap(initSampler)(init_keys)
 
     # batched loss
     losses = jax.lax.map(loss, batched_samples, batch_size=batch_size)
