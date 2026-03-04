@@ -7,12 +7,13 @@ import equinox as eqx
 import jax
 import jax.flatten_util
 import jax.numpy as jnp
+import tinygp.kernels as tk
 import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
-from eztaox.kernels import quasisep
+from eztaox.kernels import direct, quasisep
 from eztaox.ts_utils import _get_nearest_idx
 
 
@@ -46,7 +47,7 @@ class MultiVarSim(eqx.Module):
     """
 
     base_kernel_def: Callable
-    multiband_kernel: tkq.Wrapper
+    multiband_kernel: tk.Kernel | tkq.Wrapper
     X: tuple[JAXArray, JAXArray]
     init_params: dict[str, JAXArray]
     nBand: int
@@ -58,12 +59,12 @@ class MultiVarSim(eqx.Module):
 
     def __init__(
         self,
-        base_kernel: quasisep.Quasisep,
+        base_kernel: tk.Kernel | quasisep.Quasisep,
         min_dt: float,
         max_dt: float,
         nBand: int,
         init_params: dict[str, JAXArray],
-        multiband_kernel: tkq.Wrapper | None = quasisep.MultibandLowRank,
+        multiband_kernel: tk.Kernel | tkq.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
@@ -86,6 +87,11 @@ class MultiVarSim(eqx.Module):
 
         # assign callables/classes
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
+        if multiband_kernel is None:
+            if isinstance(base_kernel, quasisep.Quasisep):
+                multiband_kernel = quasisep.MultibandLowRank
+            else:
+                multiband_kernel = direct.MultibandLowRank
         self.multiband_kernel = multiband_kernel
         self.mean_func = mean_func
         self.amp_scale_func = amp_scale_func
@@ -250,12 +256,17 @@ class MultiVarSim(eqx.Module):
             kernel=self.base_kernel_def(jnp.exp(new_params["log_kernel_param"])),
         )
 
+        gp_kwargs = dict(mean=means)
+
+        # Only QuasisepSolver supports assume_sorted in tinygp
+        if isinstance(kernel, tkq.Quasisep):
+            gp_kwargs["assume_sorted"] = True
+
         return (
             GaussianProcess(
                 kernel,
                 (new_t[inds], X[1][inds]),
-                mean=means,
-                assume_sorted=True,
+                **gp_kwargs,
             ),
             inds,
         )
@@ -325,7 +336,7 @@ class UniVarSim(MultiVarSim):
 
     def __init__(
         self,
-        base_kernel: quasisep.Quasisep,
+        base_kernel: tk.Kernel | quasisep.Quasisep,
         min_dt: float,
         max_dt: float,
         init_params: dict[str, JAXArray],
