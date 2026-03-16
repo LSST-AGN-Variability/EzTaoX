@@ -13,10 +13,7 @@ from eztaox.kernels.quasisep import Quasisep
 
 
 class TransferFunction(eqx.Module):
-    """Base class for transfer functions :math:`\\Psi(\\Delta t)`.
-
-    Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
-    """  # noqa: E501
+    """Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
 
     width: float
     shift: JAXArray | float = eqx.field(default_factory=lambda: jnp.zeros(()))
@@ -29,12 +26,18 @@ class TransferFunction(eqx.Module):
 
 
 class GaussianTransferFunction(TransferFunction):
-    """Gaussian transfer function: :math:`\\Psi(s)\\propto\\exp(-((s-\\mathrm{shift})/w)^2)`."""  # noqa: E501
+    """Gaussian transfer function: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2}`.
+
+    where :math:`\\Delta t_0=\\mathrm{shift}`.
+    The unity-normalization coefficient is:
+    :math:`\\frac{1}{\\sqrt{\\pi}w}`.
+    """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`.
+        Normalized so that
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
         """
         dt = X2 - X1 - self.shift
         norm = jnp.sqrt(jnp.pi) * self.width
@@ -42,12 +45,18 @@ class GaussianTransferFunction(TransferFunction):
 
 
 class ExponentialTransferFunction(TransferFunction):
-    """Exponential transfer function: :math:`\\Psi(s)=(1/w)\\exp(-|s-\\mathrm{shift}|/w)`."""  # noqa: E501
+    """Exponential transfer function: :math:`\\propto e^{-|\\Delta t-\\Delta t_0|/w}`.
+
+    where :math:`\\Delta t_0=\\mathrm{shift}`.
+    The unity-normalization coefficient is:
+    :math:`\\frac{1}{2w}`.
+    """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`.
+        Normalized so that
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
         """
         dt = X2 - X1 - self.shift
         norm = 2.0 * self.width
@@ -55,16 +64,18 @@ class ExponentialTransferFunction(TransferFunction):
 
 
 class CausalGaussianTransferFunction(TransferFunction):
-    """Causal Gaussian transfer function.
+    """Causal Gaussian: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2},\\Delta t\\ge0`.
 
-    :math:`\\Psi(s)\\propto\\exp(-((s-\\mathrm{shift})/w)^2)` for
-    :math:`s\\ge 0`, zero otherwise.
-    """
+    where :math:`\\Delta t_0=\\mathrm{shift}`.
+    The unity-normalization coefficient is:
+    :math:`\\left[\\frac{\\sqrt{\\pi}}{2}w\\left(1+\\mathrm{erf}(\\mathrm{shift}/w)\\right)\\right]^{-1}`.
+    """  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`
+        Normalized so that
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`
         for any shift.
         """
         ds = X2 - X1
@@ -79,17 +90,20 @@ class CausalGaussianTransferFunction(TransferFunction):
 
 
 class CausalExponentialTransferFunction(TransferFunction):
-    """Causal exponential transfer function.
+    """Causal exponential: :math:`\\propto e^{-(\\Delta t-\\Delta t_0)/w},\\Delta t\\ge\\Delta t_0`.
 
-    :math:`\\Psi(s)=(1/w)\\exp(-(s-\\mathrm{shift})/w)` for
-    :math:`s\\ge\\mathrm{shift}`, zero otherwise.
-    """
+    where :math:`\\Delta t_0=\\mathrm{shift}`.
+    Defined for :math:`\\Delta t\\ge\\Delta t_0`, zero otherwise.
+    The unity-normalization coefficient is:
+    :math:`\\frac{1}{w}`.
+    """  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
         """Evaluate the normalized transfer function at two points.
 
-        Normalized so that :math:`\\int_{-\\infty}^{\\infty}\\Psi(s)\\,ds=1`
-        for any :math:`\\mathrm{shift}\\ge 0`.
+        Normalized so that
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`
+        for any shift.
         """
         dt = X2 - X1 - self.shift
         return jnp.where(dt >= 0, jnp.exp(-dt / self.width) / self.width, 0.0)
