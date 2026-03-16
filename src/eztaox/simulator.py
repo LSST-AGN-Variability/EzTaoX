@@ -236,7 +236,7 @@ class MultiVarSim(eqx.Module):
         # time axis transform: new_inds gives the sorted indices for t, band,
         # after the lag transform
         if self.has_lag is False:
-            inds = jnp.arange(X[0].size)
+            inds = jnp.argsort(X[0])
             new_t = X[0]
         else:
             new_X, inds = self.lag_transform(self.has_lag, params, X)

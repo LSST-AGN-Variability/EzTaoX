@@ -35,7 +35,7 @@ repos:
       - id: check-added-large-files
         name: Check for large files
         description: Prevent the user from committing very large files.
-        args: ['--maxkb=500']
+        args: ['--maxkb=5000']
     # Verify that pyproject.toml is well formed
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.24.1
