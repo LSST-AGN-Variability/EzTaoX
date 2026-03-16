@@ -1,6 +1,20 @@
 import os
 
 import jax
+import pytest
+
+DATA_DIR_NAME = "data"
+TEST_DIR = os.path.dirname(__file__)
+
+
+@pytest.fixture
+def test_data_dir() -> str:
+    return os.path.join(TEST_DIR, DATA_DIR_NAME)
+
+
+@pytest.fixture
+def basekey_seed() -> int:
+    return 10
 
 
 def pytest_addoption(parser):
