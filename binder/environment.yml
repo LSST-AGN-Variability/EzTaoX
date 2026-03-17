@@ -2,12 +2,12 @@ name: eztaox
 channels:
   - conda-forge
 dependencies:
+  - python=3.10
   - numpy
   - scipy
   - matplotlib
-  - eztaox
-  - arviz
+  - arviz<=1.0.0
   - celerite
   - pip
   - pip:
-    - eztao
+      - eztaox @ git+https://github.com/LSST-AGN-Variability/EzTaoX.git
