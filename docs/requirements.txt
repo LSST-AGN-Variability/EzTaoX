@@ -12,4 +12,4 @@ sphinx-copybutton
 sphinx-rtd-theme>=3.0
 
 ## Notebook requirements
-arviz
+arviz<=1.0.0

@@ -5,9 +5,9 @@ dependencies:
   - numpy
   - scipy
   - matplotlib
-  - eztaox
-  - arviz
+  # - eztaox
+  - arviz<=1.0.0
   - celerite
   - pip
   - pip:
-    - eztao
+    - eztaox@https://github.com/LSST-AGN-Variability/EzTaoX.git
