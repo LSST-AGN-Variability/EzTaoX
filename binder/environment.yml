@@ -10,4 +10,4 @@ dependencies:
   - celerite
   - pip
   - pip:
-    - eztaox@https://github.com/LSST-AGN-Variability/EzTaoX.git
+    - eztaox @ https://github.com/LSST-AGN-Variability/EzTaoX.git
