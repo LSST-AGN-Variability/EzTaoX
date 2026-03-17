@@ -8,7 +8,8 @@ Notebooks currently included:
 - `01_DRW.ipynb`: single-band DRW fitting
 - `02_Multiband.ipynb`: multiband fitting with shared latent kernels
 - `03_DHO.ipynb`: single-band DHO/CARMA(2,1) fitting
-- `04_TransferFunctions.ipynb`: transfer-function convolution and Laguerre quasiseparable wrapping
+- `04_TransferFunctions.ipynb`: transfer-function convolution and direct dense fitting
+- `experimental/05_KernelApproximations.ipynb`: experimental SHO-series approximations to dense convolved kernels
 
 For more user information, see https://eztaox.readthedocs.io/en/latest/index.html
 
