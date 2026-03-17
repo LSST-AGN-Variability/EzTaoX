@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 from scipy.stats import binned_statistic, ks_2samp
+from tinygp.kernels import Exp as Exp_nonqs
 
 import eztaox.kernels.quasisep as ekq
 from eztaox.simulator import MultiVarSim, UniVarSim
@@ -156,6 +157,7 @@ def test_simulator_fixed_input_fast() -> None:
 def test_simulator_multivar(kernel) -> None:
     """Test that the MultiVarSim runs without error and produces sorted outputs."""
     mindt, maxdt = 0.1, 2000.0
+    n_random = 1000
     nband = 2
     main_key = jax.random.PRNGKey(101)
     sim_keys = jax.random.split(main_key, 5)
@@ -177,7 +179,7 @@ def test_simulator_multivar(kernel) -> None:
         assert _is_sorted(simX_full[0][simX_full[1] == 1])
 
         # random simulation
-        simX_rand, simY_rand = s.random(1000, sim_keys[1], sim_keys[2])
+        simX_rand, simY_rand = s.random(n_random, sim_keys[1], sim_keys[2])
         assert not jnp.isnan(simX_rand[0]).any()
         assert not jnp.isnan(simX_rand[1]).any()
         assert not jnp.isnan(simY_rand).any()
@@ -220,3 +222,29 @@ def test_simulator_multivar(kernel) -> None:
         assert not jnp.isnan(simY_fixed_fast).any()
         assert _is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 0])
         assert _is_sorted(simX_fixed_fast[0][simX_fixed_fast[1] == 1])
+
+
+def test_simulator_nonqs_exp_minimal() -> None:
+    """
+    Minimal smoke test for a non-quasisep kernel.
+
+    Keep this tiny so it provides quick sanity coverage without the
+    runtime/memory cost of running the full kernel-parametrized suite.
+    """
+    kernel = 1.5 * Exp_nonqs(scale=1.8)
+    t = jnp.linspace(0.0, 20.0, 32)
+    s = UniVarSim(
+        kernel,
+        0.1,
+        float(t[-1]),
+        init_params={
+            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        },
+        zero_mean=True,
+    )
+
+    sim_t, sim_y = s.fixed_input(t, jax.random.PRNGKey(123))
+    assert sim_t.shape == sim_y.shape == t.shape
+    assert not jnp.isnan(sim_t).any()
+    assert not jnp.isnan(sim_y).any()
+    assert _is_sorted(sim_t)
