@@ -18,7 +18,7 @@ classifiers = [
 dynamic = ["version"]
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "tinygp (>=0.3.0,<0.4.0)",
+    "tinygp (>=0.3.1,<0.4.0)",
     "jax (>=0.9.0)",
     "jaxlib (>=0.9.0)",
     "jaxopt (>=0.8.3,<0.9.0)",
@@ -52,6 +52,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 # build-backend = "poetry.core.masonry.api"
+
 [tool.setuptools_scm]
 write_to = "src/eztaox/_version.py"
 

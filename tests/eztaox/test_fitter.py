@@ -108,3 +108,5 @@ def test_multivar_drw(test_data_dir, basekey_seed) -> None:
     lag_diff = bestP_all["lag"] - true_params["lag"]
     assert np.mean(lag_diff) < 0.2
     assert mad(lag_diff, scale="normal") < 1
+
+    del data
