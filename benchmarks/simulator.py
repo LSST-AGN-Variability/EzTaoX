@@ -26,4 +26,4 @@ class UnivariateSimulatorSuite:
         self.lc_key = jax.random.PRNGKey(11)
 
     def time_run_sim(self):
-        return self.s.fixed_input(self.t, self.lc_key)
+        return jax.block_until_ready(self.s.fixed_input(self.t, self.lc_key))
