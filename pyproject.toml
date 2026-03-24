@@ -42,7 +42,7 @@ dev = [
     "pytest-cov", # Used to report total code coverage
     "ruff", # Used for static linting of files
     "joblib", # Used for parallelization in tests
-    "equinox (>=0.12.2)"
+    "equinox >=0.12.2"
 ]
 
 [build-system]
