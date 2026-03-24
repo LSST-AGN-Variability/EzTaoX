@@ -32,7 +32,7 @@ dependencies = [
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
 [project.optional-dependencies]
 dev = [
-    "arviz",
+    "arviz < 1.0.0",
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
     "eztao >= 0.5", # Used for testing against EzTao calculations that are known to be correct
     "black", # Used for static linting of files
@@ -69,7 +69,7 @@ ipykernel = "^6.29.0"
 pre-commit = "^3.5.0"
 ruff = "^0.15.0"
 matplotlib = ">3.7.0"
-arviz = "^0.20.0"
+arviz = "<1.0.0"
 ipywidgets = "^8.1.5"
 black = "^26.1.0"
 
