@@ -72,9 +72,9 @@ def generate_lc(n, band):
         init_params={"log_kernel_param": log_kernel_param},
         zero_mean=True,
     )
-    lc_key = jax.random.PRNGKey(11)
+    lc_key = jax.random.key(11)
     t, lc = s.fixed_input(t, lc_key)
-    noise_key = jax.random.PRNGKey(noise_seeds[band])
+    noise_key = jax.random.key(noise_seeds[band])
     yerr = jax.random.lognormal(noise_key, shape=lc.shape) * (lc / snrs[band])
     return t, lc + yerr, jnp.abs(yerr)
 

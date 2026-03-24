@@ -23,7 +23,9 @@ class UnivariateSimulatorSuite:
             init_params={"log_kernel_param": log_kernel_param},
             zero_mean=True,
         )
-        self.lc_key = jax.random.PRNGKey(11)
+        self.lc_key = jax.random.key(11)
 
     def time_run_sim(self):
-        return self.s.fixed_input(self.t, self.lc_key)
+        result = self.s.fixed_input(self.t, self.lc_key)
+        jax.block_until_ready(result)
+        return result
