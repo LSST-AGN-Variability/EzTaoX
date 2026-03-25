@@ -35,66 +35,66 @@ def test_drw() -> None:
     assert_allclose(drw_psd(amp, tau)(fs), drw_stat2.psd(fs))
 
 
-# def test_carma20() -> None:
-#     """
-#     Test the CARMA(2,0) ACF and SF.
-#     """
+def test_carma20() -> None:
+    """
+    Test the CARMA(2,0) ACF and SF.
+    """
 
-#     ts = np.linspace(0.001, 1000, 100)
-#     fs = np.logspace(-5, 5, 100)
+    ts = np.linspace(0.001, 1000, 100)
+    fs = np.logspace(-5, 5, 100)
 
-#     ## CARMA(2,0)
-#     ar20_1, ma20_1 = np.array([2.0, 1.1]), np.array([0.5])
-#     ar20_2, ma20_2 = np.array([2.0, 0.8]), np.array([2.0])
+    ## CARMA(2,0)
+    ar20_1, ma20_1 = np.array([2.0, 1.1]), np.array([0.5])
+    ar20_2, ma20_2 = np.array([2.0, 0.8]), np.array([2.0])
 
-#     # from GP
-#     c20_k1 = quasisep.CARMA(alpha=ar20_1[::-1], beta=ma20_1)
-#     c20_k2 = quasisep.CARMA(alpha=ar20_2[::-1], beta=ma20_2)
-#     c20_stat2_1 = gpStat2(c20_k1)
-#     c20_stat2_2 = gpStat2(c20_k2)
+    # from GP
+    c20_k1 = quasisep.CARMA(alpha=ar20_1[::-1], beta=ma20_1)
+    c20_k2 = quasisep.CARMA(alpha=ar20_2[::-1], beta=ma20_2)
+    c20_stat2_1 = gpStat2(c20_k1)
+    c20_stat2_2 = gpStat2(c20_k2)
 
-#     # from eztao
-#     eztao_acf1 = carma_acf(ar20_1, ma20_1)
-#     eztao_acf2 = carma_acf(ar20_2, ma20_2)
-#     eztao_sf1 = carma_sf(ar20_1, ma20_1)
-#     eztao_sf2 = carma_sf(ar20_2, ma20_2)
-#     eztao_psd1 = carma_psd(ar20_1, ma20_1)
-#     eztao_psd2 = carma_psd(ar20_2, ma20_2)
+    # from eztao
+    eztao_acf1 = carma_acf(ar20_1, ma20_1)
+    eztao_acf2 = carma_acf(ar20_2, ma20_2)
+    eztao_sf1 = carma_sf(ar20_1, ma20_1)
+    eztao_sf2 = carma_sf(ar20_2, ma20_2)
+    eztao_psd1 = carma_psd(ar20_1, ma20_1)
+    eztao_psd2 = carma_psd(ar20_2, ma20_2)
 
-#     # ---------- ACF ----------
-#     # eztao vs. eztaoX
-#     assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar20_1[::-1], ma20_1))
-#     assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar20_2[::-1], ma20_2))
-#     # eztao vs GP
-#     assert_allclose(
-#         c20_stat2_1.acf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
-#         eztao_acf1(ts),
-#     )
-#     assert_allclose(
-#         c20_stat2_2.acf(ts, jnp.concat([ar20_2[::-1], ma20_2])),
-#         eztao_acf2(ts),
-#     )
+    # ---------- ACF ----------
+    # eztao vs. eztaoX
+    assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar20_1[::-1], ma20_1))
+    assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar20_2[::-1], ma20_2))
+    # eztao vs GP
+    assert_allclose(
+        c20_stat2_1.acf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
+        eztao_acf1(ts),
+    )
+    assert_allclose(
+        c20_stat2_2.acf(ts, jnp.concat([ar20_2[::-1], ma20_2])),
+        eztao_acf2(ts),
+    )
 
-#     # ---------- SF ----------
-#     # eztao vs. eztaoX
-#     assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar20_1[::-1], ma20_1))
-#     assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar20_2[::-1], ma20_2))
-#     # eztao vs GP
-#     assert_allclose(
-#         c20_stat2_1.sf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
-#         eztao_sf1(ts),
-#     )
-#     assert_allclose(
-#         c20_stat2_2.sf(ts, jnp.concat([ar20_2[::-1], ma20_2])),
-#         eztao_sf2(ts),
-#     )
+    # ---------- SF ----------
+    # eztao vs. eztaoX
+    assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar20_1[::-1], ma20_1))
+    assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar20_2[::-1], ma20_2))
+    # eztao vs GP
+    assert_allclose(
+        c20_stat2_1.sf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
+        eztao_sf1(ts),
+    )
+    assert_allclose(
+        c20_stat2_2.sf(ts, jnp.concat([ar20_2[::-1], ma20_2])),
+        eztao_sf2(ts),
+    )
 
-#     # ---------- PSD ----------
-#     # eztao vs. GP
-#     assert_allclose(c20_stat2_1.psd(fs), eztao_psd1(fs))
-#     assert_allclose(
-#         c20_stat2_2.psd(fs, jnp.concat([ar20_2[::-1], ma20_2])), eztao_psd2(fs)
-#     )
+    # ---------- PSD ----------
+    # eztao vs. GP
+    assert_allclose(c20_stat2_1.psd(fs), eztao_psd1(fs))
+    assert_allclose(
+        c20_stat2_2.psd(fs, jnp.concat([ar20_2[::-1], ma20_2])), eztao_psd2(fs)
+    )
 
 
 def test_carma21() -> None:
@@ -169,6 +169,7 @@ def test_carma30() -> None:
 
     # CARMA(3,0)
     ar30_1, ma30_1 = np.array([3.0, 2.8, 0.8]), np.array([1.0])
+    ar30_2, ma30_2 = np.array([3.0, 3.2, 1.2]), np.array([1.0])
 
     # from GP
     c30_k1 = quasisep.CARMA(alpha=ar30_1[::-1], beta=ma30_1)
@@ -178,16 +179,16 @@ def test_carma30() -> None:
 
     # from eztao
     eztao_acf1 = carma_acf(ar30_1, ma30_1)
-    # eztao_acf2 = carma_acf(ar30_2, ma30_2)
+    eztao_acf2 = carma_acf(ar30_2, ma30_2)
     eztao_sf1 = carma_sf(ar30_1, ma30_1)
-    # eztao_sf2 = carma_sf(ar30_2, ma30_2)
+    eztao_sf2 = carma_sf(ar30_2, ma30_2)
     eztao_psd1 = carma_psd(ar30_1, ma30_1)
     # eztao_psd2 = carma_psd(ar30_2, ma30_2)
 
     # ---------- ACF ----------
     # eztao vs. eztaoX
     assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar30_1[::-1], ma30_1))
-    # assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar30_2[::-1], ma30_2))
+    assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar30_2[::-1], ma30_2))
     # eztao vs GP
     assert_allclose(
         c30_stat2_1.acf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
@@ -201,7 +202,7 @@ def test_carma30() -> None:
     # ---------- SF ----------
     # eztao vs. eztaoX
     assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar30_1[::-1], ma30_1))
-    # assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar30_2[::-1], ma30_2))
+    assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar30_2[::-1], ma30_2))
     # eztao vs GP
     assert_allclose(
         c30_stat2_1.sf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
@@ -216,5 +217,5 @@ def test_carma30() -> None:
     # eztao vs. GP
     assert_allclose(c30_stat2_1.psd(fs), eztao_psd1(fs))
     # assert_allclose(
-    # c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
+    #     c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
     # )

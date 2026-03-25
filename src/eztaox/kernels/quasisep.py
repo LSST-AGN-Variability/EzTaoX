@@ -665,7 +665,7 @@ def _compute(alpha: JAXArray, beta: JAXArray, sigma: JAXArray) -> tuple[JAXArray
     complex_idx = jnp.cumsum(_complex_mask) * _complex_mask
     _complex_select = _complex_mask * complex_idx % 2
 
-    # Construct the obsservation model => real + complex
+    # Construct the observation model => real + complex
     om_real = jnp.sqrt(jnp.abs(acf.real))
 
     a, b, c, d = (
@@ -674,18 +674,20 @@ def _compute(alpha: JAXArray, beta: JAXArray, sigma: JAXArray) -> tuple[JAXArray
         -arroots.real,
         -arroots.imag,
     )
-    max_d = jnp.finfo(a.dtype).max / 10
     c2 = jnp.square(c)
     d2 = jnp.square(d)
     s2 = c2 + d2
-    denom = jnp.where(_real_mask, 1.0, 2 * c * s2)
+    complex_denom = jnp.where(_real_mask, 1.0, 2 * c * s2)
 
-    h2_2 = jnp.where(_real_mask, max_d, d2 * (a * c - b * d) / denom)
+    # Keep the complex-only algebra numerically safe under JIT tracing.
+    h2_2_complex = d2 * (a * c - b * d) / complex_denom
+    h2_2 = jnp.where(_real_mask, 0.0, jnp.maximum(h2_2_complex, 0.0))
     h2 = jnp.sqrt(h2_2)
 
-    denom = jnp.where(_real_mask, 1.0, d)
-    a_d2_s2_h22 = jnp.where(_real_mask, max_d, a * d2 - s2 * h2_2)
-    h1 = (c * h2 - jnp.sqrt(a_d2_s2_h22)) / denom
+    d_safe = jnp.where(_real_mask, 1.0, d)
+    h1_radical_complex = a * d2 - s2 * h2_2_complex
+    h1_radical = jnp.where(_real_mask, 0.0, jnp.maximum(h1_radical_complex, 0.0))
+    h1 = jnp.where(_real_mask, 0.0, (c * h2 - jnp.sqrt(h1_radical)) / d_safe)
 
     # update h1, h2 => assign zero to real terms
     h1_final = jnp.where(_real_mask, 0.0, h1)
