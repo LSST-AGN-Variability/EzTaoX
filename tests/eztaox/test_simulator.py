@@ -248,3 +248,38 @@ def test_simulator_nonqs_exp_minimal() -> None:
     assert not jnp.isnan(sim_t).any()
     assert not jnp.isnan(sim_y).any()
     assert _is_sorted(sim_t)
+
+
+def test_simulator_multivar_nonqs_exp_minimal() -> None:
+    """
+    Minimal smoke test for a non-quasisep kernel with MultiVarSim.
+
+    Keep this tiny so it provides quick sanity coverage for the direct
+    multiband simulator path without the runtime cost of the full suite.
+    """
+    kernel = 1.5 * Exp_nonqs(scale=1.8)
+    inputX = (
+        jnp.array([0.0, 1.5, 3.0, 5.0, 8.0, 13.0]),
+        jnp.array([0, 1, 0, 1, 0, 1]),
+    )
+    s = MultiVarSim(
+        kernel,
+        0.1,
+        20.0,
+        2,
+        init_params={
+            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+            "log_amp_scale": jnp.array([0.0]),
+            "lag": jnp.array([2.0]),
+        },
+        has_lag=True,
+    )
+
+    simX, simY = s.fixed_input(inputX, jax.random.PRNGKey(123))
+    assert simX[0].shape == simY.shape == inputX[0].shape
+    assert simX[1].shape == inputX[1].shape
+    assert not jnp.isnan(simX[0]).any()
+    assert not jnp.isnan(simX[1]).any()
+    assert not jnp.isnan(simY).any()
+    assert _is_sorted(simX[0][simX[1] == 0])
+    assert _is_sorted(simX[0][simX[1] == 1])
