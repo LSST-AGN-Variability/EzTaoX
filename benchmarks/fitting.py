@@ -20,7 +20,7 @@ class KernelUniVarSuite:
     # Size of lightcurve `n`
     params = [50, 200, 500, 2_000]
     repeat = 5
-    min_time = 2
+    sample_time = 0.1
 
     def setup(self, n) -> None:
         t, y, yerr = generate_drw_univar(n)
@@ -64,7 +64,7 @@ class KernelMultVarSuite:
     # Size of lightcurve `n`
     params = [50, 200, 500, 2_000]
     repeat = 5
-    min_time = 2
+    sample_time = 0.2
 
     def setup(self, n) -> None:
         X, y, yerr = generate_drw_multivar(n)
