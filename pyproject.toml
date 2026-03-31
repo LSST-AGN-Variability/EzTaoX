@@ -18,7 +18,7 @@ classifiers = [
 dynamic = ["version"]
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "tinygp (>=0.3.1,<0.4.0)",
+    "tinygp @ git+https://github.com/burke86/tinygp.git",
     "jax (>=0.9.0)",
     "jaxlib (>=0.9.0)",
     "jaxopt (>=0.8.3,<0.9.0)",
