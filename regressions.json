@@ -1,1 +1,1 @@
-{"regressions": [["fitting.KernelFittingSuite.time_run_m32_fitting(100)", "graphs/Cython/branch-HEAD/build/env-OMP_NUM_THREADS-1/machine-gh-runner/packaging/python-3.12/fitting.KernelFittingSuite.time_run_m32_fitting.json", {}, 1, 2.5760508120661517e-05, 2.3441735930747506e-05, [[null, 184, 2.3441735930747506e-05, 2.5760508120661517e-05]]]]}
+{"regressions": []}
