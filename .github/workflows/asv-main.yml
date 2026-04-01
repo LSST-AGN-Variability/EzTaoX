@@ -50,7 +50,7 @@ jobs:
           mv ../_results .
         fi
     - name: Run ASV for the main branch
-      run: asv run ALL --skip-existing --verbose || true
+      run: asv run ALL --steps 10 --skip-existing --verbose || true
     - name: Submit new results to the "benchmarks" branch
       uses: JamesIves/github-pages-deploy-action@v4
       with:
