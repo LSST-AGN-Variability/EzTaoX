@@ -42,7 +42,7 @@ jobs:
       run: |
         python -m pytest --cov=eztaox --cov-report=xml --jax_cache=./jax_cache
     - name: Upload coverage report to codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
   test-lowest-versions:
