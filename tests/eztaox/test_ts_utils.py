@@ -2,7 +2,13 @@
 
 import numpy as np
 
-from eztaox.ts_utils import _get_nearest_idx, add_noise, downsampleByTime, formatlc
+from eztaox.ts_utils import (
+    _get_nearest_idx,
+    add_noise,
+    downsampleByTime,
+    formatlc,
+    merge_sort,
+)
 
 
 def test_get_nearest_idx() -> None:
@@ -101,3 +107,18 @@ def test_addNoise() -> None:  # noqa: N802
 
     print(res.pvalue)
     assert res.pvalue > 0.05  # Fail if p-value < 5%
+
+
+def test_merge_sort() -> None:
+    """Test that the merge_sort gives consistent results as jnp.argsort."""
+
+    r = np.random.default_rng(49382)
+    t1 = np.sort(r.uniform(0, 10, 10_000))
+    t2 = np.sort(r.uniform(0, 10, 2_000))
+    t3 = np.sort(r.uniform(0, 10, 100))
+
+    # Test merge_sort
+    perm = merge_sort(t1, t2, t3)
+    expected_perm = np.argsort(np.concatenate([t1, t2, t3]))
+
+    assert np.array_equal(perm, expected_perm)

@@ -17,6 +17,7 @@ from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
 from eztaox.kernels import direct, quasisep
+from eztaox.ts_utils import merge_sort
 
 
 class MultiVarModel(eqx.Module):
@@ -57,6 +58,7 @@ class MultiVarModel(eqx.Module):
     diag: JAXArray
     base_kernel_def: Callable
     multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
+    t_in_bands: list[JAXArray]
     nBand: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
@@ -91,6 +93,12 @@ class MultiVarModel(eqx.Module):
         self.y = y[init_inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
         self.nBand = nBand
+
+        # assign band indexs for sorting the input time axis after lag transform
+        t_in_bands = []
+        for i in range(nBand):
+            t_in_bands.append(t[band == i])
+        self.t_in_bands = t_in_bands
 
         # assign callables/classes
         if multiband_kernel is None:
@@ -139,7 +147,10 @@ class MultiVarModel(eqx.Module):
 
         t, band = X
         new_t = t - lags[band]
-        inds = jnp.argsort(new_t)
+        # inds = jnp.argsort(new_t)
+        inds = merge_sort(
+            jax.tree.map(lambda time, lag: time - lag, self.t_in_bands, lags)
+        )
         return (new_t, band), inds
 
     def log_prior(self, params: dict[str, JAXArray]) -> JAXArray:
