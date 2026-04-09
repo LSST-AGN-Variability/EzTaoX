@@ -12,7 +12,6 @@ import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
 import tinygp.kernels as tk
-import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
@@ -57,7 +56,7 @@ class MultiVarModel(eqx.Module):
     y: JAXArray
     diag: JAXArray
     base_kernel_def: Callable
-    multiband_kernel: tk.Kernel | tkq.Wrapper
+    multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
     nBand: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
@@ -73,7 +72,7 @@ class MultiVarModel(eqx.Module):
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
-        multiband_kernel: tk.Kernel | tkq.Wrapper | None = None,
+        multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
@@ -81,21 +80,21 @@ class MultiVarModel(eqx.Module):
     ) -> None:
         # format inputs
         t = jnp.asarray(X[0])
-        inds = jnp.argsort(t)
         band = jnp.asarray(X[1], dtype=int)
         y = jnp.asarray(y)
         yerr = jnp.asarray(yerr)
+        init_inds = jnp.argsort(t)
 
         # assign attributes
-        self.X = (t[inds], band[inds])
-        self.diag = (yerr**2)[inds]
-        self.y = y[inds]
+        self.X = (t[init_inds], band[init_inds])
+        self.diag = (yerr**2)[init_inds]
+        self.y = y[init_inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
         self.nBand = nBand
 
         # assign callables/classes
         if multiband_kernel is None:
-            if isinstance(base_kernel, quasisep.Quasisep):
+            if isinstance(base_kernel, tk.quasisep.Quasisep):
                 multiband_kernel = quasisep.MultibandLowRank
             else:
                 multiband_kernel = direct.MultibandLowRank
@@ -272,7 +271,7 @@ class MultiVarModel(eqx.Module):
             "diag": diags[inds],
             "mean": means,
         }
-        if isinstance(kernel, tkq.Quasisep):
+        if isinstance(kernel, tk.quasisep.Quasisep):
             gp_kwargs["assume_sorted"] = True
 
         return (
@@ -310,7 +309,7 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: tk.Kernel | quasisep.Quasisep,
+        kernel: tk.Kernel | tk.quasisep.Quasisep,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         **kwargs,
