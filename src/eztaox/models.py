@@ -59,7 +59,7 @@ class MultiVarModel(eqx.Module):
     base_kernel_def: Callable
     multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
     t_in_bands: list[JAXArray]
-    inds_in_bands: list[JAXArray]
+    concat_inds_in_bands: list[JAXArray]
     nBand: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
@@ -97,8 +97,12 @@ class MultiVarModel(eqx.Module):
 
         # assign band indexs for sorting the input time axis after lag transform
         sorted_t, sorted_band = self.X
-        self.t_in_bands = [sorted_t[sorted_band == i] for i in range(nBand)]
-        self.inds_in_bands = [jnp.where(sorted_band == i)[0] for i in range(nBand)]
+        self.t_in_bands = [
+            sorted_t[jnp.where(sorted_band == i)[0]] for i in range(nBand)
+        ]
+        self.concat_inds_in_bands = jnp.concat(
+            [jnp.where(sorted_band == i)[0] for i in range(nBand)]
+        )
 
         # assign callables/classes
         if multiband_kernel is None:
@@ -149,9 +153,10 @@ class MultiVarModel(eqx.Module):
         new_t = t - lags[band]
 
         # use merge sort to get the sorted indices for the new time after lag transform
-        shifted_t_in_bands = [time - lags[i] for i, time in enumerate(self.t_in_bands)]
-        concat_inds = jnp.concatenate(self.inds_in_bands)
-        inds = concat_inds[merge_sort(*shifted_t_in_bands)]
+        shifted_t_in_bands = jax.tree_util.tree_map(
+            lambda time, lag: time - lag, self.t_in_bands, list(lags)
+        )
+        inds = self.concat_inds_in_bands[merge_sort(*shifted_t_in_bands)]
 
         return (new_t, band), inds
 
@@ -269,6 +274,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
+    # @eqx.filter_jit
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
