@@ -8,6 +8,7 @@ import numpy as np
 import numpyro
 from joblib import Parallel, delayed
 from numpyro import distributions as dist
+from numpyro.infer import MCMC, NUTS, init_to_median
 from scipy.stats import median_abs_deviation as mad
 
 from eztaox.fitter import random_search, random_search_adam
@@ -47,7 +48,6 @@ def test_multivar_drw(test_data, basekey_seed) -> None:
     """
 
     # load test data
-    # data = np.load(test_data_dir + "/unit_test_lc.npz")
     ts = test_data["ts"]
     bands = test_data["bands"]
     ys = test_data["ys"]
@@ -115,7 +115,6 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
     """
 
     # load test data
-    # data = np.load(test_data_dir + "/unit_test_lc.npz")
     ts = test_data["ts"]
     bands = test_data["bands"]
     ys = test_data["ys"]
@@ -174,4 +173,51 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
     assert np.mean(np.abs(np.asarray(lag_diff))) < 2.0
 
 
-# def test_multivar_drw_mcmc()
+def test_multivar_drw_mcmc(test_data, basekey_seed) -> None:
+    """
+    Test multivariate DRW fitting with MCMC.
+    """
+
+    # load test data
+    ts = test_data["ts"]
+    bands = test_data["bands"]
+    ys = test_data["ys"]
+
+    # define model parameters
+    has_lag = True  # True: Fit for inter-band lag
+    zero_mean = True  # True: Fit for light curve mean
+    nBand = 2  # number of bands in the provide light curve (X, y, yerr)
+    fit_bands = [0, 1]  # which bands to fit
+
+    # format input data for fitting, only use the specified bands for fitting
+    X = (
+        ts[0][np.isin(bands[0], fit_bands)],
+        bands[0][np.isin(bands[0], fit_bands)],
+    )
+    y = ys[0][np.isin(bands[0], fit_bands)]
+    yerr = jnp.ones_like(y) * 1e-6
+
+    def numpyro_model(m, X, yerr, y=None):
+        sample_params = initSampler()
+        m.sample(sample_params)
+
+    # initialize a GP kernel, note the initial parameters are not used in the fitting
+    k = Exp(scale=100.0, sigma=1.0)
+    m = MultiVarModel(X, y, yerr, k, nBand, has_lag=has_lag, zero_mean=zero_mean)
+
+    nuts_kernel = NUTS(
+        numpyro_model,
+        dense_mass=True,
+        target_accept_prob=0.9,
+        init_strategy=init_to_median,
+    )
+
+    mcmc = MCMC(
+        nuts_kernel,
+        num_warmup=500,
+        num_samples=1000,
+        num_chains=1,
+        progress_bar=False,
+    )
+
+    mcmc.run(jax.random.PRNGKey(basekey_seed), m, X, yerr, y=y)
