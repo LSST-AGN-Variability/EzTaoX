@@ -1,7 +1,5 @@
-"""
-Kernels evaluated using a direct apporach, where the likelihood computation follows
-O(N^3) scaling.
-"""
+"""Kernels evaluated using a direct apporach, where the likelihood computation
+follows O(N^3) scaling."""
 
 from __future__ import annotations
 
@@ -11,12 +9,14 @@ from tinygp.helpers import JAXArray
 
 
 class MultibandLowRank(tinygp.kernels.Kernel):
-    """
-    A multiband kernel implementating a low-rank Kronecker covariance structure.
+    """A multiband kernel implementating a low-rank Kronecker covariance
+    structure.
 
-    The specific form of the cross-band Kronecker covariance matrix is given by
-    Equation 13 of `Gordon et al. (2020) <https://arxiv.org/pdf/2007.05799>`_.
-    The implementation is inspired by `this tinygp tutorial <https://tinygp.readthedocs.io/en/stable/tutorials/quasisep-custom.html#multivariate-quasiseparable-kernels>`_.
+    The specific form of the cross-band Kronecker covariance matrix is
+    given by Equation 13 of `Gordon et al. (2020)
+    <https://arxiv.org/pdf/2007.05799>`_. The implementation is inspired
+    by
+    `this tinygp tutorial <https://tinygp.readthedocs.io/en/stable/tutorials/quasisep-custom.html#multivariate-quasiseparable-kernels>`_.
     """
 
     params: dict[str, JAXArray]
@@ -35,8 +35,8 @@ class MultibandLowRank(tinygp.kernels.Kernel):
 
 
 class MultibandFullRank(tinygp.kernels.Kernel):
-    """
-    A multiband kernel implementating the full-rank Kronecker covariance structure.
+    """A multiband kernel implementating the full-rank Kronecker covariance
+    structure.
 
     The specific form of the cross-band Kronecker covariance matrix is given by
     Equation 18-20 of `Gordon et al. (2020) <https://arxiv.org/pdf/2007.05799>`_.

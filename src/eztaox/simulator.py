@@ -18,7 +18,8 @@ from eztaox.ts_utils import _get_nearest_idx
 
 
 class MultiVarSim(eqx.Module):
-    """An interface for simulating multivariate/mutli-band time series using GPs.
+    """An interface for simulating multivariate/mutli-band time series using
+    GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`_. This interface
@@ -163,7 +164,8 @@ class MultiVarSim(eqx.Module):
         lc_key: jax.random.PRNGKey,
         params: dict[str, JAXArray] | None = None,
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]:
-        """Simulate a multivariace GP time series with fixed input time and band labels.
+        """Simulate a multivariace GP time series with fixed input time and
+        band labels.
 
         Args:
             sim_X (tuple[JAXArray|NDArray, JAXArray|NDArray]): Input time and band.
@@ -203,7 +205,8 @@ class MultiVarSim(eqx.Module):
         lc_key: jax.random.PRNGKey,
         params: dict[str, JAXArray] | None = None,
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        """Simulate a multivariace GP time series with fixed input time and band labels.
+        """Simulate a multivariace GP time series with fixed input time and
+        band labels.
 
         This method is faster than `fixed_input` since it only simulates the GP at the
         input times, rather than simulating a full light curve and selecting points that

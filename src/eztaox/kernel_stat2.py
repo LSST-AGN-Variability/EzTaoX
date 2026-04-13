@@ -94,10 +94,16 @@ class gpStat2(eqx.Module):  # noqa: N801
 
 
 @jax.jit
-def carma_rms(  # noqa: D103
-    alpha: JAXArray | NDArray, beta: JAXArray | NDArray
-) -> JAXArray:
-    # TODO: Write docstring.
+def carma_rms(alpha: JAXArray | NDArray, beta: JAXArray | NDArray) -> JAXArray:
+    """Return a function that computes CARMA root-mean-squared (RMS).
+
+    Args:
+        alpha (array(float)): kernel alpha coefficients.
+        beta (array(float)): kernel beta coefficients
+
+    Returns:
+        A function that takes in frequencies and returns RMS for the given coefficients.
+    """
     alpha = jnp.atleast_1d(alpha)
     beta = jnp.atleast_1d(beta)
     _arroots = carma_roots(jnp.append(alpha, 1.0))
@@ -109,8 +115,7 @@ def carma_rms(  # noqa: D103
 def carma_psd(
     f: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
 ) -> JAXArray:
-    """
-    Return a function that computes CARMA power spectral density (PSD).
+    """Return a function that computes CARMA power spectral density (PSD).
 
     Args:
         f (array): frequencies.
@@ -145,8 +150,8 @@ def carma_psd(
 def carma_acf(
     t: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
 ) -> JAXArray:
-    """
-    Return a function that computes the model autocorrelation function (ACF) of CARMA.
+    """Return a function that computes the model autocorrelation function (ACF)
+    of CARMA.
 
     Args:
         t (array): times.
@@ -156,7 +161,6 @@ def carma_acf(
     Returns:
         A function that takes in time lags and returns ACF at the given lags.
     """
-
     roots = carma_roots(jnp.append(arparams, 1.0))
     autocorr = carma_acvf(roots, arparams, maparams)
     carma_amp = carma_rms(arparams, maparams)
@@ -172,8 +176,7 @@ def carma_acf(
 def carma_sf(
     t: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
 ) -> JAXArray:
-    """
-    Return a function that computes the CARMA structure function (SF).
+    """Return a function that computes the CARMA structure function (SF).
 
     Args:
         t (array): times.

@@ -1,7 +1,5 @@
-"""
-A module of light curve models, which are the interface for modeling uni/multi-band
-light curves using Gaussian Processes (GPs).
-"""
+"""A module of light curve models, which are the interface for modeling
+uni/multi-band light curves using Gaussian Processes (GPs)."""
 
 from collections.abc import Callable
 from functools import partial
@@ -21,8 +19,7 @@ from eztaox.kernels import direct, quasisep
 
 
 class MultiVarModel(eqx.Module):
-    """
-    An interface for modeling multivariate/multi-band time series using GPs.
+    """An interface for modeling multivariate/multi-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This
@@ -286,8 +283,8 @@ class MultiVarModel(eqx.Module):
 
 
 class UniVarModel(MultiVarModel):
-    """
-    A subclass of MultiVarModel for modeling univariate/single-band time series data.
+    """A subclass of MultiVarModel for modeling univariate/single-band time
+    series data.
 
     Args:
         t (JAXArray|NDArray): Time stamps of the input light curve.

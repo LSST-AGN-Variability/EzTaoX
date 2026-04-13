@@ -8,8 +8,7 @@ from tinygp.helpers import JAXArray
 
 @jax.jit
 def _get_nearest_idx(tIn, x) -> int:
-    """
-    Get the index of the nearest value in `tIn` to `x`.
+    """Get the index of the nearest value in `tIn` to `x`.
 
     Args:
         tIn (JAXArray): Array of time values.
@@ -19,8 +18,7 @@ def _get_nearest_idx(tIn, x) -> int:
 
 
 def downsampleByTime(tIn, tOut) -> JAXArray:  # noqa: N802
-    """
-    Downsample `tIn` to match the time points in `tOut`.
+    """Downsample `tIn` to match the time points in `tOut`.
 
     Args:
         tIn (JAXArray): Array of time values to be downsampled.
@@ -64,8 +62,7 @@ def formatlc(
 
 
 def add_noise(y: JAXArray, yerr: JAXArray, key: jax.random.PRNGKey) -> JAXArray:
-    """
-    Add Gaussian noise to a time series given measurement uncertainties.
+    """Add Gaussian noise to a time series given measurement uncertainties.
     JAX-compatible (works with jit/vmap).
 
     Args:
