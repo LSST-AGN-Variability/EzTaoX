@@ -97,11 +97,13 @@ class MultiVarModel(eqx.Module):
 
         # assign band indexs for sorting the input time axis after lag transform
         sorted_t, sorted_band = self.X
+        unique_bands = jnp.unique(sorted_band)
+
         self.t_in_bands = [
-            sorted_t[jnp.where(sorted_band == i)[0]] for i in range(nBand)
+            sorted_t[jnp.where(sorted_band == i)[0]] for i in unique_bands
         ]
         self.concat_inds_in_bands = jnp.concat(
-            [jnp.where(sorted_band == i)[0] for i in range(nBand)]
+            [jnp.where(sorted_band == i)[0] for i in unique_bands]
         )
 
         # assign callables/classes
