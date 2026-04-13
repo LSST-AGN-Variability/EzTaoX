@@ -7,7 +7,6 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-import jaxopt
 import optax
 from numpyro.handlers import seed
 from tinygp.helpers import JAXArray
@@ -89,48 +88,6 @@ def random_search(
     prng_key: jax.random.PRNGKey,
     nSample: int,
     nBest: int,
-    jaxoptMethod: str = "SLSQP",
-    batch_size: int = 1000,
-) -> tuple[dict[str, JAXArray], JAXArray]:
-    """Fit a model using random search plus optimization.
-
-    Args:
-        model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
-        initSampler (Callable): Function to sample initial parameters.
-        prng_key (jax.random.PRNGKey): Random number generator key.
-        nSample (int): Number of random samples to draw.
-        nBest (int): Number of best samples (selected based on their likelihod values)
-            to keep for optimization.
-        jaxoptMethod (str, optional): Optimization algorithm. Defaults to "SLSQP".
-        batch_size (int, optional): The batch size used in evaluating likehood of
-            randomly drawn samples. Defaults to 1000.
-
-    Returns:
-        tuple[dict[str, JAXArray], JAXArray]: Best parameters and their log likelihood.
-    """
-    loss = _make_loss(model)
-    list_of_params = _sample_top_params(
-        initSampler, prng_key, nSample, nBest, loss, batch_size
-    )
-
-    # jaxopt optimize
-    opt = jaxopt.ScipyMinimize(fun=loss, method=jaxoptMethod)
-    log_prob, param = [], []
-    for item in list_of_params:
-        soln = opt.run(item)
-        log_prob.append(-soln.state.fun_val)
-        param.append(soln.params)
-    best_param = param[jnp.argmax(jnp.asarray(log_prob))]
-
-    return best_param, max(log_prob)
-
-
-def random_search_adam(
-    model: UniVarModel | MultiVarModel,
-    initSampler: Callable,
-    prng_key: jax.random.PRNGKey,
-    nSample: int,
-    nBest: int,
     batch_size: int = 1000,
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
     nOptStep: int = 300,
@@ -171,16 +128,6 @@ def random_search_adam(
     step_fn = (
         _optimizer_step_from_state if use_value_and_grad_from_state else _optimizer_step
     )
-
-    # @jax.jit
-    # def adam_step(
-    #     params: dict[str, JAXArray], opt_state: optax.OptState
-    # ) -> tuple[dict[str, JAXArray], optax.OptState]:
-    #     val, grad = jax.value_and_grad(loss)(params)
-    #     del val
-    #     updates, opt_state = optimizer.update(grad, opt_state, params)
-    #     params = optax.apply_updates(params, updates)
-    #     return params, opt_state
 
     log_prob, param = [], []
     for item in list_of_params:
