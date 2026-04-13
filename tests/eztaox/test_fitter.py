@@ -162,8 +162,8 @@ def test_multivar_drw_adam(test_data_dir, basekey_seed) -> None:
             fit_key,
             nSample,
             nBest,
-            nStep=400,
-            learning_rate=1e-2,
+            # nStep=400,
+            # learning_rate=1e-2,
         )
         assert jnp.ndim(ll) == 0
         return bestP
@@ -224,8 +224,8 @@ def test_simple_optimizer_runs(
 
     params, (param_hist, loss_hist, grad_hist) = simple_optimizer(
         model,
-        optimizer,
         init_sample,
+        optimizer,
         n_step,
         use_value_and_grad_from_state=use_value_and_grad_from_state,
     )

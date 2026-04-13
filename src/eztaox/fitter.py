@@ -14,6 +14,8 @@ from tinygp.helpers import JAXArray
 
 from eztaox.models import MultiVarModel, UniVarModel
 
+DEFAULT_ADAM_OPTIMIZER = optax.adam(1e-3)
+
 
 def _make_loss(model: UniVarModel | MultiVarModel) -> Callable:
     @jax.jit
@@ -129,9 +131,10 @@ def random_search_adam(
     prng_key: jax.random.PRNGKey,
     nSample: int,
     nBest: int,
-    nStep: int = 300,
-    learning_rate: float = 1e-2,
     batch_size: int = 1000,
+    optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
+    nOptStep: int = 300,
+    use_value_and_grad_from_state: bool = False,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
     """Fit a model using random search plus Adam optimization.
 
@@ -144,36 +147,47 @@ def random_search_adam(
             to keep for optimization.
         nStep (int, optional): Number of Adam steps per retained sample.
             Defaults to 300.
-        learning_rate (float, optional): Adam learning rate. Defaults to 1e-2.
         batch_size (int, optional): The batch size used in evaluating likehood of
             randomly drawn samples. Defaults to 1000.
+        optimizer (optax.GradientTransformation, optional): Optimizer used in local
+            optimization. Defaults to optax.adam(1e-3).
+        nOptStep (int, optional): Number of optimization steps per retained sample.
+            Defaults to 300.
+        use_value_and_grad_from_state (bool, optional): Whether to reuse value and
+            gradients from the optimizer state when available. This is useful for
+            Optax optimizers such as L-BFGS. Defaults to False.
 
     Returns:
         tuple[dict[str, JAXArray], JAXArray]: Best parameters and their log likelihood.
     """
+    # first do random search to get good initial parameters
     loss = _make_loss(model)
     list_of_params = _sample_top_params(
         initSampler, prng_key, nSample, nBest, loss, batch_size
     )
-    optimizer = optax.adam(learning_rate)
 
-    @jax.jit
-    def adam_step(
-        params: dict[str, JAXArray], opt_state: optax.OptState
-    ) -> tuple[dict[str, JAXArray], optax.OptState]:
-        val, grad = jax.value_and_grad(loss)(params)
-        del val
-        updates, opt_state = optimizer.update(grad, opt_state, params)
-        params = optax.apply_updates(params, updates)
-        return params, opt_state
+    # then do local optimization
+    solver = optax.with_extra_args_support(optimizer)
+    step_fn = (
+        _optimizer_step_from_state if use_value_and_grad_from_state else _optimizer_step
+    )
+
+    # @jax.jit
+    # def adam_step(
+    #     params: dict[str, JAXArray], opt_state: optax.OptState
+    # ) -> tuple[dict[str, JAXArray], optax.OptState]:
+    #     val, grad = jax.value_and_grad(loss)(params)
+    #     del val
+    #     updates, opt_state = optimizer.update(grad, opt_state, params)
+    #     params = optax.apply_updates(params, updates)
+    #     return params, opt_state
 
     log_prob, param = [], []
     for item in list_of_params:
         params = item
         opt_state = optimizer.init(params)
-        for _ in range(nStep):
-            params, opt_state = adam_step(params, opt_state)
-
+        for _ in range(nOptStep):
+            params, opt_state, val, grad = step_fn(params, opt_state, solver, loss)
         final_loss = loss(params)
         log_prob.append(-final_loss)
         param.append(params)
@@ -184,9 +198,9 @@ def random_search_adam(
 
 def simple_optimizer(
     model: UniVarModel | MultiVarModel,
-    optimizer: optax.GradientTransformation,
     initSample: dict[str, JAXArray],
-    nStep: int,
+    optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
+    nStep: int = 3000,
     use_value_and_grad_from_state: bool = False,
 ) -> tuple[
     dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray, dict[str, JAXArray]]
@@ -195,9 +209,9 @@ def simple_optimizer(
 
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
-        optimizer (optax.GradientTransformation): Optimizer to use.
         initSample (dict[str, JAXArray]): The initial guess of parameters.
         nStep (int): Number of optimization steps.
+        optimizer (optax.GradientTransformation): Optimizer to use.
         use_value_and_grad_from_state (bool, optional): Whether to reuse value and
             gradients from the optimizer state when available. This is useful for
             Optax optimizers such as L-BFGS. Defaults to False.
