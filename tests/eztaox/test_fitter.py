@@ -6,13 +6,15 @@ import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
 import numpyro
+import optax
+import pytest
 from joblib import Parallel, delayed
 from numpyro import distributions as dist
 from scipy.stats import median_abs_deviation as mad
 
-from eztaox.fitter import random_search, random_search_adam
+from eztaox.fitter import random_search, random_search_adam, simple_optimizer
 from eztaox.kernels.quasisep import Exp
-from eztaox.models import MultiVarModel
+from eztaox.models import MultiVarModel, UniVarModel
 
 
 def test_multivar_drw(test_data_dir, basekey_seed) -> None:
@@ -196,3 +198,41 @@ def test_multivar_drw_adam(test_data_dir, basekey_seed) -> None:
 
     lag_diff = bestP_all["lag"] - true_params["lag"]
     assert np.mean(np.abs(np.asarray(lag_diff))) < 2.0
+
+
+@pytest.mark.parametrize(
+    ("optimizer", "use_value_and_grad_from_state", "n_step"),
+    [
+        (optax.adam(1e-2), False, 5),
+        (optax.lbfgs(), True, 3),
+    ],
+)
+def test_simple_optimizer_runs(
+    optimizer, use_value_and_grad_from_state: bool, n_step: int
+) -> None:
+    """Smoke test simpleOptimizer with both plain and state-aware optimizers."""
+    x = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
+    y = jnp.sin(x)
+    yerr = jnp.ones_like(x) * 0.05
+    kernel = Exp(scale=1.5, sigma=0.8)
+    init_sample = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "mean": jnp.array(0.1),
+        "log_jitter": jnp.array(-4.0),
+    }
+    model = UniVarModel(x, y, yerr, kernel, zero_mean=False, has_jitter=True)
+
+    params, (param_hist, loss_hist, grad_hist) = simple_optimizer(
+        model,
+        optimizer,
+        init_sample,
+        n_step,
+        use_value_and_grad_from_state=use_value_and_grad_from_state,
+    )
+
+    assert set(params) == set(init_sample)
+    assert loss_hist.shape == (n_step,)
+    assert param_hist["log_kernel_param"].shape[0] == n_step
+    assert grad_hist["log_kernel_param"].shape[0] == n_step
+    assert jnp.all(jnp.isfinite(loss_hist))
+    assert jnp.isfinite(model.log_prob(params))

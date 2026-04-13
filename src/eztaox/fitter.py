@@ -3,6 +3,7 @@ This module contains the fitter functions that fits a model to data.
 """
 
 from collections.abc import Callable
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -20,6 +21,36 @@ def _make_loss(model: UniVarModel | MultiVarModel) -> Callable:
         return -model.log_prob(params)
 
     return loss
+
+
+@partial(jax.jit, static_argnames=("solver", "loss"))
+def _optimizer_step(
+    params: dict[str, JAXArray],
+    opt_state: optax.OptState,
+    solver: optax.GradientTransformationExtraArgs,
+    loss: Callable,
+) -> tuple[dict[str, JAXArray], optax.OptState, JAXArray, dict[str, JAXArray]]:
+    val, grad = jax.value_and_grad(loss)(params)
+    updates, opt_state = solver.update(
+        grad, opt_state, params, value=val, grad=grad, value_fn=loss
+    )
+    params = optax.apply_updates(params, updates)
+    return params, opt_state, val, grad
+
+
+@partial(jax.jit, static_argnames=("solver", "loss"))
+def _optimizer_step_from_state(
+    params: dict[str, JAXArray],
+    opt_state: optax.OptState,
+    solver: optax.GradientTransformationExtraArgs,
+    loss: Callable,
+) -> tuple[dict[str, JAXArray], optax.OptState, JAXArray, dict[str, JAXArray]]:
+    val, grad = optax.value_and_grad_from_state(loss)(params, state=opt_state)
+    updates, opt_state = solver.update(
+        grad, opt_state, params, value=val, grad=grad, value_fn=loss
+    )
+    params = optax.apply_updates(params, updates)
+    return params, opt_state, val, grad
 
 
 def _sample_top_params(
@@ -151,11 +182,12 @@ def random_search_adam(
     return best_param, max(log_prob)
 
 
-def simpleOptimizer(  # noqa: N802
+def simple_optimizer(
     model: UniVarModel | MultiVarModel,
     optimizer: optax.GradientTransformation,
     initSample: dict[str, JAXArray],
     nStep: int,
+    use_value_and_grad_from_state: bool = False,
 ) -> tuple[
     dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray, dict[str, JAXArray]]
 ]:
@@ -166,29 +198,29 @@ def simpleOptimizer(  # noqa: N802
         optimizer (optax.GradientTransformation): Optimizer to use.
         initSample (dict[str, JAXArray]): The initial guess of parameters.
         nStep (int): Number of optimization steps.
+        use_value_and_grad_from_state (bool, optional): Whether to reuse value and
+            gradients from the optimizer state when available. This is useful for
+            Optax optimizers such as L-BFGS. Defaults to False.
 
     Returns:
         tuple[dict, tuple[dict, JAXArray, dict]]: Best parameters, (parameter history,
         loss history, gradient history).
     """
 
-    @jax.jit
-    def loss(params) -> JAXArray:
-        return -model.log_prob(params)
+    loss = _make_loss(model)
 
     param_hist, loss_hist, grad_hist = [], [], []
     params = initSample.copy()
-    opt_state = optimizer.init(params)
+    solver = optax.with_extra_args_support(optimizer)
+    opt_state = solver.init(params)
+    step_fn = (
+        _optimizer_step_from_state if use_value_and_grad_from_state else _optimizer_step
+    )
     for _ in range(nStep):
-        # compute loss, grad for current param & save to hist
-        val, grad = jax.value_and_grad(loss)(params)
         param_hist.append(params)
+        params, opt_state, val, grad = step_fn(params, opt_state, solver, loss)
         loss_hist.append(val)
         grad_hist.append(grad)
-
-        # update
-        updates, opt_state = optimizer.update(grad, opt_state)
-        params = optax.apply_updates(params, updates)
 
     param_hist = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *param_hist)
     grad_hist = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *grad_hist)
