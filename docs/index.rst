@@ -155,6 +155,8 @@ These notebooks are also available for live experimentation in a binder instance
    API Reference <autoapi/index>
    Notebooks <notebooks>
    About <about>
+   Changelog <changelog>
+   
 
 .. [DFM17] Daniel Foreman-Mackey, Eric Agol, Sivaram Ambikasaran, Ruth Angus; 
    *Fast and scalable Gaussian process modeling with applications to astronomical time series*, 
