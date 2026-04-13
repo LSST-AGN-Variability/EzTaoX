@@ -9,9 +9,39 @@
       "orcid": "0000-0001-9947-6911",
       "affiliation": "Department of Astronomy, Yale University, USA",
       "name": "Burke, Colin"
+    },
+    {
+      "orcid": "0000-0002-1074-2900",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "DeLucchi, Melissa"
+    },
+    {
+      "orcid": "0009-0007-9870-9032",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "Campos, Sandro"
+    },
+    {
+      "orcid": "0000-0001-5028-146X",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "Lynn, Olivia"
+    },
+    {
+      "orcid": "0009-0009-2281-7031",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "Kubica, Jeremy"
+    },
+    {
+      "orcid": "0000-0001-7179-7406",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "Malanchev, Konstantin"
+    },
+    {
+      "orcid": "0009-0005-8764-2608",
+      "affiliation": "The McWilliams Center for Cosmology & Astrophysics, Department of Physics, Carnegie Mellon University",
+      "name": "McGuire, Sean"
     }
   ],
   "license": "MIT",
-  "title": "EzTaoX: AGN light curve modeling with Gauassian Process",
+  "title": "EzTaoX: AGN light curve modeling with Gaussian Process",
   "description": "EzTaoX is a flexible framework for multi-wavelength and multi-survey AGN light-curve modeling using Gaussian Processes (GPs).  Built on top of tinygp---a scalable GP library in JAX---EzTaoX is fast, modular, and integrates seamlessly with the JAX ecosystem for statistical inference and modern machine learning."
 }
