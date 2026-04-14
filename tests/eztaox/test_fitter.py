@@ -97,7 +97,7 @@ def test_multivar_drw(
             nSample,
             nBest,
             optimizer=optimizer,
-            nOptStep=n_opt_step,
+            n_opt_step=n_opt_step,
             use_value_and_grad_from_state=use_value_and_grad_from_state,
         )
 
@@ -184,7 +184,7 @@ def test_simple_optimizer_runs(
 
 
 def test_random_search_uses_fixed_loop(monkeypatch) -> None:
-    """random_search should keep using nOptStep unless both stop args are set."""
+    """random_search should keep using n_opt_step unless both stop args are set."""
     x = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
     y = jnp.sin(x)
     yerr = jnp.ones_like(x) * 0.05
@@ -215,8 +215,8 @@ def test_random_search_uses_fixed_loop(monkeypatch) -> None:
         nSample=1,
         nBest=1,
         optimizer=optax.adam(1e-2),
-        nOptStep=3,
-        maxOptStep=10,
+        n_opt_step=3,
+        max_opt_step=10,
         tol=None,
     )
 
@@ -257,8 +257,8 @@ def test_random_search_stops_early_with_tol(monkeypatch) -> None:
         nSample=1,
         nBest=1,
         optimizer=optax.lbfgs(),
-        nOptStep=3,
-        maxOptStep=10,
+        n_opt_step=3,
+        max_opt_step=10,
         tol=1e6,
         use_value_and_grad_from_state=True,
     )
