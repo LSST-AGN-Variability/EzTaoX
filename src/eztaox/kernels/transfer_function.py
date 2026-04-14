@@ -13,7 +13,7 @@ from eztaox.kernels.quasisep import Quasisep
 
 
 class TransferFunction(eqx.Module):
-    """Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
+    r"""Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
 
     width: float
     shift: JAXArray | float = eqx.field(default_factory=lambda: jnp.zeros(()))
@@ -101,7 +101,7 @@ class CausalExponentialTransferFunction(TransferFunction):
     """  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
-        """Evaluate the normalized transfer function at two points.
+        r"""Evaluate the normalized transfer function at two points.
 
         Normalized so that
         :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
@@ -129,7 +129,8 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
     n_grid: int = eqx.field(static=True)
     truncation_factor: float = eqx.field(static=True, default=6.0)
 
-    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+    def coord_to_sortable(self, X) -> JAXArray:
+        """Extract the time-sortable component of the coordinates."""
         return X[0]
 
     @property
@@ -145,7 +146,7 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
         """Center of integration grid."""
         return self.transfer_function.shift
 
-    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
+    def evaluate(self, X1, X2) -> JAXArray:
         tau = jnp.abs(X1 - X2)
 
         hw = self._half_width

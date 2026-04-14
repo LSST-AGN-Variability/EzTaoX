@@ -1,3 +1,5 @@
+"""Utility methods for Equinox modules."""
+
 import equinox as eqx
 import jax
 from equinox._module import BoundMethod

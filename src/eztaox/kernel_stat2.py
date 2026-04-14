@@ -150,8 +150,7 @@ def carma_psd(
 def carma_acf(
     t: JAXArray | NDArray, arparams: JAXArray | NDArray, maparams: JAXArray | NDArray
 ) -> JAXArray:
-    """Return a function that computes the model autocorrelation function (ACF)
-    of CARMA.
+    """Return a function to compute the model autocorrelation function (ACF) of CARMA.
 
     Args:
         t (array): times.

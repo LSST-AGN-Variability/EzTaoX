@@ -18,8 +18,7 @@ from eztaox.ts_utils import _get_nearest_idx
 
 
 class MultiVarSim(eqx.Module):
-    """An interface for simulating multivariate/mutli-band time series using
-    GPs.
+    """An interface for simulating multivariate/mutli-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`_. This interface
@@ -108,7 +107,7 @@ class MultiVarSim(eqx.Module):
     def full(
         self, key: jax.random.PRNGKey, params: dict[str, JAXArray] | None = None
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        """Simulate a multivariace GP time series with unifrom time sampling.
+        """Simulate a multivariate GP time series with uniform time sampling.
 
         Args:
             key (jax.random.PRNGKey): Random number generator key.
@@ -131,7 +130,7 @@ class MultiVarSim(eqx.Module):
         random_key: jax.random.PRNGKey,
         params: dict[str, JAXArray] | None = None,
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]:
-        """Simulate a multivariace GP time series with random time sampling.
+        """Simulate a multivariate GP time series with random time sampling.
 
         Args:
             nRand (int): Number of data points in the simulated time series.
@@ -146,7 +145,6 @@ class MultiVarSim(eqx.Module):
             tuple[tuple[JAXArray, JAXArray], JAXArray]: Simulated time series in the
             form of (time, band) and the simulated light curve values.
         """
-
         # get full light curve
         params = params if params is not None else self.init_params
         full_X, full_y = self.full(lc_key, params)
@@ -164,8 +162,7 @@ class MultiVarSim(eqx.Module):
         lc_key: jax.random.PRNGKey,
         params: dict[str, JAXArray] | None = None,
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]:
-        """Simulate a multivariace GP time series with fixed input time and
-        band labels.
+        """Simulate a multivar GP time series with fixed input time and band labels.
 
         Args:
             sim_X (tuple[JAXArray|NDArray, JAXArray|NDArray]): Input time and band.
@@ -205,8 +202,7 @@ class MultiVarSim(eqx.Module):
         lc_key: jax.random.PRNGKey,
         params: dict[str, JAXArray] | None = None,
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        """Simulate a multivariace GP time series with fixed input time and
-        band labels.
+        """Simulate a multivar GP time series with fixed input time and band labels.
 
         This method is faster than `fixed_input` since it only simulates the GP at the
         input times, rather than simulating a full light curve and selecting points that
@@ -347,8 +343,6 @@ class UniVarSim(MultiVarSim):
         amp_scale_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        """Initialize the UniVarSim with time, observed data, and kernel."""
-
         # univar specific attributes
         nBand = 1
         has_lag = False
@@ -372,7 +366,7 @@ class UniVarSim(MultiVarSim):
     def full(
         self, key: jax.random.PRNGKey, params: dict[str, JAXArray] | None = None
     ) -> tuple[JAXArray, JAXArray]:
-        """Simulate a univariate GP time series with unifrom time sampling.
+        """Simulate a univariate GP time series with uniform time sampling.
 
         Args:
             key (jax.random.PRNGKey): Random number generator key.
@@ -409,7 +403,6 @@ class UniVarSim(MultiVarSim):
             tuple[JAXArray, JAXArray]: Simulated time series in the form of (time,
             light curve values).
         """
-
         # get full light curve
         params = params if params is not None else self.init_params
         full_t, full_y = self.full(lc_key, params)

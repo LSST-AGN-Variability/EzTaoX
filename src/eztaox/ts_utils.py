@@ -49,7 +49,6 @@ def formatlc(
         tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]: Light curves formatted as
             ((time stamps, band indices), observed values, uncertainties).
     """
-
     band_keys = band_order.keys()
     tss = jnp.concat([ts[key] for key in band_keys])
     yss = jnp.concat([ys[key] for key in band_keys])
@@ -63,6 +62,7 @@ def formatlc(
 
 def add_noise(y: JAXArray, yerr: JAXArray, key: jax.random.PRNGKey) -> JAXArray:
     """Add Gaussian noise to a time series given measurement uncertainties.
+
     JAX-compatible (works with jit/vmap).
 
     Args:
