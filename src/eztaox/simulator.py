@@ -64,7 +64,7 @@ class MultiVarSim(eqx.Module):
         nBand: int,
         init_params: dict[str, JAXArray],
         *,
-        multiband_kernel: tk.Kernel | tkq.Wrapper | None = None,
+        multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,

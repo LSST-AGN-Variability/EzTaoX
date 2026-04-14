@@ -10,7 +10,6 @@ import optax
 import pytest
 from joblib import Parallel, delayed
 from numpyro import distributions as dist
-from numpyro.infer import MCMC, NUTS, init_to_median
 from scipy.stats import median_abs_deviation as mad
 
 import eztaox.fitter as fitter_module
@@ -171,8 +170,8 @@ def test_simple_optimizer_runs(
     params, (param_hist, loss_hist, grad_hist) = simple_optimizer(
         model,
         init_sample,
-        optimizer,
-        n_step,
+        optimizer=optimizer,
+        n_step=n_step,
         use_value_and_grad_from_state=use_value_and_grad_from_state,
     )
 
