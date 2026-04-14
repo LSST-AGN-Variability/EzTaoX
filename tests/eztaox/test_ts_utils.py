@@ -2,7 +2,13 @@
 
 import numpy as np
 
-from eztaox.ts_utils import _get_nearest_idx, add_noise, downsampleByTime, formatlc
+from eztaox.ts_utils import (
+    _get_nearest_idx,
+    add_noise,
+    downsampleByTime,
+    formatlc,
+    merge_sort,
+)
 
 
 def test_get_nearest_idx() -> None:
@@ -101,3 +107,40 @@ def test_addNoise() -> None:  # noqa: N802
 
     print(res.pvalue)
     assert res.pvalue > 0.05  # Fail if p-value < 5%
+
+
+def test_merge_sort() -> None:
+    """Test that the merge_sort gives consistent results as jnp.argsort."""
+
+    r = np.random.default_rng(49382)
+    t1 = np.sort(r.uniform(0, 10, 10_000))
+    t2 = np.sort(r.uniform(0, 10, 2_000))
+    t3 = np.sort(r.uniform(0, 10, 100))
+
+    # Test merge_sort
+    perm = merge_sort(t1, t2, t3)
+    expected_perm = np.argsort(np.concatenate([t1, t2, t3]))
+
+    assert np.array_equal(perm, expected_perm)
+
+
+def test_merge_sort_requires_index_remap_for_interleaved_inputs() -> None:
+    """Test that merge_sort indices must be remapped for observation-order arrays."""
+
+    t = np.array([1.0, 1.1, 2.0, 2.1, 3.0, 3.1])
+    band = np.array([0, 1, 0, 1, 0, 1])
+    lags = np.array([0.0, 1.5])
+
+    new_t = t - lags[band]
+    expected_perm = np.argsort(new_t)
+
+    t_in_bands = [t[band == i] for i in range(2)]
+    inds_in_bands = [np.where(band == i)[0] for i in range(2)]
+    shifted_t_in_bands = [time - lags[i] for i, time in enumerate(t_in_bands)]
+
+    naive_perm = np.array(merge_sort(*shifted_t_in_bands))
+    concat_inds = np.concatenate(inds_in_bands)
+    remapped_perm = concat_inds[naive_perm]
+
+    assert not np.array_equal(naive_perm, expected_perm)
+    assert np.array_equal(remapped_perm, expected_perm)

@@ -1,6 +1,7 @@
 import os
 
 import jax
+import numpy as np
 import pytest
 
 DATA_DIR_NAME = "data"
@@ -8,8 +9,12 @@ TEST_DIR = os.path.dirname(__file__)
 
 
 @pytest.fixture
-def test_data_dir() -> str:
-    return os.path.join(TEST_DIR, DATA_DIR_NAME)
+def test_data() -> dict[str, np.ndarray]:
+    test_data_dir = os.path.join(TEST_DIR, DATA_DIR_NAME)
+
+    # load test data
+    data = np.load(test_data_dir + "/unit_test_lc.npz")
+    return data
 
 
 @pytest.fixture
