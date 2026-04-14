@@ -8,7 +8,6 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 import tinygp.kernels as tk
-import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
@@ -47,7 +46,7 @@ class MultiVarSim(eqx.Module):
     """
 
     base_kernel_def: Callable
-    multiband_kernel: tk.Kernel | tkq.Wrapper
+    multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
     X: tuple[JAXArray, JAXArray]
     init_params: dict[str, JAXArray]
     nBand: int
@@ -59,12 +58,12 @@ class MultiVarSim(eqx.Module):
 
     def __init__(
         self,
-        base_kernel: tk.Kernel | quasisep.Quasisep,
+        base_kernel: tk.Kernel | tk.quasisep.Quasisep,
         min_dt: float,
         max_dt: float,
         nBand: int,
         init_params: dict[str, JAXArray],
-        multiband_kernel: tk.Kernel | tkq.Wrapper | None = None,
+        multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
@@ -88,7 +87,7 @@ class MultiVarSim(eqx.Module):
         # assign callables/classes
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
         if multiband_kernel is None:
-            if isinstance(base_kernel, quasisep.Quasisep):
+            if isinstance(base_kernel, tk.quasisep.Quasisep):
                 multiband_kernel = quasisep.MultibandLowRank
             else:
                 multiband_kernel = direct.MultibandLowRank
@@ -259,7 +258,7 @@ class MultiVarSim(eqx.Module):
         gp_kwargs = dict(mean=means)
 
         # Only QuasisepSolver supports assume_sorted in tinygp
-        if isinstance(kernel, tkq.Quasisep):
+        if isinstance(kernel, tk.quasisep.Quasisep):
             gp_kwargs["assume_sorted"] = True
 
         return (
@@ -336,7 +335,7 @@ class UniVarSim(MultiVarSim):
 
     def __init__(
         self,
-        base_kernel: tk.Kernel | quasisep.Quasisep,
+        base_kernel: tk.Kernel | tk.quasisep.Quasisep,
         min_dt: float,
         max_dt: float,
         init_params: dict[str, JAXArray],
