@@ -91,10 +91,12 @@ def random_search(
     batch_size: int = 1000,
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
     nOptStep: int = 1000,
+    maxOptStep: int | None = None,
+    tol: float | None = None,
     use_value_and_grad_from_state: bool = False,
     clear_cache_after_opt: bool = False,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
-    """Fit a model using random search plus Adam optimization.
+    """Fit a model using random search plus local optimization.
 
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
@@ -103,14 +105,17 @@ def random_search(
         nSample (int): Number of random samples to draw.
         nBest (int): Number of best samples (selected based on their likelihod values)
             to keep for optimization.
-        nStep (int, optional): Number of Adam steps per retained sample.
-            Defaults to 300.
         batch_size (int, optional): The batch size used in evaluating likehood of
             randomly drawn samples. Defaults to 1000.
         optimizer (optax.GradientTransformation, optional): Optimizer used in local
             optimization. Defaults to optax.adam(1e-2).
         nOptStep (int, optional): Number of optimization steps per retained sample.
             Defaults to 1000 for the default adam optimizer.
+        maxOptStep (int | None, optional): Maximum number of optimization steps when
+            using the tolerance-based stopping criterion. Defaults to None.
+        tol (float | None, optional): Gradient-norm tolerance for early stopping.
+            This criterion is only used when maxOptStep is also provided. Defaults
+            to None.
         use_value_and_grad_from_state (bool, optional): Whether to reuse value and
             gradients from the optimizer state when available. This is useful for
             Optax optimizers such as L-BFGS. Defaults to False.
@@ -135,9 +140,15 @@ def random_search(
     log_prob, param = [], []
     for item in list_of_params:
         params = item
-        opt_state = optimizer.init(params)
-        for _ in range(nOptStep):
-            params, opt_state, val, grad = step_fn(params, opt_state, solver, loss)
+        opt_state = solver.init(params)
+        if maxOptStep is not None and tol is not None:
+            for _ in range(maxOptStep):
+                params, opt_state, val, grad = step_fn(params, opt_state, solver, loss)
+                if optax.tree.norm(grad) < tol:
+                    break
+        else:
+            for _ in range(nOptStep):
+                params, opt_state, val, grad = step_fn(params, opt_state, solver, loss)
         final_loss = loss(params)
         log_prob.append(-final_loss)
         param.append(params)

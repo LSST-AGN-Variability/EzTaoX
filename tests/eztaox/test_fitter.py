@@ -14,6 +14,7 @@ from joblib import Parallel, delayed
 from numpyro import distributions as dist
 from scipy.stats import median_abs_deviation as mad
 
+import eztaox.fitter as fitter_module
 from eztaox.fitter import random_search, simple_optimizer
 from eztaox.kernels.quasisep import Exp
 from eztaox.models import MultiVarModel, UniVarModel
@@ -182,3 +183,88 @@ def test_simple_optimizer_runs(
     assert grad_hist["log_kernel_param"].shape[0] == n_step
     assert jnp.all(jnp.isfinite(loss_hist))
     assert jnp.isfinite(model.log_prob(params))
+
+
+def test_random_search_uses_fixed_loop(monkeypatch) -> None:
+    """random_search should keep using nOptStep unless both stop args are set."""
+    x = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
+    y = jnp.sin(x)
+    yerr = jnp.ones_like(x) * 0.05
+    kernel = Exp(scale=1.5, sigma=0.8)
+    init_sample = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "mean": jnp.array(0.1),
+        "log_jitter": jnp.array(-4.0),
+    }
+    model = UniVarModel(x, y, yerr, kernel, zero_mean=False, has_jitter=True)
+
+    def init_sampler():
+        return init_sample
+
+    step_calls = {"count": 0}
+    original_step = fitter_module._optimizer_step
+
+    def counting_step(*args, **kwargs):
+        step_calls["count"] += 1
+        return original_step(*args, **kwargs)
+
+    monkeypatch.setattr(fitter_module, "_optimizer_step", counting_step)
+
+    params, log_likelihood = random_search(
+        model,
+        init_sampler,
+        jr.PRNGKey(0),
+        nSample=1,
+        nBest=1,
+        optimizer=optax.adam(1e-2),
+        nOptStep=3,
+        maxOptStep=10,
+        tol=None,
+    )
+
+    assert step_calls["count"] == 3
+    assert set(params) == set(init_sample)
+    assert jnp.ndim(log_likelihood) == 0
+
+
+def test_random_search_stops_early_with_tol(monkeypatch) -> None:
+    """random_search should stop after the first step when tol is very large."""
+    x = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
+    y = jnp.sin(x)
+    yerr = jnp.ones_like(x) * 0.05
+    kernel = Exp(scale=1.5, sigma=0.8)
+    init_sample = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "mean": jnp.array(0.1),
+        "log_jitter": jnp.array(-4.0),
+    }
+    model = UniVarModel(x, y, yerr, kernel, zero_mean=False, has_jitter=True)
+
+    def init_sampler():
+        return init_sample
+
+    step_calls = {"count": 0}
+    original_step = fitter_module._optimizer_step_from_state
+
+    def counting_step(*args, **kwargs):
+        step_calls["count"] += 1
+        return original_step(*args, **kwargs)
+
+    monkeypatch.setattr(fitter_module, "_optimizer_step_from_state", counting_step)
+
+    params, log_likelihood = random_search(
+        model,
+        init_sampler,
+        jr.PRNGKey(0),
+        nSample=1,
+        nBest=1,
+        optimizer=optax.lbfgs(),
+        nOptStep=3,
+        maxOptStep=10,
+        tol=1e6,
+        use_value_and_grad_from_state=True,
+    )
+
+    assert step_calls["count"] == 1
+    assert set(params) == set(init_sample)
+    assert jnp.ndim(log_likelihood) == 0
