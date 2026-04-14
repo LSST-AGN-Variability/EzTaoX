@@ -45,9 +45,35 @@ def initSampler():  # noqa: N802
     return sample_params
 
 
-def test_multivar_drw_adam(test_data, basekey_seed) -> None:
+@pytest.mark.parametrize(
+    ("optimizer", "use_value_and_grad_from_state", "n_opt_step", "n_runs"),
+    [
+        pytest.param(
+            optax.adam(1e-2),
+            False,
+            1000,
+            100,
+            id="adam",
+        ),
+        pytest.param(
+            optax.lbfgs(),
+            True,
+            100,
+            50,
+            id="lbfgs",
+        ),
+    ],
+)
+def test_multivar_drw(
+    test_data,
+    basekey_seed,
+    optimizer,
+    use_value_and_grad_from_state: bool,
+    n_opt_step: int,
+    n_runs: int,
+) -> None:
     """
-    Test multivariate DRW fitting with Adam refinement.
+    Test multivariate DRW fitting with Adam and L-BFGS refinement.
     """
 
     # load test data
@@ -58,7 +84,6 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
     # config for fitting
     nSample = 2_000
     nBest = 5
-    optimizer = optax.adam(1e-2)
     fit_bands = [0, 1]
 
     def fit(X, y, yerr, nBand, basekey_seed, key_index):
@@ -73,8 +98,10 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
             nSample,
             nBest,
             optimizer=optimizer,
-            nOptStep=1000,
+            nOptStep=n_opt_step,
+            use_value_and_grad_from_state=use_value_and_grad_from_state,
         )
+
         assert jnp.ndim(ll) == 0
         return bestP
 
@@ -90,7 +117,7 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
             basekey_seed=basekey_seed,
             key_index=i,
         )
-        for i in range(len(ts))
+        for i in range(len(ts))[:: int(len(ts) / n_runs)]
     )
 
     bestP_all = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *bestPs)

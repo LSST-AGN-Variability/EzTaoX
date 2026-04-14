@@ -92,6 +92,7 @@ def random_search(
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
     nOptStep: int = 300,
     use_value_and_grad_from_state: bool = False,
+    clear_cache_after_opt: bool = False,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
     """Fit a model using random search plus Adam optimization.
 
@@ -113,6 +114,8 @@ def random_search(
         use_value_and_grad_from_state (bool, optional): Whether to reuse value and
             gradients from the optimizer state when available. This is useful for
             Optax optimizers such as L-BFGS. Defaults to False.
+        clear_cache_after_opt (bool, optional): Clear JAX caches after opt.
+            Defaults to False.
 
     Returns:
         tuple[dict[str, JAXArray], JAXArray]: Best parameters and their log likelihood.
@@ -140,6 +143,10 @@ def random_search(
         param.append(params)
 
     best_param = param[jnp.argmax(jnp.asarray(log_prob))]
+
+    if clear_cache_after_opt:
+        jax.clear_caches()
+
     return best_param, max(log_prob)
 
 
