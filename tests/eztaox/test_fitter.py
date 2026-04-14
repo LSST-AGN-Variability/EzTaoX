@@ -10,6 +10,7 @@ import optax
 import pytest
 from joblib import Parallel, delayed
 from numpyro import distributions as dist
+from numpyro.infer import MCMC, NUTS, init_to_median
 from scipy.stats import median_abs_deviation as mad
 
 import eztaox.fitter as fitter_module
