@@ -84,3 +84,99 @@ def add_noise(y: JAXArray, yerr: JAXArray, key: jax.random.PRNGKey) -> JAXArray:
     noise = jax.random.normal(key, shape=y.shape, dtype=y.dtype) * yerr
 
     return y + noise
+
+
+def merge_two_sorted_argsort(a, b):
+    """Merge two sorted arrays and return the argsort permutation.
+
+    Args:
+        a (JAXArray): First sorted array.
+        b (JAXArray): Second sorted array.
+
+    Returns:
+        JAXArray: Indices that would sort the concatenation of ``a`` and ``b``.
+    """
+    a = jnp.asarray(a)
+    b = jnp.asarray(b)
+    n = a.shape[0]
+    m = b.shape[0]
+    N = n + m
+
+    perm = jnp.empty((N,), dtype=jnp.int32)
+
+    def body(k, carry):
+        i, j, perm = carry
+        a_valid = i < n
+        b_valid = j < m
+
+        ai = jnp.where(a_valid, a[i], 0)
+        bj = jnp.where(b_valid, b[j], 0)
+
+        take_a = a_valid & (~b_valid | (ai <= bj))
+        idx = jnp.where(take_a, i, n + j)
+        perm = perm.at[k].set(idx)
+
+        i = i + take_a.astype(jnp.int32)
+        j = j + (~take_a).astype(jnp.int32)
+        return i, j, perm
+
+    _, _, perm = jax.lax.fori_loop(0, N, body, (jnp.int32(0), jnp.int32(0), perm))
+    return perm
+
+
+def merge_many_sorted_argsort(arrays):
+    """Merge multiple sorted arrays and return the argsort permutation.
+
+    Args:
+        arrays (list[JAXArray]): List of sorted arrays to merge.
+
+    Returns:
+        JAXArray: Indices that would sort the concatenation of all input arrays.
+    """
+    arrays = [jnp.asarray(a) for a in arrays]
+    if len(arrays) == 0:
+        return jnp.array([], dtype=jnp.int32)
+
+    lengths = [a.shape[0] for a in arrays]
+    offsets = []
+    s = 0
+    for n in lengths:
+        offsets.append(s)
+        s += n
+
+    items = [
+        (a, jnp.arange(a.shape[0], dtype=jnp.int32) + off)
+        for a, off in zip(arrays, offsets, strict=True)
+    ]
+
+    while len(items) > 1:
+        new_items = []
+        for i in range(0, len(items), 2):
+            if i + 1 == len(items):
+                new_items.append(items[i])
+            else:
+                av, ai = items[i]
+                bv, bi = items[i + 1]
+                p = merge_two_sorted_argsort(av, bv)
+                new_items.append(
+                    (
+                        jnp.concatenate([av, bv])[p],
+                        jnp.concatenate([ai, bi])[p],
+                    )
+                )
+        items = new_items
+
+    return items[0][1]
+
+
+@jax.jit
+def merge_sort(*arrays) -> JAXArray:
+    """Merge multiple sorted arrays and return the argsort permutation.
+
+    Args:
+        *arrays: Variable number of sorted arrays to merge.
+
+    Returns:
+        JAXArray: Indices that would sort the concatenation of all input arrays.
+    """
+    return merge_many_sorted_argsort(list(arrays))

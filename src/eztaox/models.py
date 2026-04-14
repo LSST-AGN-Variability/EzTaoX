@@ -12,12 +12,12 @@ import jax.flatten_util
 import jax.numpy as jnp
 import numpyro
 import tinygp.kernels as tk
-import tinygp.kernels.quasisep as tkq
 from numpy.typing import NDArray
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
 from eztaox.kernels import direct, quasisep
+from eztaox.ts_utils import merge_sort
 
 
 class MultiVarModel(eqx.Module):
@@ -57,7 +57,9 @@ class MultiVarModel(eqx.Module):
     y: JAXArray
     diag: JAXArray
     base_kernel_def: Callable
-    multiband_kernel: tk.Kernel | tkq.Wrapper
+    multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
+    t_in_bands: list[JAXArray]
+    concat_inds_in_bands: list[JAXArray]
     nBand: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
@@ -73,7 +75,7 @@ class MultiVarModel(eqx.Module):
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
         nBand: int,
-        multiband_kernel: tk.Kernel | tkq.Wrapper | None = None,
+        multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         lag_func: Callable | None = None,
@@ -81,21 +83,32 @@ class MultiVarModel(eqx.Module):
     ) -> None:
         # format inputs
         t = jnp.asarray(X[0])
-        inds = jnp.argsort(t)
         band = jnp.asarray(X[1], dtype=int)
         y = jnp.asarray(y)
         yerr = jnp.asarray(yerr)
+        init_inds = jnp.argsort(t)
 
         # assign attributes
-        self.X = (t[inds], band[inds])
-        self.diag = (yerr**2)[inds]
-        self.y = y[inds]
+        self.X = (t[init_inds], band[init_inds])
+        self.diag = (yerr**2)[init_inds]
+        self.y = y[init_inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
         self.nBand = nBand
 
+        # assign band indexs for sorting the input time axis after lag transform
+        sorted_t, sorted_band = self.X
+        unique_bands = jnp.unique(sorted_band)
+
+        self.t_in_bands = [
+            sorted_t[jnp.where(sorted_band == i)[0]] for i in unique_bands
+        ]
+        self.concat_inds_in_bands = jnp.concat(
+            [jnp.where(sorted_band == i)[0] for i in unique_bands]
+        )
+
         # assign callables/classes
         if multiband_kernel is None:
-            if isinstance(base_kernel, quasisep.Quasisep):
+            if isinstance(base_kernel, tk.quasisep.Quasisep):
                 multiband_kernel = quasisep.MultibandLowRank
             else:
                 multiband_kernel = direct.MultibandLowRank
@@ -127,6 +140,28 @@ class MultiVarModel(eqx.Module):
             return self.amp_scale_func(params)
         return self._default_amp_scale_func(params)
 
+    def _lag_transform_fast(
+        self, has_lag: bool, params: dict[str, JAXArray]
+    ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
+        """Shift the time axis by the lag in each band. Fast version used in fitting."""
+        if has_lag is False:
+            lags = jnp.zeros(self.nBand)
+        elif self.lag_func is not None:
+            lags = self.lag_func(params)
+        else:
+            lags = self._default_lag_func(params)
+
+        t, band = self.X
+        new_t = t - lags[band]
+
+        # use merge sort to get the sorted indices for the new time after lag transform
+        shifted_t_in_bands = jax.tree_util.tree_map(
+            lambda time, lag: time - lag, self.t_in_bands, list(lags)
+        )
+        inds = self.concat_inds_in_bands[merge_sort(*shifted_t_in_bands)]
+
+        return (new_t, band), inds
+
     def lag_transform(
         self, has_lag: bool, params: dict[str, JAXArray], X: JAXArray
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
@@ -141,6 +176,7 @@ class MultiVarModel(eqx.Module):
         t, band = X
         new_t = t - lags[band]
         inds = jnp.argsort(new_t)
+
         return (new_t, band), inds
 
     def log_prior(self, params: dict[str, JAXArray]) -> JAXArray:
@@ -240,6 +276,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
+    # @eqx.filter_jit
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
@@ -249,7 +286,7 @@ class MultiVarModel(eqx.Module):
 
         # time axis transform: t and band are not sorted,
         # inds gives the sorted indices for the new_t
-        X, inds = self.lag_transform(self.has_lag, params, self.X)
+        X, inds = self._lag_transform_fast(self.has_lag, params)
         t = X[0]
         band = X[1]
 
@@ -272,7 +309,7 @@ class MultiVarModel(eqx.Module):
             "diag": diags[inds],
             "mean": means,
         }
-        if isinstance(kernel, tkq.Quasisep):
+        if isinstance(kernel, tk.quasisep.Quasisep):
             gp_kwargs["assume_sorted"] = True
 
         return (
@@ -310,7 +347,7 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: tk.Kernel | quasisep.Quasisep,
+        kernel: tk.Kernel | tk.quasisep.Quasisep,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         **kwargs,
@@ -339,8 +376,8 @@ class UniVarModel(MultiVarModel):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
-    def lag_transform(  # noqa: D102
-        self, has_lag, params, X
+    def _lag_transform_fast(  # noqa: D102
+        self, has_lag, params
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         # TODO: Write docstring.
         return self.X, jnp.arange(self.X[0].size)

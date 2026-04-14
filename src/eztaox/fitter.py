@@ -14,6 +14,42 @@ from tinygp.helpers import JAXArray
 from eztaox.models import MultiVarModel, UniVarModel
 
 
+def _make_loss(model: UniVarModel | MultiVarModel) -> Callable:
+    @jax.jit
+    def loss(params) -> JAXArray:
+        return -model.log_prob(params)
+
+    return loss
+
+
+def _sample_top_params(
+    initSampler: Callable,
+    prng_key: jax.random.PRNGKey,
+    nSample: int,
+    nBest: int,
+    loss: Callable,
+    batch_size: int,
+) -> list[dict[str, JAXArray]]:
+    # init samples
+    init_keys = jax.random.split(prng_key, int(nSample))
+    batched_samples = jax.vmap(lambda k: seed(initSampler, rng_seed=k)())(init_keys)
+
+    # batched loss
+    losses = jax.lax.map(loss, batched_samples, batch_size=batch_size)
+
+    # select top nBest
+    loss_idx = jnp.argsort(losses)
+    top_params = {}
+    for p in batched_samples:
+        top_params[p] = batched_samples[p][loss_idx[:nBest]]
+
+    # convert from pytree to list of pytrees
+    return [
+        dict(zip(top_params.keys(), values, strict=False))
+        for values in zip(*top_params.values(), strict=False)
+    ]
+
+
 def random_search(
     model: UniVarModel | MultiVarModel,
     initSampler: Callable,
@@ -39,30 +75,10 @@ def random_search(
     Returns:
         tuple[dict[str, JAXArray], JAXArray]: Best parameters and their log likelihood.
     """
-
-    # define loss
-    @jax.jit
-    def loss(params) -> JAXArray:
-        return -model.log_prob(params)
-
-    # init samples
-    init_keys = jax.random.split(prng_key, int(nSample))
-    batched_samples = jax.vmap(lambda k: seed(initSampler, rng_seed=k)())(init_keys)
-
-    # batched loss
-    losses = jax.lax.map(loss, batched_samples, batch_size=batch_size)
-
-    # select top nBest
-    loss_idx = jnp.argsort(losses)
-    top_params = {}
-    for p in batched_samples:
-        top_params[p] = batched_samples[p][loss_idx[:nBest]]
-
-    # convert from pytree to list of pytrees
-    list_of_params = [
-        dict(zip(top_params.keys(), values, strict=False))
-        for values in zip(*top_params.values(), strict=False)
-    ]
+    loss = _make_loss(model)
+    list_of_params = _sample_top_params(
+        initSampler, prng_key, nSample, nBest, loss, batch_size
+    )
 
     # jaxopt optimize
     opt = jaxopt.ScipyMinimize(fun=loss, method=jaxoptMethod)
@@ -73,6 +89,65 @@ def random_search(
         param.append(soln.params)
     best_param = param[jnp.argmax(jnp.asarray(log_prob))]
 
+    return best_param, max(log_prob)
+
+
+def random_search_adam(
+    model: UniVarModel | MultiVarModel,
+    initSampler: Callable,
+    prng_key: jax.random.PRNGKey,
+    nSample: int,
+    nBest: int,
+    nStep: int = 300,
+    learning_rate: float = 1e-2,
+    batch_size: int = 1000,
+) -> tuple[dict[str, JAXArray], JAXArray]:
+    """Fit a model using random search plus Adam optimization.
+
+    Args:
+        model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
+        initSampler (Callable): Function to sample initial parameters.
+        prng_key (jax.random.PRNGKey): Random number generator key.
+        nSample (int): Number of random samples to draw.
+        nBest (int): Number of best samples (selected based on their likelihod values)
+            to keep for optimization.
+        nStep (int, optional): Number of Adam steps per retained sample.
+            Defaults to 300.
+        learning_rate (float, optional): Adam learning rate. Defaults to 1e-2.
+        batch_size (int, optional): The batch size used in evaluating likehood of
+            randomly drawn samples. Defaults to 1000.
+
+    Returns:
+        tuple[dict[str, JAXArray], JAXArray]: Best parameters and their log likelihood.
+    """
+    loss = _make_loss(model)
+    list_of_params = _sample_top_params(
+        initSampler, prng_key, nSample, nBest, loss, batch_size
+    )
+    optimizer = optax.adam(learning_rate)
+
+    @jax.jit
+    def adam_step(
+        params: dict[str, JAXArray], opt_state: optax.OptState
+    ) -> tuple[dict[str, JAXArray], optax.OptState]:
+        val, grad = jax.value_and_grad(loss)(params)
+        del val
+        updates, opt_state = optimizer.update(grad, opt_state, params)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state
+
+    log_prob, param = [], []
+    for item in list_of_params:
+        params = item
+        opt_state = optimizer.init(params)
+        for _ in range(nStep):
+            params, opt_state = adam_step(params, opt_state)
+
+        final_loss = loss(params)
+        log_prob.append(-final_loss)
+        param.append(params)
+
+    best_param = param[jnp.argmax(jnp.asarray(log_prob))]
     return best_param, max(log_prob)
 
 

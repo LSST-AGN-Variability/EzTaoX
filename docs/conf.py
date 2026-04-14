@@ -29,6 +29,8 @@ extensions = ["sphinx.ext.mathjax", "sphinx.ext.napoleon", "sphinx.ext.viewcode"
 extensions.append("autoapi.extension")
 extensions.append("nbsphinx")
 
+nbsphinx_kernel_name = "python3"
+
 # -- sphinx-copybutton configuration ----------------------------------------
 extensions.append("sphinx_copybutton")
 ## sets up the expected prompt text from console blocks, and excludes it from
@@ -55,4 +57,4 @@ autoapi_ignore = ["*/__main__.py", "*/_version.py"]
 autoapi_add_toc_tree_entry = False
 autoapi_member_order = "bysource"
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"

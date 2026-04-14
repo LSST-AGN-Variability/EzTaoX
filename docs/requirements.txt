@@ -9,7 +9,7 @@ nbsphinx
 sphinx
 sphinx-autoapi
 sphinx-copybutton
-sphinx-rtd-theme>=3.0
+sphinx-book-theme
 
 ## Notebook requirements
 arviz<=1.0.0
