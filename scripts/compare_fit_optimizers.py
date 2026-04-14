@@ -35,6 +35,8 @@ TRUE_PARAMS = {
 DEFAULT_LEARNING_RATES = (1e-3, 1e-2)
 DEFAULT_LR_OPT_STEP = 1_000
 DEFAULT_LBFGS_OPT_STEP = 100
+DEFAULT_STOPPING_MAX_OPT_STEP = 2_000
+DEFAULT_STOPPING_TOL = 1e-2
 DEFAULT_DATA_PATH = (
     Path(__file__).resolve().parents[1] / "tests" / "data" / "unit_test_lc.npz"
 )
@@ -48,11 +50,9 @@ LR_OPTIMIZER_FACTORIES: tuple[
     tuple[str, Callable[[float], optax.GradientTransformation], bool], ...
 ] = (
     ("adam", optax.adam, False),
-    ("adamw", optax.adamw, False),
     ("rmsprop", optax.rmsprop, False),
     ("sgd", optax.sgd, False),
     ("lion", optax.lion, False),
-    ("yogi", optax.yogi, False),
 )
 STATEFUL_OPTIMIZER_FACTORIES: tuple[
     tuple[str, Callable[[], optax.GradientTransformation], bool], ...
@@ -149,24 +149,62 @@ def build_optimizer_specs(
     learning_rates: list[float],
     lr_opt_step: int,
     lbfgs_opt_step: int,
-) -> list[tuple[str, optax.GradientTransformation, bool, float | None, int]]:
+) -> list[dict[str, object]]:
     """Construct the optimizer configurations to benchmark."""
-    specs = []
+    specs: list[dict[str, object]] = []
     for learning_rate in learning_rates:
         for name, factory, use_state_grad in LR_OPTIMIZER_FACTORIES:
-            if name == "sgd" and np.isclose(learning_rate, 1e-2):
+            if name == "sgd" and not np.isclose(learning_rate, 1e-3):
                 continue
             specs.append(
-                (
-                    name,
-                    factory(learning_rate),
-                    use_state_grad,
-                    learning_rate,
-                    lr_opt_step,
-                )
+                {
+                    "optimizer": name,
+                    "optimizer_obj": factory(learning_rate),
+                    "use_state_grad": use_state_grad,
+                    "learning_rate": learning_rate,
+                    "n_opt_step": lr_opt_step,
+                    "use_stopping": False,
+                    "max_opt_step": None,
+                    "tol": None,
+                }
+            )
+            specs.append(
+                {
+                    "optimizer": f"{name}_stopped",
+                    "optimizer_obj": factory(learning_rate),
+                    "use_state_grad": use_state_grad,
+                    "learning_rate": learning_rate,
+                    "n_opt_step": lr_opt_step,
+                    "use_stopping": True,
+                    "max_opt_step": DEFAULT_STOPPING_MAX_OPT_STEP,
+                    "tol": DEFAULT_STOPPING_TOL,
+                }
             )
     for name, factory, use_state_grad in STATEFUL_OPTIMIZER_FACTORIES:
-        specs.append((name, factory(), use_state_grad, None, lbfgs_opt_step))
+        specs.append(
+            {
+                "optimizer": name,
+                "optimizer_obj": factory(),
+                "use_state_grad": use_state_grad,
+                "learning_rate": None,
+                "n_opt_step": lbfgs_opt_step,
+                "use_stopping": False,
+                "max_opt_step": None,
+                "tol": None,
+            }
+        )
+        specs.append(
+            {
+                "optimizer": f"{name}_stopped",
+                "optimizer_obj": factory(),
+                "use_state_grad": use_state_grad,
+                "learning_rate": None,
+                "n_opt_step": lbfgs_opt_step,
+                "use_stopping": True,
+                "max_opt_step": DEFAULT_STOPPING_MAX_OPT_STEP,
+                "tol": DEFAULT_STOPPING_TOL,
+            }
+        )
     return specs
 
 
@@ -191,6 +229,8 @@ def fit_single_light_curve(
     n_best: int,
     n_opt_step: int,
     use_value_and_grad_from_state: bool,
+    max_opt_step: int | None,
+    tol: float | None,
 ) -> dict[str, jax.Array]:
     """Fit one light curve and return the best-fit parameters."""
     band_mask = np.isin(band, np.asarray(FIT_BANDS))
@@ -218,7 +258,10 @@ def fit_single_light_curve(
         batch_size=1000,
         optimizer=optimizer,
         nOptStep=n_opt_step,
+        maxOptStep=max_opt_step,
+        tol=tol,
         use_value_and_grad_from_state=use_value_and_grad_from_state,
+        clear_cache_after_opt=True,
     )
     if jnp.ndim(log_likelihood) != 0:
         raise ValueError("Expected scalar log-likelihood from random_search.")
@@ -236,6 +279,9 @@ def summarise_optimizer(
     n_sample: int,
     n_best: int,
     n_opt_step: int,
+    use_stopping: bool,
+    max_opt_step: int | None,
+    tol: float | None,
 ) -> tuple[dict[str, float | int | str | bool], dict[str, np.ndarray]]:
     """Run the benchmark for one optimizer and summarise the recovery metrics."""
     start_time = perf_counter()
@@ -250,6 +296,8 @@ def summarise_optimizer(
             n_best,
             n_opt_step,
             use_value_and_grad_from_state,
+            max_opt_step,
+            tol,
         )
         for i in range(len(ts))
     )
@@ -273,8 +321,11 @@ def summarise_optimizer(
         "optimizer": optimizer_name,
         "learning_rate": learning_rate if learning_rate is not None else "default",
         "use_state_grad": use_value_and_grad_from_state,
+        "use_stopping": use_stopping,
         "n_runs": len(ts),
         "n_opt_step": n_opt_step,
+        "max_opt_step": max_opt_step if max_opt_step is not None else "-",
+        "tol": tol if tol is not None else "-",
         "fit_seconds": fit_seconds,
         "tau_mae": tau_stats["mae"],
         "tau_bias": tau_stats["bias"],
@@ -314,7 +365,8 @@ def format_value(value: object) -> str:
 
 def make_optimizer_label(summary: dict[str, float | int | str | bool]) -> str:
     """Build a compact optimizer label for tables and plots."""
-    return f"{summary['optimizer']} ({summary['learning_rate']})"
+    suffix = " + stop" if summary["use_stopping"] else ""
+    return "{} ({}{})".format(summary["optimizer"], summary["learning_rate"], suffix)
 
 
 def render_markdown_table(rows: list[dict[str, float | int | str | bool]]) -> str:
@@ -326,8 +378,11 @@ def render_markdown_table(rows: list[dict[str, float | int | str | bool]]) -> st
         "optimizer",
         "learning_rate",
         "use_state_grad",
+        "use_stopping",
         "n_runs",
         "n_opt_step",
+        "max_opt_step",
+        "tol",
         "fit_seconds",
         "tau_mae",
         "tau_bias",
@@ -390,24 +445,21 @@ def main() -> None:
 
     summaries: list[dict[str, float | int | str | bool]] = []
     diffs_by_optimizer: list[dict[str, np.ndarray]] = []
-    for (
-        optimizer_name,
-        optimizer,
-        use_state_grad,
-        learning_rate,
-        n_opt_step,
-    ) in optimizer_specs:
+    for spec in optimizer_specs:
         summary, diffs = summarise_optimizer(
-            optimizer_name,
-            optimizer,
-            use_state_grad,
-            learning_rate,
+            spec["optimizer"],
+            spec["optimizer_obj"],
+            spec["use_state_grad"],
+            spec["learning_rate"],
             ts,
             bands,
             ys,
             args.n_sample,
             args.n_best,
-            n_opt_step,
+            spec["n_opt_step"],
+            spec["use_stopping"],
+            spec["max_opt_step"],
+            spec["tol"],
         )
         summaries.append(summary)
         diffs_by_optimizer.append(diffs)
