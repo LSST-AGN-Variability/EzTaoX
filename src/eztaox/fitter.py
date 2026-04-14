@@ -13,7 +13,7 @@ from tinygp.helpers import JAXArray
 
 from eztaox.models import MultiVarModel, UniVarModel
 
-DEFAULT_ADAM_OPTIMIZER = optax.adam(1e-3)
+DEFAULT_ADAM_OPTIMIZER = optax.adam(1e-2)
 
 
 def _make_loss(model: UniVarModel | MultiVarModel) -> Callable:
@@ -90,7 +90,7 @@ def random_search(
     nBest: int,
     batch_size: int = 1000,
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
-    nOptStep: int = 300,
+    nOptStep: int = 1000,
     use_value_and_grad_from_state: bool = False,
     clear_cache_after_opt: bool = False,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
@@ -108,9 +108,9 @@ def random_search(
         batch_size (int, optional): The batch size used in evaluating likehood of
             randomly drawn samples. Defaults to 1000.
         optimizer (optax.GradientTransformation, optional): Optimizer used in local
-            optimization. Defaults to optax.adam(1e-3).
+            optimization. Defaults to optax.adam(1e-2).
         nOptStep (int, optional): Number of optimization steps per retained sample.
-            Defaults to 300.
+            Defaults to 1000 for the default adam optimizer.
         use_value_and_grad_from_state (bool, optional): Whether to reuse value and
             gradients from the optimizer state when available. This is useful for
             Optax optimizers such as L-BFGS. Defaults to False.
