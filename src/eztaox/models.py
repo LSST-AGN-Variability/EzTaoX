@@ -385,7 +385,9 @@ class UniVarModel(MultiVarModel):
         return jnp.array([0.0])
 
     def _lag_transform_fast(
-        self, has_lag: bool, params: dict[str, JAXArray], X: JAXArray
+        self,
+        has_lag: bool,
+        params: dict[str, JAXArray],
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         """Shift the time axis by the lag in each band.
 
@@ -393,7 +395,6 @@ class UniVarModel(MultiVarModel):
             has_lag (bool): should we introduce lag?
             params (dict): argument to pass to the lag function (callable for
                 time delays between bands).
-            X (JAXArray): times and bands
 
         Returns:
             tuple(tuple(JAXArray, JAXArray), JAXArray): modified times and bands
