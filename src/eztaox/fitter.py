@@ -166,8 +166,9 @@ def simpleOptimizer(  # noqa: N802
         nStep (int): Number of optimization steps.
 
     Returns:
-        tuple[dict, tuple[dict, JAXArray, dict]]: Best parameters, (parameter history,
-        loss history, gradient history).
+        tuple[dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray,
+        dict[str, JAXArray]]]:
+        Best parameters, (parameter history, loss history, gradient history).
     """
 
     @jax.jit

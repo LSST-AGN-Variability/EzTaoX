@@ -220,9 +220,11 @@ class Lorentzian(Quasisep):
 
     @eqx.filter_jit
     def get_scale(self) -> tuple[JAXArray | float, JAXArray | float]:
+        """Scale of the Lorentzian."""
         return 2 * self.quality / self.omega, 2 * np.pi / self.omega
 
-    def design_matrix(self) -> JAXArray:
+    def design_matrix(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         drw_scale, cos_scale = self.get_scale()
         f = 2 * np.pi / cos_scale
         F1 = jnp.array([[-1 / drw_scale]])
@@ -232,18 +234,21 @@ class Lorentzian(Quasisep):
         )
 
     def stationary_covariance(self) -> JAXArray:
+        """Covariance matrix for stationary model."""
         drw_scale, cos_scale = self.get_scale()
         a1 = jnp.ones((1, 1))
         a2 = jnp.eye(2)
         return _prod_helper(a1, a2)
 
-    def observation_model(self, X: JAXArray) -> JAXArray:
+    def observation_model(self, X: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         del X
         a1 = jnp.array([self.sigma])
         a2 = jnp.array([1.0, 0.0])
         return _prod_helper(a1, a2)
 
-    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
+    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         drw_scale, cos_scale = self.get_scale()
         dt = X2 - X1
         f = 2 * np.pi / cos_scale
@@ -338,7 +343,8 @@ class CARMA(Quasisep):
         # self.sigma = jnp.ones(())
 
     @classmethod
-    def init(cls, alpha: JAXArray, beta: JAXArray) -> CARMA:
+    def init(cls, alpha: JAXArray, beta: JAXArray) -> CARMA:  # noqa: D102
+        # TODO: Write docstring.
         return cls(alpha, beta)
 
     @classmethod
@@ -377,7 +383,8 @@ class CARMA(Quasisep):
 
         return cls(alpha, beta)
 
-    def design_matrix(self) -> JAXArray:
+    def design_matrix(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -399,7 +406,8 @@ class CARMA(Quasisep):
 
         return dm_real + dm_complex_diag + -dm_complex_u.T + dm_complex_u
 
-    def stationary_covariance(self) -> JAXArray:
+    def stationary_covariance(self) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -429,7 +437,8 @@ class CARMA(Quasisep):
 
         return diag + diag_complex + sc_complex_u + sc_complex_u.T
 
-    def observation_model(self, X: JAXArray) -> JAXArray:
+    def observation_model(self, X: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         del X
         (
             arroots,
@@ -448,7 +457,8 @@ class CARMA(Quasisep):
             jnp.ravel(om_complex)[::2],
         )
 
-    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
+    def transition_matrix(self, X1: JAXArray, X2: JAXArray) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         (
             arroots,
             acf,
@@ -705,7 +715,8 @@ class MultibandLowRank(tkq.Wrapper):
         """Extract the time-sortable component of the coordinates."""
         return X[0]
 
-    def observation_model(self, X) -> JAXArray:
+    def observation_model(self, X) -> JAXArray:  # noqa: D102
+        # TODO: Write docstring.
         amplitudes = self.params["amplitudes"]
         return amplitudes[X[1]] * self.kernel.observation_model(
             self.coord_to_sortable(X)

@@ -1,3 +1,5 @@
+"""Transfer functions"""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -147,6 +149,7 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
         return self.transfer_function.shift
 
     def evaluate(self, X1, X2) -> JAXArray:
+        """Evaluate the transfer function at two points."""
         tau = jnp.abs(X1 - X2)
 
         hw = self._half_width

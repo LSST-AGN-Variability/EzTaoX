@@ -18,7 +18,11 @@ class gpStat2(eqx.Module):  # noqa: N801
     """Base class for second-order statistics of GP kernels.
 
     Args:
-        kernel (Quasisep): A kernel function from kernels.quasisep.
+        kernel (Callable): A kernel function from kernels.quasisep.
+
+    Attributes:
+        kernel_def (Callable): kernel function
+        kernel_params (JAXArray): parameters for kernel function
     """
 
     kernel_def: Callable
@@ -98,11 +102,12 @@ def carma_rms(alpha: JAXArray | NDArray, beta: JAXArray | NDArray) -> JAXArray:
     """Return a function that computes CARMA root-mean-squared (RMS).
 
     Args:
-        alpha (array(float)): kernel alpha coefficients.
-        beta (array(float)): kernel beta coefficients
+        alpha (JAXArray | NDArray): kernel alpha coefficients.
+        beta (JAXArray | NDArray): kernel beta coefficients
 
     Returns:
-        A function that takes in frequencies and returns RMS for the given coefficients.
+        JAXArray: A function that takes in frequencies and returns RMS for the given
+        coefficients.
     """
     alpha = jnp.atleast_1d(alpha)
     beta = jnp.atleast_1d(beta)
@@ -118,12 +123,13 @@ def carma_psd(
     """Return a function that computes CARMA power spectral density (PSD).
 
     Args:
-        f (array): frequencies.
-        arparams (array(float)): AR coefficients.
-        maparams (array(float)): MA coefficients
+        f (JAXArray | NDArray): frequencies.
+        arparams (JAXArray | NDArray): AR coefficients.
+        maparams (JAXArray | NDArray): MA coefficients
 
     Returns:
-        A function that takes in frequencies and returns PSD at the given frequencies.
+        JAXArray: A function that takes in frequencies and returns PSD at the given
+        frequencies.
     """
     arparams = jnp.append(jnp.array(arparams), 1.0)
     maparams = jnp.array(maparams)
@@ -153,12 +159,12 @@ def carma_acf(
     """Return a function to compute the model autocorrelation function (ACF) of CARMA.
 
     Args:
-        t (array): times.
-        arparams (array(float)): AR coefficients.
-        maparams (array(float)): MA coefficients.
+        t (JAXArray | NDArray): times.
+        arparams (JAXArray | NDArray): AR coefficients.
+        maparams (JAXArray | NDArray): MA coefficients.
 
     Returns:
-        A function that takes in time lags and returns ACF at the given lags.
+        JAXArray: A function that takes in time lags and returns ACF at the given lags.
     """
     roots = carma_roots(jnp.append(arparams, 1.0))
     autocorr = carma_acvf(roots, arparams, maparams)
@@ -178,12 +184,13 @@ def carma_sf(
     """Return a function that computes the CARMA structure function (SF).
 
     Args:
-        t (array): times.
-        arparams (array(float)): AR coefficients.
-        maparams (array(float)): MA coefficients.
+        t (JAXArray | NDArray): times.
+        arparams (JAXArray | NDArray): AR coefficients.
+        maparams (JAXArray | NDArray): MA coefficients.
 
     Returns:
-        A function that takes in time lags and returns CARMA SF at the given lags.
+        JAXArray: A function that takes in time lags and returns CARMA SF at the
+        given lags.
     """
     amp2 = carma_rms(arparams, maparams) ** 2
     return jnp.sqrt(2 * amp2 * (1 - carma_acf(t, arparams, maparams)))
