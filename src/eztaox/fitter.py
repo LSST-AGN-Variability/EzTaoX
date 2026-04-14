@@ -88,6 +88,7 @@ def random_search(
     prng_key: jax.random.PRNGKey,
     nSample: int,
     nBest: int,
+    *,
     batch_size: int = 1000,
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
     nOptStep: int = 1000,
@@ -164,6 +165,7 @@ def random_search(
 def simple_optimizer(
     model: UniVarModel | MultiVarModel,
     initSample: dict[str, JAXArray],
+    *,
     optimizer: optax.GradientTransformation = DEFAULT_ADAM_OPTIMIZER,
     nStep: int = 3000,
     use_value_and_grad_from_state: bool = False,

@@ -6,8 +6,6 @@ import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
 import numpyro
-
-# from numpyro.infer import MCMC, NUTS, init_to_median
 import optax
 import pytest
 from joblib import Parallel, delayed
