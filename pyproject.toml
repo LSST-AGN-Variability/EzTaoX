@@ -16,14 +16,15 @@ classifiers = [
     "Programming Language :: Python",
 ]
 dynamic = ["version"]
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.11, <3.15"
 dependencies = [
     "tinygp (>=0.3.0,<0.4.0)",
-    "jax (==0.4.31)",
-    "jaxlib (==0.4.31)",
+    "jax (>=0.9.0)",
+    "jaxlib (>=0.9.0)",
     "jaxopt (>=0.8.3,<0.9.0)",
     "optax (>=0.2.4,<0.3.0)",
     "numpyro (>=0.17.0,<0.20.0)",
+    "equinox >=0.12.2"
 ]
 
 [project.urls]
@@ -32,9 +33,9 @@ dependencies = [
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
 [project.optional-dependencies]
 dev = [
-    "arviz",
+    "arviz < 1.0.0",
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
-    "eztao >= 0.5", # Used for testing against EzTao calculations that are known to be correct
+    "eztao >= 0.5.1", # Used for testing against EzTao calculations that are known to be correct
     "black", # Used for static linting of files
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
@@ -52,6 +53,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 # build-backend = "poetry.core.masonry.api"
+
 [tool.setuptools_scm]
 write_to = "src/eztaox/_version.py"
 
@@ -69,7 +71,7 @@ ipykernel = "^6.29.0"
 pre-commit = "^3.5.0"
 ruff = "^0.15.0"
 matplotlib = ">3.7.0"
-arviz = "^0.20.0"
+arviz = "<1.0.0"
 ipywidgets = "^8.1.5"
 black = "^26.1.0"
 
