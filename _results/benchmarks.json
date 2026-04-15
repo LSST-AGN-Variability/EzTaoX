@@ -144,7 +144,7 @@
         "warmup_time": -1
     },
     "simulator.MultivariateSimulatorSuite.time_run_sim": {
-        "code": "class MultivariateSimulatorSuite:\n    def time_run_sim(self):\n        return jax.block_until_ready(\n            self.s.fixed_input((self.t, self.band), self.lc_key)\n        )\n\n    def setup(self):\n        drw_true = ekq.Exp(scale=DRW_PARAMS[\"tau\"], sigma=DRW_PARAMS[\"sigma\"])\n        log_kernel_param = jnp.stack(\n            [jnp.log(DRW_PARAMS[\"tau\"]), jnp.log(DRW_PARAMS[\"sigma\"])]\n        )\n        sim_params = {\n            \"log_kernel_param\": log_kernel_param,\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": 10.0,\n        }\n        self.t = jnp.arange(0.0, 4000.0, 1.0)\n        self.band = jr.choice(jr.PRNGKey(1), a=NBANDS, shape=self.t.shape, replace=True)\n        self.s = MultiVarSim(\n            drw_true,\n            min_dt=0.01,\n            max_dt=float(self.t[-1]),\n            nBand=NBANDS,\n            init_params=sim_params,\n            zero_mean=True,\n            has_lag=True,\n        )\n        self.lc_key = jax.random.PRNGKey(12)",
+        "code": "class MultivariateSimulatorSuite:\n    def time_run_sim(self):\n        return jax.block_until_ready(\n            self.s.fixed_input((self.t, self.band), self.lc_key)\n        )\n\n    def setup(self):\n        drw_true = ekq.Exp(scale=DRW_PARAMS[\"tau\"], sigma=DRW_PARAMS[\"sigma\"])\n        log_kernel_param = jnp.stack(\n            [jnp.log(DRW_PARAMS[\"tau\"]), jnp.log(DRW_PARAMS[\"sigma\"])]\n        )\n        sim_params = {\n            \"log_kernel_param\": log_kernel_param,\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": 10.0,\n        }\n        self.t = jnp.arange(0.0, 4000.0, 1.0)\n        self.band = jr.choice(jr.PRNGKey(1), a=NBANDS, shape=self.t.shape, replace=True)\n        self.s = MultiVarSim(\n            drw_true,\n            min_dt=0.01,\n            max_dt=float(self.t[-1]),\n            n_band=NBANDS,\n            init_params=sim_params,\n            zero_mean=True,\n            has_lag=True,\n        )\n        self.lc_key = jax.random.PRNGKey(12)",
         "min_run_count": 2,
         "name": "simulator.MultivariateSimulatorSuite.time_run_sim",
         "number": 0,
@@ -155,7 +155,7 @@
         "sample_time": 0.01,
         "type": "time",
         "unit": "seconds",
-        "version": "a65fbe3277f672665e0de8a87df52923ca72e1b12ab4438774835e6803138a5a",
+        "version": "2e013c447897751534d14da72958ddcd424e257edd65fbd58afe1439c615161f",
         "warmup_time": -1
     },
     "simulator.UnivariateSimulatorSuite.time_run_sim": {
