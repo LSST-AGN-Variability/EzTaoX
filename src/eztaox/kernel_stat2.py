@@ -21,7 +21,8 @@ class gpStat2(eqx.Module):  # noqa: N801
         kernel (Callable): A kernel function from kernels.quasisep.
 
     Attributes:
-        kernel_def (Callable): kernel function
+        kernel_def (Callable): A function to reconstruct kernel objects from
+            its parameters
         kernel_params (JAXArray): parameters for kernel function
     """
 

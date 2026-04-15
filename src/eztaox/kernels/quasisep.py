@@ -234,7 +234,7 @@ class Lorentzian(Quasisep):
         )
 
     def stationary_covariance(self) -> JAXArray:
-        """Covariance matrix for stationary model."""
+        """The variance of the kernel at :math:`t=0`."""
         drw_scale, cos_scale = self.get_scale()
         a1 = jnp.ones((1, 1))
         a2 = jnp.eye(2)
