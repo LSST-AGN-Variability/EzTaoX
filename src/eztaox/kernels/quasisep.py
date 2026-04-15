@@ -1,6 +1,9 @@
-"""
-Scalable kernels exploiting the quasiseparable structure in the relevant matrices to
-achieve a O(N) scaling. This module extends the `tinygp.kernels.quasisep` module.
+"""Quasiseparable kernels.
+
+Scalable kernels exploiting the quasiseparable structure in the relevant
+matrices to achieve a O(N) scaling.
+
+This module extends the `tinygp.kernels.quasisep` module.
 """
 
 from __future__ import annotations
@@ -23,8 +26,7 @@ from eztaox.kernels.eqx_utils import find_param_by_name
 
 
 class Quasisep(tkq.Quasisep):
-    """
-    An extension of the `tinygp.kernels.quasisep.Quasisep` kernel.
+    """An extension of the `tinygp.kernels.quasisep.Quasisep` kernel.
 
     `tinygp.kernels.quasisep.Quasisep` is the base class for all kernels that can be
     evaluated following an O(N) scaling. This extension adds a `power` method to return
@@ -76,7 +78,7 @@ class Quasisep(tkq.Quasisep):
 
 
 class Sum(Quasisep, tkq.Sum):
-    """A helper to represent the sum of two quasiseparable kernels"""
+    """A helper to represent the sum of two quasiseparable kernels."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -86,7 +88,7 @@ class Sum(Quasisep, tkq.Sum):
 
 
 class Product(Quasisep, tkq.Product):
-    """A helper to represent the product of two quasiseparable kernels"""
+    """A helper to represent the product of two quasiseparable kernels."""
 
     def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
@@ -94,7 +96,7 @@ class Product(Quasisep, tkq.Product):
 
 
 class Scale(Quasisep, tkq.Scale):
-    """The product of a scalar and a quasiseparable kernel"""
+    """The product of a scalar and a quasiseparable kernel."""
 
     def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
@@ -102,9 +104,7 @@ class Scale(Quasisep, tkq.Scale):
 
 
 class Exp(Quasisep, tkq.Exp):
-    """
-    An extension of the `tinygp.kernels.quasisep.Exp` kernel, adding a power method.
-    """
+    """Extends the `tinygp.kernels.quasisep.Exp` kernel, adding a power method."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -116,18 +116,16 @@ class Exp(Quasisep, tkq.Exp):
 
 
 class Cosine(Quasisep, tkq.Cosine):
-    """
-    An extension of the `tinygp.kernels.quasisep.Cosine` kernel, adding a power method.
-    """
+    """Extends the `tinygp.kernels.quasisep.Cosine` kernel, adding a power method."""
 
     psd_width: JAXArray | float = eqx.field(
         default_factory=lambda: 0.001 * jnp.ones(())
     )
 
-    def power(  # noqa: D102
+    def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
-        # TODO: Write docstring.
+        """Compute the power spectral density (PSD) at frequency `f`."""
         return (
             0.5
             * self.sigma**2
@@ -136,9 +134,7 @@ class Cosine(Quasisep, tkq.Cosine):
 
 
 class Celerite(Quasisep, tkq.Celerite):
-    """
-    An extension of the `tinygp.kernels.quasisep.Celerite` kernel, adding a power method.
-    """  # noqa: E501
+    """Extends the `tinygp.kernels.quasisep.Celerite` kernel, adding a power method."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -158,9 +154,7 @@ class Celerite(Quasisep, tkq.Celerite):
 
 
 class Matern32(Quasisep, tkq.Matern32):
-    """
-    An extension of the `tinygp.kernels.quasisep.Matern32` kernel, adding a power method.
-    """  # noqa: E501
+    """Extends the `tinygp.kernels.quasisep.Matern32` kernel, adding a power method."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -172,9 +166,7 @@ class Matern32(Quasisep, tkq.Matern32):
 
 
 class Matern52(Quasisep, tkq.Matern52):
-    """
-    An extension of the `tinygp.kernels.quasisep.Matern52` kernel, adding a power method.
-    """  # noqa: E501
+    """Extends the `tinygp.kernels.quasisep.Matern52` kernel, adding a power method."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -186,9 +178,7 @@ class Matern52(Quasisep, tkq.Matern52):
 
 
 class SHO(Quasisep, tkq.SHO):
-    """
-    An extension of the `tinygp.kernels.quasisep.SHO` kernel, adding a power method.
-    """  # noqa: E501
+    """Extends the `tinygp.kernels.quasisep.SHO` kernel, adding a power method."""
 
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
@@ -229,8 +219,8 @@ class Lorentzian(Quasisep):
     sigma: JAXArray | float = eqx.field(default_factory=lambda: jnp.ones(()))
 
     @eqx.filter_jit
-    def get_scale(self) -> tuple[JAXArray | float, JAXArray | float]:  # noqa: D102
-        # TODO: Write docstring.
+    def get_scale(self) -> tuple[JAXArray | float, JAXArray | float]:
+        """Scale of the Lorentzian."""
         return 2 * self.quality / self.omega, 2 * np.pi / self.omega
 
     def design_matrix(self) -> JAXArray:  # noqa: D102
@@ -243,8 +233,8 @@ class Lorentzian(Quasisep):
             jnp.eye(F1.shape[0]), F2
         )
 
-    def stationary_covariance(self) -> JAXArray:  # noqa: D102
-        # TODO: Write docstring.
+    def stationary_covariance(self) -> JAXArray:
+        """The variance of the kernel at :math:`t=0`."""
         drw_scale, cos_scale = self.get_scale()
         a1 = jnp.ones((1, 1))
         a2 = jnp.eye(2)
@@ -270,10 +260,10 @@ class Lorentzian(Quasisep):
 
         return _prod_helper(a1, a2)
 
-    def power(  # noqa: D102
+    def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
-        # TODO: Write docstring.
+        """Compute the power spectral density (PSD) at frequency `f`."""
         f0 = self.omega / (2 * np.pi)
         num = jnp.square(self.sigma) * self.quality * f0
         denom = jnp.square(f0) + 4 * jnp.square(self.quality) * jnp.square(f - f0)
@@ -282,7 +272,7 @@ class Lorentzian(Quasisep):
 
 
 class CARMA(Quasisep):
-    r"""A continuous-time autoregressive moving average (CARMA) process kernel
+    r"""A continuous-time autoregressive moving average (CARMA) process kernel.
 
     This process has the power spectrum density (PSD)
 
@@ -364,7 +354,7 @@ class CARMA(Quasisep):
         beta_quads: JAXArray | NDArray,
         beta_mult: JAXArray | NDArray,
     ) -> CARMA:
-        r"""Construct a CARMA kernel using the roots of its characteristic polynomials
+        r"""Construct a CARMA kernel using the roots of its characteristic polynomials.
 
         The roots can be parameterized as the 0th and 1st order coefficients of a set
         of quadratic equations (2nd order coefficient equals 1). The product of
@@ -384,7 +374,6 @@ class CARMA(Quasisep):
                 :math:`\beta_q`---the last entry of the :math:`\beta` parameters input
                 to the :func:`init` method.
         """
-
         alpha_quads = jnp.atleast_1d(alpha_quads)
         beta_quads = jnp.atleast_1d(beta_quads)
         beta_mult = jnp.atleast_1d(beta_mult)
@@ -496,10 +485,10 @@ class CARMA(Quasisep):
         return tm_real + tm_complex_diag + -tm_complex_u.T + tm_complex_u
 
     @jax.jit
-    def power(  # noqa: D102
+    def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
-        # TODO: Write docstring.
+        """Compute the power spectral density (PSD) at frequency `f`."""
         arparams = jnp.append(jnp.array(self.alpha), 1.0)
         maparams = jnp.array(self.beta)
 
@@ -522,15 +511,22 @@ class CARMA(Quasisep):
 
 
 @jax.jit
-def carma_roots(poly_coeffs: JAXArray) -> JAXArray:  # noqa: D103
-    # TODO: Write docstring.
+def carma_roots(poly_coeffs: JAXArray) -> JAXArray:
+    """Compute the CARMA polynomial coefficient roots.
+
+    Args:
+        poly_coeffs: coefficients of the polynomial
+
+    Returns:
+        roots of the coefficients
+    """
     roots = jnp.roots(poly_coeffs[::-1], strip_zeros=False)
     return roots[jnp.argsort(roots.real)]
 
 
 @jax.jit
 def carma_quads2poly(quads_coeffs: JAXArray) -> JAXArray:
-    """Expand a product of quadractic equations into a polynomial
+    """Expand a product of quadractic equations into a polynomial.
 
     Args:
         quads_coeffs: The 0th and 1st order coefficients of the quadractic
@@ -542,7 +538,6 @@ def carma_quads2poly(quads_coeffs: JAXArray) -> JAXArray:
         Coefficients of the full polynomial. The first entry corresponds to
         the lowest order term.
     """
-
     size = quads_coeffs.shape[0] - 1
     remain = size % 2
     nPair = size // 2
@@ -570,7 +565,7 @@ def carma_quads2poly(quads_coeffs: JAXArray) -> JAXArray:
 
 
 def carma_poly2quads(poly_coeffs: JAXArray) -> JAXArray:
-    """Factorize a polynomial into a product of quadratic equations
+    """Factorize a polynomial into a product of quadratic equations.
 
     Args:
         poly_coeffs: Coefficients of the input characteristic polynomial. The
@@ -581,7 +576,6 @@ def carma_poly2quads(poly_coeffs: JAXArray) -> JAXArray:
         entry is a multiplier, which corresponds to the coefficient of the highest
         order term in the full polynomial.
     """
-
     quads = jnp.empty(0)
     mult_f = poly_coeffs[-1]
     roots = carma_roots(poly_coeffs / mult_f)
@@ -611,7 +605,7 @@ def carma_poly2quads(poly_coeffs: JAXArray) -> JAXArray:
 
 
 def carma_acvf(arroots: JAXArray, arparam: JAXArray, maparam: JAXArray) -> JAXArray:
-    r"""Compute the coefficients of the autocovariance function (ACVF)
+    r"""Compute the coefficients of the autocovariance function (ACVF).
 
     Args:
         arroots: The roots of the autoregressive characteristic polynomial.
@@ -704,8 +698,7 @@ def _compute(alpha: JAXArray, beta: JAXArray, sigma: JAXArray) -> tuple[JAXArray
 
 
 class MultibandLowRank(tkq.Wrapper):
-    """
-    A multiband kernel implementating a low-rank Kronecker covariance structure.
+    """A multiband kernel implementating a low-rank Kronecker covariance structure.
 
     The specific form of the cross-band Kronecker covariance matrix is given by
     Equation 13 of `Gordon et al. (2020) <https://arxiv.org/pdf/2007.05799>`_.
@@ -718,8 +711,8 @@ class MultibandLowRank(tkq.Wrapper):
 
     params: dict[str, JAXArray]
 
-    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
-        # TODO: Write docstring.
+    def coord_to_sortable(self, X) -> JAXArray:
+        """Extract the time-sortable component of the coordinates."""
         return X[0]
 
     def observation_model(self, X) -> JAXArray:  # noqa: D102
@@ -731,7 +724,10 @@ class MultibandLowRank(tkq.Wrapper):
 
 
 class _Laguerre:
-    """Laguerre basis function math helper. Not an equinox module."""
+    """Laguerre basis function math helper.
+
+    Not an equinox module.
+    """
 
     def __init__(self, order: int, scale: jax.Array | float):
         self.order = order

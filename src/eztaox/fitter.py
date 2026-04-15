@@ -1,6 +1,4 @@
-"""
-This module contains the fitter functions that fits a model to data.
-"""
+"""This module contains the fitter functions that fits a model to data."""
 
 from collections.abc import Callable
 from functools import partial
@@ -184,8 +182,9 @@ def simple_optimizer(
             Optax optimizers such as L-BFGS. Defaults to False.
 
     Returns:
-        tuple[dict, tuple[dict, JAXArray, dict]]: Best parameters, (parameter history,
-        loss history, gradient history).
+        tuple[dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray,
+        dict[str, JAXArray]]]:
+        Best parameters, (parameter history, loss history, gradient history).
     """
 
     loss = _make_loss(model)

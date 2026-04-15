@@ -1,6 +1,7 @@
-"""
-A module of light curve models, which are the interface for modeling uni/multi-band
-light curves using Gaussian Processes (GPs).
+"""Light curve models.
+
+A module of light curve models. which are the interface for modeling
+uni/multi-band light curves using Gaussian Processes (GPs).
 """
 
 from collections.abc import Callable
@@ -21,8 +22,7 @@ from eztaox.ts_utils import merge_sort
 
 
 class MultiVarModel(eqx.Module):
-    """
-    An interface for modeling multivariate/multi-band time series using GPs.
+    """An interface for modeling multivariate/multi-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This
@@ -166,7 +166,18 @@ class MultiVarModel(eqx.Module):
     def lag_transform(
         self, has_lag: bool, params: dict[str, JAXArray], X: JAXArray
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        """Shift the time axis by the lag in each band."""
+        """Shift the time axis by the lag in each band.
+
+        Args:
+            has_lag (bool): should we introduce lag?
+            params (dict): argument to pass to the lag function (callable for
+                time delays between bands).
+            X (JAXArray): times and bands
+
+        Returns:
+            tuple(tuple(JAXArray, JAXArray), JAXArray): modified times and bands
+                and indexes of the new times.
+        """
         if has_lag is False:
             lags = jnp.zeros(self.nBand)
         elif self.lag_func is not None:
@@ -234,7 +245,7 @@ class MultiVarModel(eqx.Module):
         return jnp.log(n) * k - 2 * log_likelihood
 
     def sample(self, params: dict[str, JAXArray]) -> None:
-        """A convience function for intergrating with numpyro for MCMC sampling.
+        """Integrate with numpyro for MCMC sampling.
 
         Args:
             params (dict[str, JAXArray]): Model parameters.
@@ -324,8 +335,7 @@ class MultiVarModel(eqx.Module):
 
 
 class UniVarModel(MultiVarModel):
-    """
-    A subclass of MultiVarModel for modeling univariate/single-band time series data.
+    """Subclass MultiVarModel for modeling univariate/single-band time series data.
 
     Args:
         t (JAXArray|NDArray): Time stamps of the input light curve.
@@ -354,8 +364,6 @@ class UniVarModel(MultiVarModel):
         amp_scale_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        """Initialize the UniVarModel with time, observed data, and kernel."""
-
         inds = jnp.argsort(jnp.asarray(t))
         X = (jnp.asarray(t)[inds], jnp.zeros_like(t, dtype=int))
         y = jnp.asarray(y)[inds]
@@ -378,10 +386,22 @@ class UniVarModel(MultiVarModel):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
-    def _lag_transform_fast(  # noqa: D102
-        self, has_lag, params
+    def _lag_transform_fast(
+        self,
+        has_lag: bool,
+        params: dict[str, JAXArray],
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        # TODO: Write docstring.
+        """Shift the time axis by the lag in each band.
+
+        Args:
+            has_lag (bool): should we introduce lag?
+            params (dict): argument to pass to the lag function (callable for
+                time delays between bands).
+
+        Returns:
+            tuple(tuple(JAXArray, JAXArray), JAXArray): modified times and bands
+                and indexes of the new times.
+        """
         return self.X, jnp.arange(self.X[0].size)
 
     def pred(self, params, t) -> tuple[JAXArray, JAXArray]:
