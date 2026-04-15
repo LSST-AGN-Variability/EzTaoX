@@ -158,7 +158,7 @@ def test_simulator_multivar(kernel) -> None:
     """Test that the MultiVarSim runs without error and produces sorted outputs."""
     mindt, maxdt = 0.1, 2000.0
     n_random = 1000
-    nband = 2
+    n_band = 2
     main_key = jax.random.PRNGKey(101)
     sim_keys = jax.random.split(main_key, 5)
     sim_params = {
@@ -168,7 +168,7 @@ def test_simulator_multivar(kernel) -> None:
     }
 
     for has_lag in [False, True]:
-        s = MultiVarSim(kernel, mindt, maxdt, nband, sim_params, has_lag=has_lag)
+        s = MultiVarSim(kernel, mindt, maxdt, n_band, sim_params, has_lag=has_lag)
 
         # full simulation
         simX_full, simY_full = s.full(sim_keys[0])

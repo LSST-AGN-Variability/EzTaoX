@@ -17,7 +17,7 @@ from eztaox.models import MultiVarModel
 
 
 # sampler function
-def initSampler():  # noqa: N802
+def init_sampler():
     # GP kernel param
     log_drw_scale = numpyro.sample(
         "drw_scale", dist.Uniform(jnp.log(0.1), jnp.log(10000))
@@ -53,17 +53,23 @@ def test_multivar_drw(test_data, basekey_seed) -> None:
     ys = test_data["ys"]
 
     # config for fitting
-    nSample = 10_000
-    nBest = 10
+    n_sample = 10_000
+    n_best = 10
     fit_bands = [0, 1]
 
     # fit function for parallelization
-    def fit(X, y, yerr, nBand, basekey_seed, key_index):
+    def fit(X, y, yerr, n_band, basekey_seed, key_index):
         m = MultiVarModel(
-            X, y, yerr, Exp(scale=100.0, sigma=0.1), nBand, zero_mean=True, has_lag=True
+            X,
+            y,
+            yerr,
+            Exp(scale=100.0, sigma=0.1),
+            n_band,
+            zero_mean=True,
+            has_lag=True,
         )
         fit_key = jr.fold_in(jr.PRNGKey(basekey_seed), key_index)
-        bestP, ll = random_search(m, initSampler, fit_key, nSample, nBest)
+        bestP, ll = random_search(m, init_sampler, fit_key, n_sample, n_best)
         return bestP
 
     # parallelized fitting
@@ -75,7 +81,7 @@ def test_multivar_drw(test_data, basekey_seed) -> None:
             ),
             ys[i][np.isin(bands[i], fit_bands)],
             jnp.ones_like(ys[i][np.isin(bands[i], fit_bands)]) * 1e-6,
-            nBand=len(fit_bands),
+            n_band=len(fit_bands),
             basekey_seed=basekey_seed,
             key_index=i,
         )
@@ -120,22 +126,28 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
     ys = test_data["ys"]
 
     # config for fitting
-    nSample = 2_000
-    nBest = 5
+    n_sample = 2_000
+    n_best = 5
     fit_bands = [0, 1]
 
-    def fit(X, y, yerr, nBand, basekey_seed, key_index):
+    def fit(X, y, yerr, n_band, basekey_seed, key_index):
         m = MultiVarModel(
-            X, y, yerr, Exp(scale=100.0, sigma=0.1), nBand, zero_mean=True, has_lag=True
+            X,
+            y,
+            yerr,
+            Exp(scale=100.0, sigma=0.1),
+            n_band,
+            zero_mean=True,
+            has_lag=True,
         )
         fit_key = jr.fold_in(jr.PRNGKey(basekey_seed), key_index)
         bestP, ll = random_search_adam(
             m,
-            initSampler,
+            init_sampler,
             fit_key,
-            nSample,
-            nBest,
-            nStep=400,
+            n_sample,
+            n_best,
+            n_step=400,
             learning_rate=1e-2,
         )
         assert jnp.ndim(ll) == 0
@@ -149,7 +161,7 @@ def test_multivar_drw_adam(test_data, basekey_seed) -> None:
             ),
             ys[i][np.isin(bands[i], fit_bands)],
             jnp.ones_like(ys[i][np.isin(bands[i], fit_bands)]) * 1e-6,
-            nBand=len(fit_bands),
+            n_band=len(fit_bands),
             basekey_seed=basekey_seed,
             key_index=i,
         )
@@ -186,7 +198,7 @@ def test_multivar_drw_mcmc(test_data, basekey_seed) -> None:
     # define model parameters
     has_lag = True  # True: Fit for inter-band lag
     zero_mean = True  # True: Fit for light curve mean
-    nBand = 2  # number of bands in the provide light curve (X, y, yerr)
+    n_band = 2  # number of bands in the provide light curve (X, y, yerr)
     fit_bands = [0, 1]  # which bands to fit
 
     # format input data for fitting, only use the specified bands for fitting
@@ -198,12 +210,12 @@ def test_multivar_drw_mcmc(test_data, basekey_seed) -> None:
     yerr = jnp.ones_like(y) * 1e-6
 
     def numpyro_model(m, X, yerr, y=None):
-        sample_params = initSampler()
+        sample_params = init_sampler()
         m.sample(sample_params)
 
     # initialize a GP kernel, note the initial parameters are not used in the fitting
     k = Exp(scale=100.0, sigma=1.0)
-    m = MultiVarModel(X, y, yerr, k, nBand, has_lag=has_lag, zero_mean=zero_mean)
+    m = MultiVarModel(X, y, yerr, k, n_band, has_lag=has_lag, zero_mean=zero_mean)
 
     nuts_kernel = NUTS(
         numpyro_model,

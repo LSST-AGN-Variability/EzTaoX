@@ -21,25 +21,25 @@ def _make_loss(model: UniVarModel | MultiVarModel) -> Callable:
 
 
 def _sample_top_params(
-    initSampler: Callable,
+    init_sampler: Callable,
     prng_key: jax.random.PRNGKey,
-    nSample: int,
-    nBest: int,
+    n_sample: int,
+    n_best: int,
     loss: Callable,
     batch_size: int,
 ) -> list[dict[str, JAXArray]]:
     # init samples
-    init_keys = jax.random.split(prng_key, int(nSample))
-    batched_samples = jax.vmap(lambda k: seed(initSampler, rng_seed=k)())(init_keys)
+    init_keys = jax.random.split(prng_key, int(n_sample))
+    batched_samples = jax.vmap(lambda k: seed(init_sampler, rng_seed=k)())(init_keys)
 
     # batched loss
     losses = jax.lax.map(loss, batched_samples, batch_size=batch_size)
 
-    # select top nBest
+    # select top n_best
     loss_idx = jnp.argsort(losses)
     top_params = {}
     for p in batched_samples:
-        top_params[p] = batched_samples[p][loss_idx[:nBest]]
+        top_params[p] = batched_samples[p][loss_idx[:n_best]]
 
     # convert from pytree to list of pytrees
     return [
@@ -50,23 +50,23 @@ def _sample_top_params(
 
 def random_search(
     model: UniVarModel | MultiVarModel,
-    initSampler: Callable,
+    init_sampler: Callable,
     prng_key: jax.random.PRNGKey,
-    nSample: int,
-    nBest: int,
-    jaxoptMethod: str = "SLSQP",
+    n_sample: int,
+    n_best: int,
+    jaxopt_method: str = "SLSQP",
     batch_size: int = 1000,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
     """Fit a model using random search plus optimization.
 
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
-        initSampler (Callable): Function to sample initial parameters.
+        init_sampler (Callable): Function to sample initial parameters.
         prng_key (jax.random.PRNGKey): Random number generator key.
-        nSample (int): Number of random samples to draw.
-        nBest (int): Number of best samples (selected based on their likelihod values)
+        n_sample (int): Number of random samples to draw.
+        n_best (int): Number of best samples (selected based on their likelihod values)
             to keep for optimization.
-        jaxoptMethod (str, optional): Optimization algorithm. Defaults to "SLSQP".
+        jaxopt_method (str, optional): Optimization algorithm. Defaults to "SLSQP".
         batch_size (int, optional): The batch size used in evaluating likehood of
             randomly drawn samples. Defaults to 1000.
 
@@ -75,11 +75,11 @@ def random_search(
     """
     loss = _make_loss(model)
     list_of_params = _sample_top_params(
-        initSampler, prng_key, nSample, nBest, loss, batch_size
+        init_sampler, prng_key, n_sample, n_best, loss, batch_size
     )
 
     # jaxopt optimize
-    opt = jaxopt.ScipyMinimize(fun=loss, method=jaxoptMethod)
+    opt = jaxopt.ScipyMinimize(fun=loss, method=jaxopt_method)
     log_prob, param = [], []
     for item in list_of_params:
         soln = opt.run(item)
@@ -92,11 +92,11 @@ def random_search(
 
 def random_search_adam(
     model: UniVarModel | MultiVarModel,
-    initSampler: Callable,
+    init_sampler: Callable,
     prng_key: jax.random.PRNGKey,
-    nSample: int,
-    nBest: int,
-    nStep: int = 300,
+    n_sample: int,
+    n_best: int,
+    n_step: int = 300,
     learning_rate: float = 1e-2,
     batch_size: int = 1000,
 ) -> tuple[dict[str, JAXArray], JAXArray]:
@@ -104,12 +104,12 @@ def random_search_adam(
 
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
-        initSampler (Callable): Function to sample initial parameters.
+        init_sampler (Callable): Function to sample initial parameters.
         prng_key (jax.random.PRNGKey): Random number generator key.
-        nSample (int): Number of random samples to draw.
-        nBest (int): Number of best samples (selected based on their likelihod values)
+        n_sample (int): Number of random samples to draw.
+        n_best (int): Number of best samples (selected based on their likelihod values)
             to keep for optimization.
-        nStep (int, optional): Number of Adam steps per retained sample.
+        n_step (int, optional): Number of Adam steps per retained sample.
             Defaults to 300.
         learning_rate (float, optional): Adam learning rate. Defaults to 1e-2.
         batch_size (int, optional): The batch size used in evaluating likehood of
@@ -120,7 +120,7 @@ def random_search_adam(
     """
     loss = _make_loss(model)
     list_of_params = _sample_top_params(
-        initSampler, prng_key, nSample, nBest, loss, batch_size
+        init_sampler, prng_key, n_sample, n_best, loss, batch_size
     )
     optimizer = optax.adam(learning_rate)
 
@@ -138,7 +138,7 @@ def random_search_adam(
     for item in list_of_params:
         params = item
         opt_state = optimizer.init(params)
-        for _ in range(nStep):
+        for _ in range(n_step):
             params, opt_state = adam_step(params, opt_state)
 
         final_loss = loss(params)
@@ -149,11 +149,11 @@ def random_search_adam(
     return best_param, max(log_prob)
 
 
-def simpleOptimizer(  # noqa: N802
+def simple_optimizer(
     model: UniVarModel | MultiVarModel,
     optimizer: optax.GradientTransformation,
-    initSample: dict[str, JAXArray],
-    nStep: int,
+    init_sample: dict[str, JAXArray],
+    n_step: int,
 ) -> tuple[
     dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray, dict[str, JAXArray]]
 ]:
@@ -162,8 +162,8 @@ def simpleOptimizer(  # noqa: N802
     Args:
         model (UniVarModel | MultiVarModel): EzTaoX Light curve model.
         optimizer (optax.GradientTransformation): Optimizer to use.
-        initSample (dict[str, JAXArray]): The initial guess of parameters.
-        nStep (int): Number of optimization steps.
+        init_sample (dict[str, JAXArray]): The initial guess of parameters.
+        n_step (int): Number of optimization steps.
 
     Returns:
         tuple[dict[str, JAXArray], tuple[dict[str, JAXArray], JAXArray,
@@ -176,9 +176,9 @@ def simpleOptimizer(  # noqa: N802
         return -model.log_prob(params)
 
     param_hist, loss_hist, grad_hist = [], [], []
-    params = initSample.copy()
+    params = init_sample.copy()
     opt_state = optimizer.init(params)
-    for _ in range(nStep):
+    for _ in range(n_step):
         # compute loss, grad for current param & save to hist
         val, grad = jax.value_and_grad(loss)(params)
         param_hist.append(params)

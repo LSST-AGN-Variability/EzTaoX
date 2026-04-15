@@ -5,7 +5,7 @@ import numpy as np
 from eztaox.ts_utils import (
     _get_nearest_idx,
     add_noise,
-    downsampleByTime,
+    down_sample_by_time,
     formatlc,
     merge_sort,
 )
@@ -41,15 +41,15 @@ def test_get_nearest_idx() -> None:
     assert expected == res
 
 
-def test_downsampleByTime() -> None:  # noqa: N802
+def test_down_sample_by_time() -> None:
     """Test the time series downsampling utility."""
 
     tIn = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
     tOut = np.array([0.2, 2.7, 4.5])
 
-    # Downsample
+    # Down_sample
     expected = np.array([0.0, 3.0, 4.0])
-    res = np.array(downsampleByTime(tIn, tOut))
+    res = np.array(down_sample_by_time(tIn, tOut))
 
     # Verify output
     assert np.allclose(expected, res)
@@ -84,7 +84,7 @@ def test_formatlc() -> None:
     assert np.allclose(yerr, expected_yerr)
 
 
-def test_addNoise() -> None:  # noqa: N802
+def test_addNoise() -> None:
     """Test the noise addition utility."""
 
     import jax
