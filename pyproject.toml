@@ -21,8 +21,7 @@ dependencies = [
     "tinygp (>=0.3.0,<0.4.0)",
     "jax (==0.4.31)",
     "jaxlib (==0.4.31)",
-    "jaxopt (>=0.8.3,<0.9.0)",
-    "optax (>=0.2.4,<0.3.0)",
+    "optax (>=0.2.5,<0.3.0)",
     "numpyro (>=0.17.0,<0.20.0)",
 ]
 
@@ -147,7 +146,7 @@ ignore = [
     "N806", # Variable in function should be lowercase
     "N815", # Variable in class scope should not be mixedCase
 ]
-exclude = ["docs/*"]
+exclude = ["docs/*", "scripts/*"]
 
 [tool.coverage.run]
 omit=["src/eztaox/_version.py"]
