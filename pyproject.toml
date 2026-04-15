@@ -88,7 +88,10 @@ testpaths = [
     "tests",
     "src",
 ]
-addopts = "--doctest-modules --doctest-glob=*.rst"
+
+[tool.pydoclint]
+style = 'google'
+exclude = '\.git|\.tox|tests/benchmarks'
 
 [tool.black]
 line-length = 88
