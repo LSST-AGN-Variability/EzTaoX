@@ -145,6 +145,25 @@ def test_convolved_kernel_shift_invariance(shift):
         assert_allclose(actual, expected, atol=1e-4)
 
 
+def test_convolved_kernel_call_matches_evaluate():
+    """ConvolvedKernel.__call__ agrees with evaluate for both matrix and diagonal."""
+    tau, w = 100.0, 20.0
+    base = quasisep.Exp(scale=tau)
+    tf = ExponentialTransferFunction(width=w)
+    ck = ConvolvedKernel(base, tf, n_grid=500)
+
+    t1 = jnp.array([0.0, 10.0, 50.0, 100.0])
+    t2 = jnp.array([5.0, 25.0, 75.0])
+
+    K_call = ck(t1, t2)
+    K_eval = jax.vmap(jax.vmap(ck.evaluate, (None, 0)), (0, None))(t1, t2)
+    assert_allclose(K_call, K_eval)
+
+    diag_call = ck(t1, None)
+    diag_eval = jax.vmap(ck.evaluate)(t1, t1)
+    assert_allclose(diag_call, diag_eval)
+
+
 @pytest.mark.parametrize(
     "transfer_function",
     [
