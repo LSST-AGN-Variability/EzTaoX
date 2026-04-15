@@ -47,10 +47,9 @@ dev = [
 requires = [
     "setuptools>=62", # Used to build and package the Python project
     "setuptools_scm>=6.2", # Gets release version from git. Makes it available programmatically
-    # "poetry-core>=2.0.0,<3.0.0"
 ]
 build-backend = "setuptools.build_meta"
-# build-backend = "poetry.core.masonry.api"
+
 [tool.setuptools_scm]
 write_to = "src/eztaox/_version.py"
 
