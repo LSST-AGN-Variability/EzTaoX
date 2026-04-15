@@ -19,7 +19,7 @@ from eztaox.models import MultiVarModel, UniVarModel
 
 
 # sampler function
-def initSampler():  # noqa: N802
+def init_sampler():  # noqa: N802
     # GP kernel param
     log_drw_scale = numpyro.sample(
         "drw_scale", dist.Uniform(jnp.log(0.1), jnp.log(10000))
@@ -81,21 +81,27 @@ def test_multivar_drw(
     ys = test_data["ys"]
 
     # config for fitting
-    nSample = 2_000
-    nBest = 5
+    n_sample = 2_000
+    n_best = 5
     fit_bands = [0, 1]
 
-    def fit(X, y, yerr, nBand, basekey_seed, key_index):
+    def fit(X, y, yerr, n_band, basekey_seed, key_index):
         m = MultiVarModel(
-            X, y, yerr, Exp(scale=100.0, sigma=0.1), nBand, zero_mean=True, has_lag=True
+            X,
+            y,
+            yerr,
+            Exp(scale=100.0, sigma=0.1),
+            n_band,
+            zero_mean=True,
+            has_lag=True,
         )
         fit_key = jr.fold_in(jr.PRNGKey(basekey_seed), key_index)
         bestP, ll = random_search(
             m,
-            initSampler,
+            init_sampler,
             fit_key,
-            nSample,
-            nBest,
+            n_sample,
+            n_best,
             optimizer=optimizer,
             n_opt_step=n_opt_step,
             use_value_and_grad_from_state=use_value_and_grad_from_state,
@@ -112,7 +118,7 @@ def test_multivar_drw(
             ),
             ys[i][np.isin(bands[i], fit_bands)],
             jnp.ones_like(ys[i][np.isin(bands[i], fit_bands)]) * 1e-6,
-            nBand=len(fit_bands),
+            n_band=len(fit_bands),
             basekey_seed=basekey_seed,
             key_index=i,
         )
@@ -155,7 +161,7 @@ def test_multivar_drw(
 def test_simple_optimizer_runs(
     optimizer, use_value_and_grad_from_state: bool, n_step: int
 ) -> None:
-    """Smoke test simpleOptimizer with both plain and state-aware optimizers."""
+    """Smoke test simple_optimizer with both plain and state-aware optimizers."""
     x = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
     y = jnp.sin(x)
     yerr = jnp.ones_like(x) * 0.05
@@ -212,8 +218,8 @@ def test_random_search_uses_fixed_loop(monkeypatch) -> None:
         model,
         init_sampler,
         jr.PRNGKey(0),
-        nSample=1,
-        nBest=1,
+        n_sample=1,
+        n_best=1,
         optimizer=optax.adam(1e-2),
         n_opt_step=3,
         max_opt_step=10,
@@ -254,8 +260,8 @@ def test_random_search_stops_early_with_tol(monkeypatch) -> None:
         model,
         init_sampler,
         jr.PRNGKey(0),
-        nSample=1,
-        nBest=1,
+        n_sample=1,
+        n_best=1,
         optimizer=optax.lbfgs(),
         n_opt_step=3,
         max_opt_step=10,

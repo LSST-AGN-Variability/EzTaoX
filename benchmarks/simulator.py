@@ -52,7 +52,7 @@ class MultivariateSimulatorSuite:
             drw_true,
             min_dt=0.01,
             max_dt=float(self.t[-1]),
-            nBand=NBANDS,
+            n_band=NBANDS,
             init_params=sim_params,
             zero_mean=True,
             has_lag=True,

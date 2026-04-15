@@ -35,7 +35,7 @@ class MultiVarModel(eqx.Module):
         y (JAXArray|NDArray): Observed data values.
         yerr (JAXArray|NDArray): Observational uncertainties.
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
-        nBand (int): An integer number of bands in the input light curve.
+        n_band (int): An integer number of bands in the input light curve.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
         mean_func(Callable, optional): A callable mean function for the GP, defaults to
@@ -60,7 +60,7 @@ class MultiVarModel(eqx.Module):
     multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
     t_in_bands: list[JAXArray]
     concat_inds_in_bands: list[JAXArray]
-    nBand: int
+    n_band: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
     lag_func: Callable | None
@@ -74,7 +74,7 @@ class MultiVarModel(eqx.Module):
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
-        nBand: int,
+        n_band: int,
         *,
         multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
@@ -94,7 +94,7 @@ class MultiVarModel(eqx.Module):
         self.diag = (yerr**2)[init_inds]
         self.y = y[init_inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
-        self.nBand = nBand
+        self.n_band = n_band
 
         # assign band indexs for sorting the input time axis after lag transform
         sorted_t, sorted_band = self.X
@@ -146,7 +146,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         """Shift the time axis by the lag in each band. Fast version used in fitting."""
         if has_lag is False:
-            lags = jnp.zeros(self.nBand)
+            lags = jnp.zeros(self.n_band)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -179,7 +179,7 @@ class MultiVarModel(eqx.Module):
                 and indexes of the new times.
         """
         if has_lag is False:
-            lags = jnp.zeros(self.nBand)
+            lags = jnp.zeros(self.n_band)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -369,14 +369,14 @@ class UniVarModel(MultiVarModel):
         y = jnp.asarray(y)[inds]
         yerr = jnp.asarray(yerr)[inds]
         base_kernel = kernel
-        nBand = 1
+        n_band = 1
         has_lag = False
         super().__init__(
             X,
             y,
             yerr,
             base_kernel,
-            nBand,
+            n_band,
             mean_func=mean_func,
             amp_scale_func=amp_scale_func,
             has_lag=has_lag,
