@@ -24,7 +24,6 @@ class KernelUniVarSuite:
 
     def setup(self, n) -> None:
         t, y, yerr = generate_drw_univar(n)
-
         # Exp kernel
         exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)
         self.exp_params = {
@@ -69,7 +68,6 @@ class KernelMultVarSuite:
     def setup(self, n) -> None:
         X, y, yerr = generate_drw_multivar(n)
         rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
-
         # Exp kernel
         exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)
         self.exp_params = {
@@ -112,6 +110,65 @@ class KernelMultVarSuite:
         self.m52_log_prob(self.m52_params).block_until_ready()
 
 
+class KernelUniVarPrecompileSuite:
+    """Timing benchmarks for univariate precompile cost at a fixed size."""
+
+    params = [2_000]
+    repeat = 10
+    sample_time = 0.1
+
+    def setup(self, n) -> None:
+        self.t, self.y, self.yerr = generate_drw_univar(n)
+
+    def time_precompile_exp_gp(self, _):
+        model, params = _build_univar_model_and_params(
+            ekq.Exp, self.t, self.y, self.yerr
+        )
+        _precompile_log_prob(model, params)
+
+    def time_precompile_m32_gp(self, _):
+        model, params = _build_univar_model_and_params(
+            ekq.Matern32, self.t, self.y, self.yerr
+        )
+        _precompile_log_prob(model, params)
+
+    def time_precompile_m52_gp(self, _):
+        model, params = _build_univar_model_and_params(
+            ekq.Matern52, self.t, self.y, self.yerr
+        )
+        _precompile_log_prob(model, params)
+
+
+class KernelMultVarPrecompileSuite:
+    """Timing benchmarks for multivariate precompile cost at a fixed size."""
+
+    params = [2_000]
+    repeat = 10
+    sample_time = 0.1
+
+    def setup(self, n) -> None:
+        self.X, self.y, self.yerr = generate_drw_multivar(n)
+        self.rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
+
+    def time_precompile_exp_gp(self, _):
+        model, params = _build_multivar_model_and_params(
+            ekq.Exp, self.X, self.y, self.yerr, self.rand_lag
+        )
+        _precompile_log_prob(model, params)
+
+    def time_precompile_m32_gp(self, _):
+        model, params = _build_multivar_model_and_params(
+            ekq.Matern32, self.X, self.y, self.yerr, self.rand_lag
+        )
+        _precompile_log_prob(model, params)
+
+    def time_precompile_m52_gp(self, _):
+        model, params = _build_multivar_model_and_params(
+            ekq.Matern52, self.X, self.y, self.yerr, self.rand_lag
+        )
+        _precompile_log_prob(model, params)
+
+
 def generate_drw_univar(n) -> tuple[JAXArray, JAXArray, JAXArray]:
     """Generate single band light curve of size `n`"""
     log_kernel_param = jnp.stack(
@@ -140,6 +197,28 @@ def generate_drw_multivar(
     t, y, yerr = generate_drw_univar(n)
     band = jr.choice(jr.PRNGKey(1), a=num_bands, shape=t.shape, replace=True)
     return (t, band), y, yerr
+
+
+def _build_univar_model_and_params(kernel_cls, t, y, yerr):
+    kernel = kernel_cls(scale=10.0, sigma=0.1)
+    params = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "mean": 0.0,
+    }
+    model = UniVarModel(t, y, yerr, kernel, zero_mean=False)
+    return model, params
+
+
+def _build_multivar_model_and_params(kernel_cls, X, y, yerr, lag):
+    kernel = kernel_cls(scale=10.0, sigma=0.1)
+    params = {
+        "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+        "log_amp_scale": jnp.log(1.0),
+        "lag": lag,
+        "mean": 0.0,
+    }
+    model = MultiVarModel(X, y, yerr, kernel, NBANDS, zero_mean=False, has_lag=True)
+    return model, params
 
 
 def _precompile_log_prob(model, params):
