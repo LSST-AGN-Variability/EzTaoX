@@ -61,7 +61,7 @@ STATEFUL_OPTIMIZER_FACTORIES: tuple[
 )
 
 
-def initSampler():  # noqa: N802
+def init_sampler():
     """Sample the initial multiband DRW parameters."""
     log_drw_scale = numpyro.sample(
         "drw_scale", dist.Uniform(jnp.log(0.1), jnp.log(10000))
@@ -244,14 +244,14 @@ def fit_single_light_curve(
         filtered_y,
         yerr,
         Exp(scale=100.0, sigma=0.1),
-        nBand=len(FIT_BANDS),
+        n_band=len(FIT_BANDS),
         zero_mean=True,
         has_lag=True,
     )
     fit_key = jr.fold_in(jr.PRNGKey(BASEKEY_SEED), key_index)
     best_params, log_likelihood = random_search(
         model,
-        initSampler,
+        init_sampler,
         fit_key,
         n_sample,
         n_best,
