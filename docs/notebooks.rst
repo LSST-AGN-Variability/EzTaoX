@@ -11,4 +11,4 @@ These notebooks are available for live experimentation in a binder instance.
     Damped Random Walk (DRW) <notebooks/01_DRW>
     Multiband GP Fitting <notebooks/02_Multiband>
     Damped Harmonic Oscillator (DHO) <notebooks/03_DHO>
-    
+    Fitting DP1 light curves with LSDB <pre_executed/05_DP1_LSDB>
