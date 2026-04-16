@@ -1,56 +1,71 @@
 {
-    "fitting.KernelMultVarSuite.time_run_exp_logp": {
-        "code": "class KernelMultVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+    "fitting.KernelMultiVarPrecompileSuite.time_precompile_exp_gp": {
+        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_exp_gp(self, _):\n        model, params = _build_multivar_model_and_params(\n            ekq.Exp, self.X, self.y, self.yerr, self.rand_lag\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(n)\n        self.rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)",
         "min_run_count": 2,
-        "name": "fitting.KernelMultVarSuite.time_run_exp_logp",
+        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_exp_gp",
         "number": 0,
         "param_names": [
             "param1"
         ],
         "params": [
             [
-                "50",
-                "200",
-                "500",
                 "2000"
             ]
         ],
-        "repeat": 5,
+        "repeat": 10,
         "rounds": 2,
-        "sample_time": 0.2,
+        "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "991153ecff01e03f58e526c8a0ce4a11b7a5a66ee212c9d4dfa5d585ad404839",
+        "version": "221cab49b6de4947b166ba4718c831ad370c489fff5c0c2da4acca853eb43539",
         "warmup_time": -1
     },
-    "fitting.KernelMultVarSuite.time_run_m32_logp": {
-        "code": "class KernelMultVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+    "fitting.KernelMultiVarPrecompileSuite.time_precompile_m32_gp": {
+        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_m32_gp(self, _):\n        model, params = _build_multivar_model_and_params(\n            ekq.Matern32, self.X, self.y, self.yerr, self.rand_lag\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(n)\n        self.rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)",
         "min_run_count": 2,
-        "name": "fitting.KernelMultVarSuite.time_run_m32_logp",
+        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_m32_gp",
         "number": 0,
         "param_names": [
             "param1"
         ],
         "params": [
             [
-                "50",
-                "200",
-                "500",
                 "2000"
             ]
         ],
-        "repeat": 5,
+        "repeat": 10,
         "rounds": 2,
-        "sample_time": 0.2,
+        "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "8fb9f5249db34027cea2207dc7e1c42f41a456de12b2a92c63b321e8151076fe",
+        "version": "9339191fb70754dce4fcb2fed89f753535c95839cd1024bacca4252e886cce95",
         "warmup_time": -1
     },
-    "fitting.KernelMultVarSuite.time_run_m52_logp": {
-        "code": "class KernelMultVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zeromean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+    "fitting.KernelMultiVarPrecompileSuite.time_precompile_m52_gp": {
+        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_m52_gp(self, _):\n        model, params = _build_multivar_model_and_params(\n            ekq.Matern52, self.X, self.y, self.yerr, self.rand_lag\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(n)\n        self.rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)",
         "min_run_count": 2,
-        "name": "fitting.KernelMultVarSuite.time_run_m52_logp",
+        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_m52_gp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "2000"
+            ]
+        ],
+        "repeat": 10,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "393a3bc86da5ac99ae94c6282cff19e1e009937bc76dfa3fc621ba7ba3998395",
+        "warmup_time": -1
+    },
+    "fitting.KernelMultiVarSuite.time_run_exp_logp": {
+        "code": "class KernelMultiVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "min_run_count": 2,
+        "name": "fitting.KernelMultiVarSuite.time_run_exp_logp",
         "number": 0,
         "param_names": [
             "param1"
@@ -68,11 +83,122 @@
         "sample_time": 0.2,
         "type": "time",
         "unit": "seconds",
-        "version": "7ac50f3fbaf64493091a5ebc5e07bfc1b10cbf0481160db926a9b4c3cd482f16",
+        "version": "2850146b710b4cf0b2a43c8a41a8ab9618b4ac8d9d22df96aaca51e28db13b83",
+        "warmup_time": -1
+    },
+    "fitting.KernelMultiVarSuite.time_run_m32_logp": {
+        "code": "class KernelMultiVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "min_run_count": 2,
+        "name": "fitting.KernelMultiVarSuite.time_run_m32_logp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "50",
+                "200",
+                "500",
+                "2000"
+            ]
+        ],
+        "repeat": 5,
+        "rounds": 2,
+        "sample_time": 0.2,
+        "type": "time",
+        "unit": "seconds",
+        "version": "a6113d187dffb4d1d3f779ab41b0ae2326c637ba466b4088d4ac2b61a487f85e",
+        "warmup_time": -1
+    },
+    "fitting.KernelMultiVarSuite.time_run_m52_logp": {
+        "code": "class KernelMultiVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        X, y, yerr = generate_drw_multivar(n)\n        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"log_amp_scale\": jnp.log(1.0),\n            \"lag\": rand_lag,\n            \"mean\": 0.0,\n        }\n        self.exp_model = MultiVarModel(\n            X, y, yerr, exp_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n    \n        self.m32_model = MultiVarModel(\n            X, y, yerr, m32_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = MultiVarModel(\n            X, y, yerr, m52_kernel, NBANDS, zero_mean=False, has_lag=True\n        )\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "min_run_count": 2,
+        "name": "fitting.KernelMultiVarSuite.time_run_m52_logp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "50",
+                "200",
+                "500",
+                "2000"
+            ]
+        ],
+        "repeat": 5,
+        "rounds": 2,
+        "sample_time": 0.2,
+        "type": "time",
+        "unit": "seconds",
+        "version": "2a6855c5afda78b272c87385b346b18798c05d8cbe8981ab578218db5876d284",
+        "warmup_time": -1
+    },
+    "fitting.KernelUniVarPrecompileSuite.time_precompile_exp_gp": {
+        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_exp_gp(self, _):\n        model, params = _build_univar_model_and_params(\n            ekq.Exp, self.t, self.y, self.yerr\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(n)",
+        "min_run_count": 2,
+        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_exp_gp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "2000"
+            ]
+        ],
+        "repeat": 10,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "6625f4aaf56be24dc1a4e70a35bec9df53669a91c202d2fa6dd0192ecd50df03",
+        "warmup_time": -1
+    },
+    "fitting.KernelUniVarPrecompileSuite.time_precompile_m32_gp": {
+        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_m32_gp(self, _):\n        model, params = _build_univar_model_and_params(\n            ekq.Matern32, self.t, self.y, self.yerr\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(n)",
+        "min_run_count": 2,
+        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_m32_gp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "2000"
+            ]
+        ],
+        "repeat": 10,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "8bf3ccb408e3fb10c2d168e5f95dd48c29140e4e13dba43aa6b053026ef19ab2",
+        "warmup_time": -1
+    },
+    "fitting.KernelUniVarPrecompileSuite.time_precompile_m52_gp": {
+        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_m52_gp(self, _):\n        model, params = _build_univar_model_and_params(\n            ekq.Matern52, self.t, self.y, self.yerr\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(n)",
+        "min_run_count": 2,
+        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_m52_gp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "2000"
+            ]
+        ],
+        "repeat": 10,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "d9b4857b4ae732ede423c7051669b2e75b77384b45e5ae43fe7307b2ba4aab98",
         "warmup_time": -1
     },
     "fitting.KernelUniVarSuite.time_run_exp_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zeromean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zeromean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zeromean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_exp_logp",
         "number": 0,
@@ -92,11 +218,11 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "f6aaec1463b2e433fc5ff7cf2db1f17b6dd839fad52f674d2c634c455076bdfb",
+        "version": "5995da74e35f4773b8e89bd25d77b423c3e7c8c13f57826be58f652345cbaced",
         "warmup_time": -1
     },
     "fitting.KernelUniVarSuite.time_run_m32_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zeromean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zeromean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zeromean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_m32_logp",
         "number": 0,
@@ -116,11 +242,11 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "feb12bc1277f0b32c59adf8dbdf8de15e9c374290c2623e53ef9e9d809eb38ad",
+        "version": "2b876937e23cb5b4961ed94f0c5a52b3f1ccbf52758bfb553bc10b1ddc0e334f",
         "warmup_time": -1
     },
     "fitting.KernelUniVarSuite.time_run_m52_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n    \n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zeromean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zeromean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zeromean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_m52_logp",
         "number": 0,
@@ -140,7 +266,103 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "0f50f5381261cb96e3a176a9ef81cd062f89987612358b3fa8f7d828ec5f7fcf",
+        "version": "39a81d19968b421c7c2af5404324d46a5852836fa21a94e6a1ef54235c6841a8",
+        "warmup_time": -1
+    },
+    "fitting.MCMCMultiVarSuite.peakmem_mcmc": {
+        "code": "class MCMCUniSuite:\n    def peakmem_mcmc(self):\n        samples = _run_mcmc_benchmark(\n            self.model,\n            self.numpyro_model,\n            self.mcmc_key,\n            num_warmup=1000,\n            num_samples=2000,\n        )\n        _block_until_ready(samples)\n\nclass MCMCMultiVarSuite:\n    def setup(self) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(1000)\n        self.kernel = ekq.Exp(scale=100.0, sigma=1.0)\n        self.model = MultiVarModel(\n            self.X,\n            self.y,\n            self.yerr,\n            self.kernel,\n            NBANDS,\n            zero_mean=True,\n            has_lag=True,\n        )\n        self.numpyro_model = _make_numpyro_model(_init_sampler)\n        self.mcmc_key = jr.PRNGKey(0)",
+        "name": "fitting.MCMCMultiVarSuite.peakmem_mcmc",
+        "param_names": [],
+        "params": [],
+        "timeout": 300,
+        "type": "peakmemory",
+        "unit": "bytes",
+        "version": "aa0db4792b96ca41516dd04a9124e28351a739c481b75d2e17d894c7e4acf611"
+    },
+    "fitting.MCMCUniSuite.peakmem_mcmc": {
+        "code": "class MCMCUniSuite:\n    def peakmem_mcmc(self):\n        samples = _run_mcmc_benchmark(\n            self.model,\n            self.numpyro_model,\n            self.mcmc_key,\n            num_warmup=1000,\n            num_samples=2000,\n        )\n        _block_until_ready(samples)\n\n    def setup(self) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(1000)\n        self.kernel = ekq.Exp(scale=100.0, sigma=1.0)\n        self.model = UniVarModel(\n            self.t,\n            self.y,\n            self.yerr,\n            self.kernel,\n            zero_mean=False,\n        )\n        self.numpyro_model = _make_numpyro_model(_init_sampler)\n        self.mcmc_key = jr.PRNGKey(0)",
+        "name": "fitting.MCMCUniSuite.peakmem_mcmc",
+        "param_names": [],
+        "params": [],
+        "timeout": 300,
+        "type": "peakmemory",
+        "unit": "bytes",
+        "version": "a95fdd2619cef591125d60bdfda8c50662c65f367899333b49c0d602f69ea858"
+    },
+    "fitting.RandomSearchMultiVarSuite.peakmem_random_search": {
+        "code": "class RandomSearchUniVarSuite:\n    def peakmem_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model,\n            self.init_sampler,\n            self.fit_key,\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)\n\nclass RandomSearchMultiVarSuite:\n    def setup(self, batch_size) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(1000)\n        self.kernel = ekq.Exp(scale=100.0, sigma=0.1)\n        self.model = MultiVarModel(\n            self.X,\n            self.y,\n            self.yerr,\n            self.kernel,\n            NBANDS,\n            zero_mean=True,\n            has_lag=True,\n        )\n        self.init_sampler = _init_sampler\n        self.fit_key = jr.PRNGKey(0)",
+        "name": "fitting.RandomSearchMultiVarSuite.peakmem_random_search",
+        "param_names": [
+            "batch_size"
+        ],
+        "params": [
+            [
+                "1000"
+            ]
+        ],
+        "timeout": 120,
+        "type": "peakmemory",
+        "unit": "bytes",
+        "version": "58d842bcfb00891dd35ccb5b822cfc52ebe1a73f61bf5a01ef47f89e595d6fe3"
+    },
+    "fitting.RandomSearchMultiVarSuite.time_random_search": {
+        "code": "class RandomSearchUniVarSuite:\n    def time_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model,\n            self.init_sampler,\n            self.fit_key,\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)\n\nclass RandomSearchMultiVarSuite:\n    def setup(self, batch_size) -> None:\n        self.X, self.y, self.yerr = generate_drw_multivar(1000)\n        self.kernel = ekq.Exp(scale=100.0, sigma=0.1)\n        self.model = MultiVarModel(\n            self.X,\n            self.y,\n            self.yerr,\n            self.kernel,\n            NBANDS,\n            zero_mean=True,\n            has_lag=True,\n        )\n        self.init_sampler = _init_sampler\n        self.fit_key = jr.PRNGKey(0)",
+        "min_run_count": 2,
+        "name": "fitting.RandomSearchMultiVarSuite.time_random_search",
+        "number": 0,
+        "param_names": [
+            "batch_size"
+        ],
+        "params": [
+            [
+                "1000"
+            ]
+        ],
+        "repeat": 5,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "timeout": 120,
+        "type": "time",
+        "unit": "seconds",
+        "version": "18a273eb33a5a824df9520fd1636aec50d45663613a04bb64bce78c1d56aafb2",
+        "warmup_time": -1
+    },
+    "fitting.RandomSearchUniVarSuite.peakmem_random_search": {
+        "code": "class RandomSearchUniVarSuite:\n    def peakmem_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model,\n            self.init_sampler,\n            self.fit_key,\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)\n\n    def setup(self, batch_size) -> None:\n        self.x = jnp.linspace(0.0, 2.0 * jnp.pi, 1000)\n        self.y = jnp.sin(self.x)\n        self.yerr = jnp.ones_like(self.x) * 0.05\n        self.kernel = ekq.Exp(scale=1.5, sigma=0.8)\n        self.model = UniVarModel(\n            self.x,\n            self.y,\n            self.yerr,\n            self.kernel,\n            zero_mean=False,\n        )\n        self.init_sampler = _init_sampler\n        self.fit_key = jr.PRNGKey(0)",
+        "name": "fitting.RandomSearchUniVarSuite.peakmem_random_search",
+        "param_names": [
+            "batch_size"
+        ],
+        "params": [
+            [
+                "1000"
+            ]
+        ],
+        "timeout": 120,
+        "type": "peakmemory",
+        "unit": "bytes",
+        "version": "4f5bc96c018226950ff9ccaf3acc9bd8967700358e62d7a122fed5cc1c6bcee4"
+    },
+    "fitting.RandomSearchUniVarSuite.time_random_search": {
+        "code": "class RandomSearchUniVarSuite:\n    def time_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model,\n            self.init_sampler,\n            self.fit_key,\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)\n\n    def setup(self, batch_size) -> None:\n        self.x = jnp.linspace(0.0, 2.0 * jnp.pi, 1000)\n        self.y = jnp.sin(self.x)\n        self.yerr = jnp.ones_like(self.x) * 0.05\n        self.kernel = ekq.Exp(scale=1.5, sigma=0.8)\n        self.model = UniVarModel(\n            self.x,\n            self.y,\n            self.yerr,\n            self.kernel,\n            zero_mean=False,\n        )\n        self.init_sampler = _init_sampler\n        self.fit_key = jr.PRNGKey(0)",
+        "min_run_count": 2,
+        "name": "fitting.RandomSearchUniVarSuite.time_random_search",
+        "number": 0,
+        "param_names": [
+            "batch_size"
+        ],
+        "params": [
+            [
+                "1000"
+            ]
+        ],
+        "repeat": 5,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "timeout": 120,
+        "type": "time",
+        "unit": "seconds",
+        "version": "bc7108be2150c5e2ecad5a8068bd0d4ce7cc3a1ed3b8312051b3e532f084ddc4",
         "warmup_time": -1
     },
     "simulator.MultivariateSimulatorSuite.time_run_sim": {
