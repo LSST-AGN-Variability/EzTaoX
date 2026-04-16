@@ -181,7 +181,7 @@ class RandomSearchUniVarSuite:
     sample_time = 0.1
     timeout = 120
 
-    def setup(self) -> None:
+    def setup(self, batch_size) -> None:
         self.x = jnp.linspace(0.0, 2.0 * jnp.pi, 1000)
         self.y = jnp.sin(self.x)
         self.yerr = jnp.ones_like(self.x) * 0.05
@@ -222,7 +222,7 @@ class RandomSearchUniVarSuite:
 class RandomSearchMultiVarSuite(RandomSearchUniVarSuite):
     """Benchmark multivariate random_search."""
 
-    def setup(self) -> None:
+    def setup(self, batch_size) -> None:
         self.X, self.y, self.yerr = generate_drw_multivar(1000)
         self.kernel = ekq.Exp(scale=100.0, sigma=0.1)
         self.model = MultiVarModel(
