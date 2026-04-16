@@ -151,8 +151,8 @@ These notebooks are also available for live experimentation in a binder instance
    :hidden:
 
    Home page <self>
-   API Reference <autoapi/index>
    Notebooks <notebooks>
+   API Reference <autoapi/index>
    About <about>
    Changelog <changelog>
    
