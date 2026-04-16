@@ -18,6 +18,7 @@ from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
 from eztaox.kernels import direct, quasisep
+from eztaox.kernels._spec import KernelSpec, build_kernel_def
 from eztaox.ts_utils import merge_sort
 
 
@@ -34,7 +35,10 @@ class MultiVarModel(eqx.Module):
         X (JAXArray|NDArray): Input data containing time and band indices as a tuple.
         y (JAXArray|NDArray): Observed data values.
         yerr (JAXArray|NDArray): Observational uncertainties.
-        base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
+        base_kernel (Quasisep | type | Callable): A GP kernel instance, kernel class,
+            or callable factory. When a class or factory is provided,
+            ``params["log_kernel_param"]`` is exponentiated and unpacked as positional
+            arguments to build the kernel.
         n_band (int): An integer number of bands in the input light curve.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
@@ -73,7 +77,7 @@ class MultiVarModel(eqx.Module):
         X: tuple[JAXArray | NDArray, JAXArray | NDArray],
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        base_kernel: tk.Kernel | quasisep.Quasisep,
+        base_kernel: KernelSpec,
         n_band: int,
         *,
         multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
@@ -93,7 +97,7 @@ class MultiVarModel(eqx.Module):
         self.X = (t[init_inds], band[init_inds])
         self.diag = (yerr**2)[init_inds]
         self.y = y[init_inds]
-        self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
+        self.base_kernel_def, is_quasisep_kernel = build_kernel_def(base_kernel)
         self.n_band = n_band
 
         # assign band indexs for sorting the input time axis after lag transform
@@ -109,7 +113,7 @@ class MultiVarModel(eqx.Module):
 
         # assign callables/classes
         if multiband_kernel is None:
-            if isinstance(base_kernel, tk.quasisep.Quasisep):
+            if is_quasisep_kernel:
                 multiband_kernel = quasisep.MultibandLowRank
             else:
                 multiband_kernel = direct.MultibandLowRank
@@ -341,7 +345,10 @@ class UniVarModel(MultiVarModel):
         t (JAXArray|NDArray): Time stamps of the input light curve.
         y (JAXArray|NDArray): Observed data values at the corresponding time stamps.
         yerr (JAXArray|NDArray): Observational uncertainties.
-        kernel (Quasisep): A GP kernel from the eztaox.kernels.quasisep module.
+        kernel (Quasisep | type | Callable): A GP kernel instance, kernel class,
+            or callable factory. When a class or factory is provided,
+            ``params["log_kernel_param"]`` is exponentiated and unpacked as positional
+            arguments to build the kernel.
         mean_func(Callable, optional): A callable mean function for the GP, defaults to
             None.
         amp_scale_func(Callable, optional): A callable amplitude scaling function,
@@ -358,7 +365,7 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: tk.Kernel | quasisep.Quasisep,
+        kernel: KernelSpec,
         *,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,

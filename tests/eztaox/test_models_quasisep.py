@@ -86,6 +86,55 @@ def test_univar(data, kernel, random) -> None:
     assert_allclose(jax.grad(gp1.log_probability)(y), jax.grad(gp2.log_probability)(y))
 
 
+def test_univar_accepts_kernel_class(data, random) -> None:
+    x, y, _ = data
+    yerr = jnp.ones_like(x) * 0.1
+
+    params = {
+        "log_kernel_param": jnp.log(jnp.array([1.5, 1.8])),
+        "mean": jnp.array(random.uniform(-1, 1)),
+        "log_jitter": jnp.array(random.uniform(-20, 5)),
+    }
+
+    dummy_kernel = quasisep.Exp(scale=100.0, sigma=1.0)
+    model_from_instance = UniVarModel(
+        x, y, yerr, dummy_kernel, zero_mean=False, has_jitter=True
+    )
+    model_from_class = UniVarModel(
+        x, y, yerr, quasisep.Exp, zero_mean=False, has_jitter=True
+    )
+
+    assert_allclose(
+        model_from_class.log_prob(params), model_from_instance.log_prob(params)
+    )
+
+
+def test_univar_accepts_kernel_factory(data, random) -> None:
+    x, y, _ = data
+    yerr = jnp.ones_like(x) * 0.1
+
+    params = {
+        "log_kernel_param": jnp.log(jnp.array([1.5, 1.8])),
+        "mean": jnp.array(random.uniform(-1, 1)),
+        "log_jitter": jnp.array(random.uniform(-20, 5)),
+    }
+
+    def exp_factory(scale, sigma):
+        return quasisep.Exp(scale=scale, sigma=sigma)
+
+    dummy_kernel = quasisep.Exp(scale=100.0, sigma=1.0)
+    model_from_instance = UniVarModel(
+        x, y, yerr, dummy_kernel, zero_mean=False, has_jitter=True
+    )
+    model_from_factory = UniVarModel(
+        x, y, yerr, exp_factory, zero_mean=False, has_jitter=True
+    )
+
+    assert_allclose(
+        model_from_factory.log_prob(params), model_from_instance.log_prob(params)
+    )
+
+
 def test_univar_jit_grad(data, kernel, random) -> None:
     x, y, _ = data
 
@@ -144,6 +193,30 @@ def test_multivar(data, kernel, random) -> None:
     assert_allclose(
         jax.grad(gp1.log_probability)(y - model_param["mean"][b]),
         jax.grad(gp2.log_probability)(y),
+    )
+
+
+def test_multivar_accepts_kernel_class(data, random) -> None:
+    x, y, b = data
+    yerr = jnp.ones_like(x) * 0.1
+
+    params = {
+        "log_kernel_param": jnp.log(jnp.array([1.5, 1.8])),
+        "log_amp_scale": jnp.array(random.uniform(-1, 1, 2)),
+        "mean": jnp.array(random.uniform(-1, 1, 3)),
+        "log_jitter": jnp.array(random.uniform(-20, 5, 3)),
+    }
+
+    dummy_kernel = quasisep.Exp(scale=100.0, sigma=1.0)
+    model_from_instance = MultiVarModel(
+        (x, b), y, yerr, dummy_kernel, 3, zero_mean=False, has_jitter=True
+    )
+    model_from_class = MultiVarModel(
+        (x, b), y, yerr, quasisep.Exp, 3, zero_mean=False, has_jitter=True
+    )
+
+    assert_allclose(
+        model_from_class.log_prob(params), model_from_instance.log_prob(params)
     )
 
 

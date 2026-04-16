@@ -106,6 +106,25 @@ def test_simulator_run_univarsim(kernel) -> None:
     assert _is_sorted(sim_t)
 
 
+def test_simulator_accepts_kernel_class() -> None:
+    t = jnp.linspace(0.0, 20.0, 32)
+    s = UniVarSim(
+        ekq.Exp,
+        0.1,
+        float(t[-1]),
+        init_params={
+            "log_kernel_param": jnp.log(jnp.array([1.5, 1.8])),
+        },
+        zero_mean=True,
+    )
+
+    sim_t, sim_y = s.fixed_input(t, jax.random.PRNGKey(123))
+    assert sim_t.shape == sim_y.shape == t.shape
+    assert not jnp.isnan(sim_t).any()
+    assert not jnp.isnan(sim_y).any()
+    assert _is_sorted(sim_t)
+
+
 def test_simulator_fixed_input_fast() -> None:
     """
     Test that the fixed_input_fast method returns the same output
