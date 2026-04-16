@@ -87,7 +87,7 @@ class MultiVarModel(eqx.Module):
         band = jnp.asarray(X[1], dtype=int)
         y = jnp.asarray(y)
         yerr = jnp.asarray(yerr)
-        init_inds = jnp.argsort(t)
+        init_inds = jnp.argsort(t, stable=False)
 
         # assign attributes
         self.X = (t[init_inds], band[init_inds])
@@ -100,12 +100,9 @@ class MultiVarModel(eqx.Module):
         sorted_t, sorted_band = self.X
         unique_bands = jnp.unique(sorted_band)
 
-        self.t_in_bands = [
-            sorted_t[jnp.where(sorted_band == i)[0]] for i in unique_bands
-        ]
-        self.concat_inds_in_bands = jnp.concat(
-            [jnp.where(sorted_band == i)[0] for i in unique_bands]
-        )
+        inds_in_bands = [jnp.where(sorted_band == i)[0] for i in unique_bands]
+        self.t_in_bands = [sorted_t[idx] for idx in inds_in_bands]
+        self.concat_inds_in_bands = jnp.concatenate(inds_in_bands)
 
         # assign callables/classes
         if multiband_kernel is None:
@@ -187,7 +184,7 @@ class MultiVarModel(eqx.Module):
 
         t, band = X
         new_t = t - lags[band]
-        inds = jnp.argsort(new_t)
+        inds = jnp.argsort(new_t, stable=False)
 
         return (new_t, band), inds
 
@@ -364,7 +361,9 @@ class UniVarModel(MultiVarModel):
         amp_scale_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        inds = jnp.argsort(jnp.asarray(t))
+        """Initialize the UniVarModel with time, observed data, and kernel."""
+
+        inds = jnp.argsort(jnp.asarray(t), stable=False)
         X = (jnp.asarray(t)[inds], jnp.zeros_like(t, dtype=int))
         y = jnp.asarray(y)[inds]
         yerr = jnp.asarray(yerr)[inds]
