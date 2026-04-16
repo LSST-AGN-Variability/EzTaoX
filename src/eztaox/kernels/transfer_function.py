@@ -15,7 +15,7 @@ from eztaox.kernels.quasisep import Quasisep
 
 
 class TransferFunction(eqx.Module):
-    r"""Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
+    """Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
 
     width: float
     shift: JAXArray | float = eqx.field(default_factory=lambda: jnp.zeros(()))
@@ -28,7 +28,7 @@ class TransferFunction(eqx.Module):
 
 
 class GaussianTransferFunction(TransferFunction):
-    r"""Gaussian transfer function: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2}`.
+    """Gaussian transfer function: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2}`.
 
     where :math:`\\Delta t_0=\\mathrm{shift}`.
     The unity-normalization coefficient is:
@@ -36,7 +36,7 @@ class GaussianTransferFunction(TransferFunction):
     """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
-        r"""Evaluate the normalized transfer function at two points.
+        """Evaluate the normalized transfer function at two points.
 
         Normalized so that
         :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
@@ -48,7 +48,7 @@ class GaussianTransferFunction(TransferFunction):
 
 
 class ExponentialTransferFunction(TransferFunction):
-    r"""Exponential transfer function: :math:`\\propto e^{-|\\Delta t-\\Delta t_0|/w}`.
+    """Exponential transfer function: :math:`\\propto e^{-|\\Delta t-\\Delta t_0|/w}`.
 
     where :math:`\\Delta t_0=\\mathrm{shift}`.
     The unity-normalization coefficient is:
@@ -56,7 +56,7 @@ class ExponentialTransferFunction(TransferFunction):
     """
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
-        r"""Evaluate the normalized transfer function at two points.
+        """Evaluate the normalized transfer function at two points.
 
         Normalized so that
         :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
@@ -68,7 +68,7 @@ class ExponentialTransferFunction(TransferFunction):
 
 
 class CausalGaussianTransferFunction(TransferFunction):
-    r"""Causal Gaussian: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2},\\Delta t\\ge0`.
+    """Causal Gaussian: :math:`\\propto e^{-((\\Delta t-\\Delta t_0)/w)^2},\\Delta t\\ge0`.
 
     where :math:`\\Delta t_0=\\mathrm{shift}`.
     The unity-normalization coefficient is:
@@ -76,7 +76,7 @@ class CausalGaussianTransferFunction(TransferFunction):
     """  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
-        r"""Evaluate the normalized transfer function at two points.
+        """Evaluate the normalized transfer function at two points.
 
         Normalized so that
         :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
@@ -94,7 +94,7 @@ class CausalGaussianTransferFunction(TransferFunction):
 
 
 class CausalExponentialTransferFunction(TransferFunction):
-    r"""Causal exponential: :math:`\\propto e^{-(\\Delta t-\\Delta t_0)/w},\\Delta t\\ge\\Delta t_0`.
+    """Causal exponential: :math:`\\propto e^{-(\\Delta t-\\Delta t_0)/w},\\Delta t\\ge\\Delta t_0`.
 
     where :math:`\\Delta t_0=\\mathrm{shift}`.
     Defined for :math:`\\Delta t\\ge\\Delta t_0`, zero otherwise.
@@ -103,7 +103,7 @@ class CausalExponentialTransferFunction(TransferFunction):
     """  # noqa: E501
 
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
-        r"""Evaluate the normalized transfer function at two points.
+        """Evaluate the normalized transfer function at two points.
 
         Normalized so that
         :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
@@ -114,7 +114,7 @@ class CausalExponentialTransferFunction(TransferFunction):
 
 
 class ConvolvedKernel(tinygp.kernels.Kernel):
-    r"""Kernel convolved with a transfer function via FFT.
+    """Kernel convolved with a transfer function via FFT.
 
     Computes the convolved kernel using the Wiener-Khinchin relation:
         :math:`S_{\\mathrm{conv}}(f)=S_{\\mathrm{base}}(f)\\,|\\hat{\\Psi}(f)|^2`
