@@ -68,7 +68,7 @@ Thus, only the :math:`S` factors for the non-reference bands are allowed to vary
 To obtain the best-fit amplitude of the GP in a given band, one needs to multiply the best-fit amplitude of the
 latent GP (a parameter of :math:`k_{\rm latent}`) by the corresponding :math:`S` factor for the desired band.
 
-See Section II of the notebook :doc:`MultibandFitting <notebooks/01_Multiband>` to learn how to
+See Section II of the notebook :doc:`MultibandFitting <notebooks/03_MultibandFitting>` to learn how to
 set the reference band.
 
 **Note** that, in this context, a reference band carries no physical meaning; it is used only to simplify the
@@ -137,9 +137,10 @@ Tutorials
 A preliminary list of tutorials to help users getting started:
 
 * :doc:`Damped Random Walk <notebooks/01_DRW>`: Demonstrating fitting light curves to a damped random walk (DRW) model.
-* :doc:`Multiband Fitting <notebooks/02_Multiband>`: Demonstrating fitting multi-band light curves to a DRW model.
-* :doc:`Damped Harmonic Oscillator <notebooks/03_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
+* :doc:`Damped Harmonic Oscillator <notebooks/02_DHO>`: Demonstrating fitting higher-order CARMA models beyond the DRW. 
   In this notebook, we are fitting the CARMA(2,1) process, which is also known as the damped harmonic oscillator (DHO) process.
+* :doc:`Multiband Fitting <notebooks/03_MultibandFitting>`: Demonstrating fitting multi-band light curves to a DRW model.  
+* :doc:`Simulating Multi-band Light Curves <notebooks/04_MultibandSimulation>`: Demonstrating how to simulate full, randomly sampled, and user-defined multi-band observing cadences from a shared latent GP.
 
 
 These notebooks are also available for live experimentation in a binder instance.

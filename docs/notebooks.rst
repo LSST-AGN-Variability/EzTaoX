@@ -10,6 +10,7 @@ Tutorial notebooks demonstating the use of EzTaoX for fitting AGN light curves. 
   :maxdepth: 2
 
   1. Damped Random Walk (DRW) <notebooks/01_DRW>
-  2. Multiband GP Fitting <notebooks/02_Multiband>
-  3. Damped Harmonic Oscillator (DHO) <notebooks/03_DHO>
-  4. Fitting DP1 light curves with LSDB <pre_executed/05_DP1_LSDB>
+  2. Damped Harmonic Oscillator (DHO) <notebooks/02_DHO>
+  3. Multiband DRW Fitting <notebooks/03_MultibandFitting>
+  4. Simulating Multi-band Light Curves <notebooks/04_MultibandSimulation>
+  5. Fitting DP1 light curves with LSDB <pre_executed/05_DP1_LSDB>
