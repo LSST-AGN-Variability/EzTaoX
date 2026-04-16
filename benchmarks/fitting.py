@@ -60,7 +60,7 @@ class KernelUniVarSuite:
         self.m52_log_prob(self.m52_params).block_until_ready()
 
 
-class KernelMultVarSuite:
+class KernelMultiVarSuite:
     """Timing benchmarks for various Multivariate kernels"""
 
     # Size of lightcurve `n`
