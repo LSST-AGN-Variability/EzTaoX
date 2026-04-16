@@ -5,7 +5,6 @@ from functools import partial
 
 import equinox as eqx
 import jax
-import jax.flatten_util
 import jax.numpy as jnp
 import tinygp.kernels as tk
 from numpy.typing import NDArray
@@ -13,6 +12,7 @@ from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 
 from eztaox.kernels import direct, quasisep
+from eztaox.kernels._spec import KernelSpec, build_kernel_def
 from eztaox.ts_utils import _get_nearest_idx
 
 
@@ -25,7 +25,10 @@ class MultiVarSim(eqx.Module):
     covariance, and time delays between each uni-variate/single-band time series.
 
     Args:
-        base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
+        base_kernel (Quasisep | type | Callable): A GP kernel instance, kernel class,
+            or callable factory. When a class or factory is provided,
+            ``params["log_kernel_param"]`` is exponentiated and unpacked as positional
+            arguments to build the kernel.
         min_dt (float): Minimum time step for the simulation.
         max_dt (float): Maximum time step (temporal baseline) for the simulation.
         n_band (int): An integer number of bands in the input light curve.
@@ -58,7 +61,7 @@ class MultiVarSim(eqx.Module):
 
     def __init__(
         self,
-        base_kernel: tk.Kernel | tk.quasisep.Quasisep,
+        base_kernel: KernelSpec,
         min_dt: float,
         max_dt: float,
         n_band: int,
@@ -86,9 +89,9 @@ class MultiVarSim(eqx.Module):
         self.init_params = init_params
 
         # assign callables/classes
-        self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
+        self.base_kernel_def, is_quasisep_kernel = build_kernel_def(base_kernel)
         if multiband_kernel is None:
-            if isinstance(base_kernel, tk.quasisep.Quasisep):
+            if is_quasisep_kernel:
                 multiband_kernel = quasisep.MultibandLowRank
             else:
                 multiband_kernel = direct.MultibandLowRank
@@ -320,7 +323,10 @@ class UniVarSim(MultiVarSim):
     """An interface for simulating univariate/single-band GP time series.
 
     Args:
-        base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
+        base_kernel (Quasisep | type | Callable): A GP kernel instance, kernel class,
+            or callable factory. When a class or factory is provided,
+            ``params["log_kernel_param"]`` is exponentiated and unpacked as positional
+            arguments to build the kernel.
         min_dt (float): Minimum time step for the simulation.
         max_dt (float): Maximum time step (temporal baseline) for the simulation.
         init_params (dict[str, JAXArray]): Initial parameters for the GP.
@@ -335,7 +341,7 @@ class UniVarSim(MultiVarSim):
 
     def __init__(
         self,
-        base_kernel: tk.Kernel | tk.quasisep.Quasisep,
+        base_kernel: KernelSpec,
         min_dt: float,
         max_dt: float,
         init_params: dict[str, JAXArray],
