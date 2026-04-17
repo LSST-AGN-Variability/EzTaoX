@@ -30,7 +30,7 @@ from eztaox.simulator import MultiVarSim, UniVarSim
         1.5 * ekq.Matern52(1.5) * ekq.Celerite(1.1, 0.8, 0.9, 0.1),
         ekq.Cosine(sigma=1.8, scale=1.5),
         1.8 * ekq.Cosine(1.5),
-        # ekq.CARMA(alpha=jnp.array([1.4, 2.3, 1.5]), beta=jnp.array([0.1, 0.5])),
+        ekq.CARMA(alpha=jnp.array([1.4, 2.3, 1.5]), beta=jnp.array([0.1, 0.5])),
         ekq.CARMA(alpha=jnp.array([1, 1.2]), beta=jnp.array([1.0, 3.0])),
         ekq.CARMA(alpha=jnp.array([0.1, 1.1]), beta=jnp.array([1.0, 3.0])),
         ekq.CARMA(alpha=jnp.array([1.0 / 100]), beta=jnp.array([0.3])),

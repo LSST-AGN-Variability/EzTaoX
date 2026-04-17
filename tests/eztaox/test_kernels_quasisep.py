@@ -35,6 +35,8 @@ def test_carma(data) -> None:
         quasisep.CARMA(alpha=jnp.array([0.01]), beta=jnp.array([0.1])),
         quasisep.CARMA(alpha=jnp.array([1.0, 1.2]), beta=jnp.array([1.0, 3.0])),
         quasisep.CARMA(alpha=jnp.array([0.1, 1.1]), beta=jnp.array([1.0, 3.0])),
+        quasisep.CARMA(alpha=jnp.array([3.0, 3.2, 1.2]), beta=jnp.array([1.0])),
+        quasisep.CARMA(alpha=jnp.array([1.2, 3.2, 3.0]), beta=jnp.array([1.0])),
     ]
 
     # CARMA kernels implemented by EzTao
@@ -42,6 +44,8 @@ def test_carma(data) -> None:
         CARMA_term(np.log(np.array([0.01])), np.log(np.array([0.1]))),
         CARMA_term(np.log(np.array([1.2, 1.0])), np.log(np.array([1.0, 3.0]))),
         CARMA_term(np.log(np.array([1.1, 0.1])), np.log(np.array([1.0, 3.0]))),
+        CARMA_term(np.log(np.array([1.2, 3.2, 3.0])), np.log(np.array([1.0]))),
+        CARMA_term(np.log(np.array([3.0, 3.2, 1.2])), np.log(np.array([1.0]))),
     ]
     # Equivalent Celerite+Exp kernels for validation
     jax_validate_kernels = [
@@ -52,15 +56,15 @@ def test_carma(data) -> None:
     ]
 
     # Compare log_probability & normalization under tinygp implementation
-    for i in range(len(jax_carma_kernels)):
+    for i in range(len(jax_validate_kernels)):
         gp1 = GaussianProcess(jax_carma_kernels[i], x, diag=0.1)
         gp2 = GaussianProcess(jax_validate_kernels[i], x, diag=0.1)
 
         assert_allclose(gp1.log_probability(y), gp2.log_probability(y))
         assert_allclose(gp1.solver.normalization(), gp2.solver.normalization())
 
-    # Compare log_probability between tinygp and extao implementation
-    for i in range(len(jax_carma_kernels))[:2]:
+    # Compare log_probability between tinygp and eztao implementation
+    for i in range(len(jax_carma_kernels))[:]:
         gp1 = GaussianProcess(jax_carma_kernels[i], x, diag=0.1)
         gp2 = GP(eztao_carma_kernels[i], mean=0.0)
         gp2.compute(x, yerr=np.sqrt(0.1) * np.ones_like(x))
@@ -83,3 +87,36 @@ def test_carma_jit_grad(data) -> None:
     params = {"alpha": jnp.array([1.0, 1.2]), "beta": jnp.array([1.0, 3.0])}
     loss(params)
     jax.grad(loss)(params)
+
+
+@pytest.mark.parametrize(
+    ("alpha", "sigma_w"),
+    [
+        (jnp.array([0.01]), 1.0),
+        (jnp.array([1.0, 1.2]), 1.0),
+        (jnp.array([0.5, 1.5, 1.0]), 0.7),
+    ],
+)
+def test_carma_root_stationary_covariance(alpha, sigma_w) -> None:
+    arroots = quasisep.carma_roots(jnp.append(alpha, 1.0))
+    p = arroots.shape[0]
+
+    expected = np.zeros((p, p), dtype=np.complex128)
+    for i in range(p):
+        for j in range(p):
+            value = 0.0j
+            for k in range(p):
+                denom = 2.0 * np.real(arroots[k])
+                for l in range(p):
+                    if l == k:
+                        continue
+                    denom *= (arroots[l] - arroots[k]) * (
+                        np.conj(arroots[l]) + arroots[k]
+                    )
+                value += (arroots[k] ** i) * ((-arroots[k]) ** j) / denom
+            expected[i, j] = -(sigma_w**2) * value
+
+    expected = np.real(0.5 * (expected + expected.T.conj()))
+    actual = quasisep.carma_root_stationary_covariance(arroots, sigma_w)
+
+    assert_allclose(actual, expected)
