@@ -273,6 +273,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
+    @eqx.filter_jit
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
