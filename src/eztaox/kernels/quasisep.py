@@ -330,16 +330,82 @@ def carma_root_stationary_covariance(
     return cov.real
 
 
-class CARMA(tkq.Quasisep):  # noqa: D101
+class CARMA(tkq.Quasisep):
+    r"""A continuous-time autoregressive moving-average kernel.
+
+    This kernel represents a CARMA(:math:`p, q`) process in companion-form
+    state-space notation so it can be used with the quasiseparable solvers in
+    `tinygp`.
+
+    The autoregressive polynomial is parameterized in ascending power order as
+
+    .. math::
+
+        \alpha(D) = \alpha_0 + \alpha_1 D + \cdots + \alpha_{p-1} D^{p-1} + D^p,
+
+    where the leading coefficient of :math:`D^p` is fixed to 1 and supplied
+    implicitly. The moving-average polynomial is
+
+    .. math::
+
+        \beta(D) = \beta_0 + \beta_1 D + \cdots + \beta_q D^q.
+
+    Args:
+        alpha: Autoregressive coefficients in ascending power order, excluding
+            the leading coefficient fixed to 1.
+        beta: Moving-average coefficients :math:`[\beta_0, \ldots, \beta_q]`
+            in ascending power order.
+        sigma_w: Standard deviation of the white-noise driving term used when
+            constructing the stationary state covariance.
+    """
+
     alpha: JAXArray  # [a1, ..., ap]
     beta: JAXArray  # [b0, ..., bq]
     sigma_w: float = eqx.field(default=1.0, static=True)
 
+    @classmethod
+    def from_quads(
+        cls,
+        alpha_quads: JAXArray | NDArray,
+        beta_quads: JAXArray | NDArray,
+        beta_mult: JAXArray | NDArray,
+    ) -> CARMA:
+        r"""Construct a CARMA kernel using the roots of its characteristic polynomials.
+
+        The roots can be parameterized as the 0th and 1st order coefficients of a set
+        of quadratic equations (2nd order coefficient equals 1). The product of
+        those quadratic equations gives the characteristic polynomials of CARMA.
+        The input of this method are said coefficients of the quadratic equations.
+        See Equation 30 in `Kelly et al. (2014) <https://arxiv.org/abs/1402.5978>`_.
+        for more detail.
+
+        Args:
+            alpha_quads: Coefficients of the auto-regressive (AR) quadratic
+                equations corresponding to the :math:`\alpha` parameters. This should
+                be an array of length `p`.
+            beta_quads: Coefficients of the moving-average (MA) quadratic
+                equations corresponding to the :math:`\beta` parameters. This should
+                be an array of length `q`.
+            beta_mult: A multiplier of the MA coefficients, equivalent to
+                :math:`\beta_q`---the last entry of the :math:`\beta` parameters input
+                to the :func:`init` method.
+        """
+        alpha_quads = jnp.atleast_1d(alpha_quads)
+        beta_quads = jnp.atleast_1d(beta_quads)
+        beta_mult = jnp.atleast_1d(beta_mult)
+
+        alpha = carma_quads2poly(jnp.append(alpha_quads, jnp.array([1.0])))[:-1]
+        beta = carma_quads2poly(jnp.append(beta_quads, beta_mult))
+
+        return cls(alpha, beta)
+
     @property
-    def arroots(self) -> JAXArray:  # noqa: D102
+    def arroots(self) -> JAXArray:
+        """Return the autoregressive roots sorted by real part."""
         return carma_roots(jnp.append(self.alpha, 1.0))
 
-    def _companion_eigenvectors(self, arroots) -> JAXArray:  # noqa: D102
+    def _companion_eigenvectors(self, arroots) -> JAXArray:
+        """Construct eigenvectors of the transposed companion matrix."""
         p = self.alpha.shape[0]
         complex_dtype = dtypes.to_complex_dtype(arroots.dtype)
 
@@ -353,7 +419,8 @@ class CARMA(tkq.Quasisep):  # noqa: D101
 
     @staticmethod
     @partial(jax.jit, static_argnums=(1,))
-    def _padded_ma(beta, p):  # noqa: D102
+    def _padded_ma(beta, p):
+        """Pad moving-average coefficients with zeros up to order ``p``."""
         # beta = [b0, ..., bq]
         beta = jnp.asarray(beta)
         h = jnp.zeros(p)
@@ -361,7 +428,8 @@ class CARMA(tkq.Quasisep):  # noqa: D101
         return h
 
     @jax.jit
-    def _companion_transition(self, dt):  # noqa: D102
+    def _companion_transition(self, dt):
+        """Evaluate the CAR companion-form transition matrix over a lag ``dt``."""
         dt = jnp.asarray(dt)
         p = self.alpha.shape[0]
         arroots = self.arroots
@@ -377,7 +445,8 @@ class CARMA(tkq.Quasisep):  # noqa: D101
         transition = vecs @ (exp_diag[:, None] * vecs_inv)
         return transition.real
 
-    def design_matrix(self):  # noqa: D102
+    def design_matrix(self):
+        """Return the companion-form drift matrix for the latent CAR state."""
         p = self.alpha.shape[0]
         if p == 1:
             return jnp.array([[-self.alpha[0]]])
@@ -387,15 +456,18 @@ class CARMA(tkq.Quasisep):  # noqa: D101
         F = F.at[-1, :].set(-self.alpha)
         return F
 
-    def observation_model(self, X):  # noqa: D102
+    def observation_model(self, X):
+        """Return the observation vector that maps the state to the process value."""
         del X
         p = self.alpha.shape[0]
         return self._padded_ma(self.beta, p)
 
-    def stationary_covariance(self):  # noqa: D102
+    def stationary_covariance(self):
+        """Return the stationary covariance of the latent companion-form state."""
         return carma_root_stationary_covariance(self.arroots, self.sigma_w)
 
-    def transition_matrix(self, X1, X2):  # noqa: D102
+    def transition_matrix(self, X1, X2):
+        """Return the state transition matrix between two one-dimensional inputs."""
         dt = X2 - X1
         return self._companion_transition(dt)
 
@@ -425,13 +497,14 @@ class CARMA(tkq.Quasisep):  # noqa: D101
 
 @jax.jit
 def carma_roots(poly_coeffs: JAXArray) -> JAXArray:
-    """Compute the CARMA polynomial coefficient roots.
+    """Compute roots of a CARMA characteristic polynomial.
 
     Args:
-        poly_coeffs: coefficients of the polynomial
+        poly_coeffs: Polynomial coefficients in ascending power order, so the
+            first element is the constant term.
 
     Returns:
-        roots of the coefficients
+        The polynomial roots sorted by their real part.
     """
     roots = jnp.roots(poly_coeffs[::-1], strip_zeros=False)
     return roots[jnp.argsort(roots.real)]
@@ -439,17 +512,16 @@ def carma_roots(poly_coeffs: JAXArray) -> JAXArray:
 
 @jax.jit
 def carma_quads2poly(quads_coeffs: JAXArray) -> JAXArray:
-    """Expand a product of quadractic equations into a polynomial.
+    """Expand a product of CARMA quadratic factors into a full polynomial.
 
     Args:
-        quads_coeffs: The 0th and 1st order coefficients of the quadractic
-            equations. The last entry is a multiplier, which corresponds
-            to the coefficient of the highest order term in the output full
+        quads_coeffs: Constant and linear coefficients of the quadratic factors
+            used by the Kelly et al. parameterization. The last entry is the
+            multiplier for the highest-order term of the reconstructed
             polynomial.
 
     Returns:
-        Coefficients of the full polynomial. The first entry corresponds to
-        the lowest order term.
+        Polynomial coefficients in ascending power order.
     """
     size = quads_coeffs.shape[0] - 1
     remain = size % 2
@@ -478,16 +550,15 @@ def carma_quads2poly(quads_coeffs: JAXArray) -> JAXArray:
 
 
 def carma_poly2quads(poly_coeffs: JAXArray) -> JAXArray:
-    """Factorize a polynomial into a product of quadratic equations.
+    """Factorize a CARMA polynomial into quadratic and linear factors.
 
     Args:
         poly_coeffs: Coefficients of the input characteristic polynomial. The
-            first entry corresponds to the lowest order term.
+            first entry corresponds to the constant term.
 
     Returns:
-        The 0th and 1st order coefficients of the quadractic equations. The last
-        entry is a multiplier, which corresponds to the coefficient of the highest
-        order term in the full polynomial.
+        Constant and linear coefficients for the factorized quadratic blocks,
+        followed by the multiplier for the highest-order term.
     """
     quads = jnp.empty(0)
     mult_f = poly_coeffs[-1]
@@ -518,15 +589,17 @@ def carma_poly2quads(poly_coeffs: JAXArray) -> JAXArray:
 
 
 def carma_acvf(arroots: JAXArray, arparam: JAXArray, maparam: JAXArray) -> JAXArray:
-    r"""Compute the coefficients of the autocovariance function (ACVF).
+    r"""Compute exponential-basis coefficients of the CARMA autocovariance.
 
     Args:
         arroots: The roots of the autoregressive characteristic polynomial.
-        arparam: :math:`\alpha` parameters
-        maparam: :math:`\beta` parameters
+        arparam: Autoregressive coefficients in ascending power order.
+        maparam: Moving-average coefficients :math:`[\beta_0, \ldots, \beta_q]`
+            in ascending power order.
 
     Returns:
-        ACVF coefficients, each entry corresponds to one root.
+        The coefficients of the exponential expansion of the ACVF, with one
+        coefficient per autoregressive root.
     """
 
     arparam = jnp.atleast_1d(arparam)
