@@ -22,8 +22,8 @@ pip install eztaox
 #### Dependencies
 ##### Supports Python 3.10, 3.11, 3.12
 ```
-"jax (<=0.4.31)",
-"jaxlib (<=0.4.31)",
+"jax (==0.4.31)",
+"jaxlib (==0.4.31)",
 "tinygp (>=0.3.0,<0.4.0)",
 "optax (>=0.2.5,<0.3.0)",
 "numpyro (>=0.17.0,<0.20.0)",
