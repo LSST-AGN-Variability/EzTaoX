@@ -18,7 +18,6 @@ import jax.numpy as jnp
 import numpy as np
 import tinygp.kernels.quasisep as tkq
 from jax._src import dtypes
-from jax.scipy.linalg import expm
 from numpy.typing import NDArray
 from tinygp.helpers import JAXArray
 from tinygp.kernels import Kernel
@@ -307,9 +306,7 @@ def carma_root_stationary_covariance(
 
     p = arroots.shape[0]
     idx = jnp.arange(p)
-    i = idx[:, None, None]
-    j = idx[None, :, None]
-    rk = arroots[None, None, :]
+    powers = idx[:, None]
 
     root_diff = arroots[:, None] - arroots[None, :]
     conj_sum = jnp.conj(arroots)[:, None] + arroots[None, :]
@@ -324,57 +321,83 @@ def carma_root_stationary_covariance(
     )
     denom = 2.0 * jnp.real(arroots) * denom_prod
 
-    terms = jnp.power(rk, i) * jnp.power(-rk, j) / denom[None, None, :]
-    cov = -(sigma**2) * jnp.sum(terms, axis=-1)
+    # Rewrite the k-sum as a weighted matrix product to avoid allocating a
+    # full (p, p, p) tensor of intermediate terms.
+    left = jnp.power(arroots[None, :], powers) / denom[None, :]
+    right = jnp.power((-arroots)[None, :], powers)
+    cov = -(sigma**2) * (left @ right.T)
     cov = 0.5 * (cov + cov.T.conj())
     return cov.real
 
 
 class CARMA(tkq.Quasisep):  # noqa: D101
-    alpha: jnp.ndarray  # [a1, ..., ap]
-    beta: jnp.ndarray  # [b0, ..., bq]
+    alpha: JAXArray  # [a1, ..., ap]
+    beta: JAXArray  # [b0, ..., bq]
     sigma_w: float = eqx.field(default=1.0, static=True)
 
-    @staticmethod
-    @jax.jit
-    def companion_matrix(alpha):  # noqa: D102
-        # alpha = [a1, ..., ap]
-        alpha = jnp.asarray(alpha)
-        p = alpha.shape[0]
-        if p == 1:
-            return jnp.array([[-alpha[0]]])
+    @property
+    def arroots(self) -> JAXArray:  # noqa: D102
+        return carma_roots(jnp.append(self.alpha, 1.0))
 
-        F = jnp.zeros((p, p))
-        F = F.at[jnp.arange(p - 1), jnp.arange(1, p)].set(1.0)
-        F = F.at[-1, :].set(-alpha)
-        return F
+    def _companion_eigenvectors(self, arroots) -> JAXArray:  # noqa: D102
+        p = self.alpha.shape[0]
+        complex_dtype = dtypes.to_complex_dtype(arroots.dtype)
+
+        vecs = jnp.zeros((p, p), dtype=complex_dtype)
+        vecs = vecs.at[-1, :].set(jnp.ones(p, dtype=complex_dtype))
+
+        for row in range(p - 2, -1, -1):
+            vecs = vecs.at[row, :].set(arroots * vecs[row + 1, :] + self.alpha[row + 1])
+
+        return vecs
 
     @staticmethod
     @partial(jax.jit, static_argnums=(1,))
-    def padded_ma(beta, p):  # noqa: D102
+    def _padded_ma(beta, p):  # noqa: D102
         # beta = [b0, ..., bq]
         beta = jnp.asarray(beta)
         h = jnp.zeros(p)
         h = h.at[: beta.shape[0]].set(beta)
         return h
 
+    @jax.jit
+    def _companion_transition(self, dt):  # noqa: D102
+        dt = jnp.asarray(dt)
+        p = self.alpha.shape[0]
+        arroots = self.arroots
+
+        if p == 1:
+            return jnp.exp(-self.alpha[0] * dt)[None, None]
+
+        # companion_matrix(alpha).T is diagonalizable by the AR roots when they are
+        # distinct; this constructs the transition without calling matrix expm.
+        exp_diag = jnp.exp(arroots * dt)
+        vecs = self._companion_eigenvectors(arroots)
+        vecs_inv = jnp.linalg.inv(vecs)
+        transition = vecs @ (exp_diag[:, None] * vecs_inv)
+        return transition.real
+
     def design_matrix(self):  # noqa: D102
-        return self.companion_matrix(self.alpha)
+        p = self.alpha.shape[0]
+        if p == 1:
+            return jnp.array([[-self.alpha[0]]])
+
+        F = jnp.zeros((p, p))
+        F = F.at[jnp.arange(p - 1), jnp.arange(1, p)].set(1.0)
+        F = F.at[-1, :].set(-self.alpha)
+        return F
 
     def observation_model(self, X):  # noqa: D102
         del X
         p = self.alpha.shape[0]
-        return self.padded_ma(self.beta, p)
+        return self._padded_ma(self.beta, p)
 
     def stationary_covariance(self):  # noqa: D102
-        arroots = carma_roots(jnp.append(self.alpha, 1.0))
-        return carma_root_stationary_covariance(arroots, self.sigma_w)
+        return carma_root_stationary_covariance(self.arroots, self.sigma_w)
 
     def transition_matrix(self, X1, X2):  # noqa: D102
         dt = X2 - X1
-        # tinygp's quasisep evaluator contracts this operator on the right of the
-        # stationary covariance, so the transition must act in the dual basis.
-        return expm(self.design_matrix().T * dt)
+        return self._companion_transition(dt)
 
     @jax.jit
     def power(
