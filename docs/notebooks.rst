@@ -13,5 +13,5 @@ Tutorial notebooks demonstating the use of EzTaoX for fitting AGN light curves. 
   2. Damped Harmonic Oscillator (DHO) <notebooks/02_DHO>
   3. Multiband DRW Fitting <notebooks/03_MultibandFitting>
   4. Simulating Multiband Light Curves <notebooks/04_MultibandSimulation>
-  5. Transfer Functions and Convolved Kernels <notebooks/04_TransferFunction>
+  5. Transfer Functions and Convolved Kernels <notebooks/05_TransferFunction>
   6. Fitting DP1 light curves with LSDB <pre_executed/05_DP1_LSDB>
