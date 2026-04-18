@@ -61,6 +61,9 @@ def test_carma(data) -> None:
         gp2 = GaussianProcess(jax_validate_kernels[i], x, diag=0.1)
 
         assert_allclose(gp1.log_probability(y), gp2.log_probability(y))
+        assert_allclose(
+            jax.grad(gp1.log_probability)(y), jax.grad(gp2.log_probability)(y)
+        )
         assert_allclose(gp1.solver.normalization(), gp2.solver.normalization())
 
     # Compare log_probability between tinygp and eztao implementation
@@ -70,6 +73,26 @@ def test_carma(data) -> None:
         gp2.compute(x, yerr=np.sqrt(0.1) * np.ones_like(x))
 
         assert_allclose(gp1.log_probability(y), gp2.log_likelihood(y))
+
+
+def test_carma_quads():
+    alpha = jnp.array([1.5, 2.3, 1.4])
+    beta = jnp.array([0.1, 0.5])
+    alpha_quads = quasisep.carma_poly2quads(jnp.append(alpha, 1.0))
+    beta_quads = quasisep.carma_poly2quads(beta)
+
+    # seperate quad coeffs from mult_f
+    alpha_quads = alpha_quads[:-1]
+    beta_mult = beta_quads[-1]
+    beta_quads = beta_quads[:-1]
+
+    carma31 = quasisep.CARMA(alpha=alpha, beta=beta)
+    carma31_quads = quasisep.CARMA.from_quads(
+        alpha_quads=alpha_quads, beta_quads=beta_quads, beta_mult=beta_mult
+    )
+
+    # if two constructor give the same model
+    assert_allclose(carma31.arroots, carma31_quads.arroots)
 
 
 def test_carma_jit_grad(data) -> None:
