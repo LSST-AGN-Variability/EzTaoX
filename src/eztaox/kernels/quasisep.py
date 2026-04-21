@@ -272,65 +272,7 @@ class Lorentzian(Quasisep):
         return pre_fix * num / denom
 
 
-@jax.jit
-def carma_root_stationary_covariance(
-    arroots: JAXArray,
-    sigma: JAXArray | float = 1.0,
-) -> JAXArray:
-    r"""Compute the CARMA state stationary covariance from AR roots.
-
-    This implements the closed-form expression
-
-    .. math::
-
-        V_{ij} = -
-        \,\sigma^2 \, \sum_{k=1}^{p}
-        \frac{r_k^i(-r_k)^j}{
-            2\mathrm{Re}(r_k)
-            \prod_{l=1, l\ne k}^{p}(r_l-r_k)(r_l^*+r_k)
-        }
-
-    where :math:`r_k` are the autoregressive roots and :math:`i,j \in [0, p-1]`.
-
-    Args:
-        arroots: The roots of the autoregressive characteristic polynomial.
-        sigma: The driving-noise amplitude :math:`\sigma`.
-
-    Returns:
-        The :math:`p \times p` matrix defined by the root-based covariance
-        expression above.
-    """
-    arroots = jnp.asarray(arroots)
-    sigma = jnp.asarray(sigma)
-    complex_dtype = dtypes.to_complex_dtype(arroots.dtype)
-
-    p = arroots.shape[0]
-    idx = jnp.arange(p)
-    powers = idx[:, None]
-
-    root_diff = arroots[:, None] - arroots[None, :]
-    conj_sum = jnp.conj(arroots)[:, None] + arroots[None, :]
-    off_diag = ~jnp.eye(p, dtype=bool)
-    denom_prod = jnp.prod(
-        jnp.where(
-            off_diag,
-            root_diff * conj_sum,
-            jnp.ones((p, p), dtype=complex_dtype),
-        ),
-        axis=0,
-    )
-    denom = 2.0 * jnp.real(arroots) * denom_prod
-
-    # Rewrite the k-sum as a weighted matrix product to avoid allocating a
-    # full (p, p, p) tensor of intermediate terms.
-    left = jnp.power(arroots[None, :], powers) / denom[None, :]
-    right = jnp.power((-arroots)[None, :], powers)
-    cov = -(sigma**2) * (left @ right.T)
-    cov = 0.5 * (cov + cov.T.conj())
-    return cov.real
-
-
-class CARMA(tkq.Quasisep):
+class CARMA(Quasisep):
     r"""A continuous-time autoregressive moving-average kernel.
 
     This kernel represents a CARMA(:math:`p, q`) process in companion-form
@@ -493,6 +435,64 @@ class CARMA(tkq.Quasisep):
         num = jnp.abs(jnp.power(num_terms, 2))
         denom = jnp.abs(jnp.power(denom_terms, 2))
         return num[0] / denom[0]
+
+
+@jax.jit
+def carma_root_stationary_covariance(
+    arroots: JAXArray,
+    sigma: JAXArray | float = 1.0,
+) -> JAXArray:
+    r"""Compute the CARMA state stationary covariance from AR roots.
+
+    This implements the closed-form expression
+
+    .. math::
+
+        V_{ij} = -
+        \,\sigma^2 \, \sum_{k=1}^{p}
+        \frac{r_k^i(-r_k)^j}{
+            2\mathrm{Re}(r_k)
+            \prod_{l=1, l\ne k}^{p}(r_l-r_k)(r_l^*+r_k)
+        }
+
+    where :math:`r_k` are the autoregressive roots and :math:`i,j \in [0, p-1]`.
+
+    Args:
+        arroots: The roots of the autoregressive characteristic polynomial.
+        sigma: The driving-noise amplitude :math:`\sigma`.
+
+    Returns:
+        The :math:`p \times p` matrix defined by the root-based covariance
+        expression above.
+    """
+    arroots = jnp.asarray(arroots)
+    sigma = jnp.asarray(sigma)
+    complex_dtype = dtypes.to_complex_dtype(arroots.dtype)
+
+    p = arroots.shape[0]
+    idx = jnp.arange(p)
+    powers = idx[:, None]
+
+    root_diff = arroots[:, None] - arroots[None, :]
+    conj_sum = jnp.conj(arroots)[:, None] + arroots[None, :]
+    off_diag = ~jnp.eye(p, dtype=bool)
+    denom_prod = jnp.prod(
+        jnp.where(
+            off_diag,
+            root_diff * conj_sum,
+            jnp.ones((p, p), dtype=complex_dtype),
+        ),
+        axis=0,
+    )
+    denom = 2.0 * jnp.real(arroots) * denom_prod
+
+    # Rewrite the k-sum as a weighted matrix product to avoid allocating a
+    # full (p, p, p) tensor of intermediate terms.
+    left = jnp.power(arroots[None, :], powers) / denom[None, :]
+    right = jnp.power((-arroots)[None, :], powers)
+    cov = -(sigma**2) * (left @ right.T)
+    cov = 0.5 * (cov + cov.T.conj())
+    return cov.real
 
 
 @jax.jit
