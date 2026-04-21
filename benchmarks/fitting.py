@@ -15,6 +15,8 @@ from eztaox.ts_utils import add_noise
 
 DRW_PARAMS = {"tau": 100.0, "sigma": 0.1}
 NBANDS = 2
+CARMA_BENCHMARK_ALPHA = (0.0002, 0.05)
+CARMA_BENCHMARK_BETA = (0.0006, 0.03)
 
 
 class KernelUniVarSuite:
@@ -45,10 +47,22 @@ class KernelUniVarSuite:
         self.m52_params = self.exp_params.copy()
         self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)
 
+        # CARMA kernel
+        carma_kernel = ekq.CARMA(
+            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),
+            beta=jnp.asarray(CARMA_BENCHMARK_BETA),
+        )
+        self.carma_params = {
+            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),
+            "mean": 0.0,
+        }
+        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)
+
         # Precompile log probability functions
         self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)
         self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)
         self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)
+        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)
 
     def time_run_exp_logp(self, _):
         self.exp_log_prob(self.exp_params).block_until_ready()
@@ -58,6 +72,9 @@ class KernelUniVarSuite:
 
     def time_run_m52_logp(self, _):
         self.m52_log_prob(self.m52_params).block_until_ready()
+
+    def time_run_carma_logp(self, _):
+        self.carma_log_prob(self.carma_params).block_until_ready()
 
 
 class KernelMultiVarSuite:
@@ -138,6 +155,17 @@ class KernelUniVarPrecompileSuite:
     def time_precompile_m52_gp(self, _):
         model, params = _build_univar_model_and_params(
             ekq.Matern52, self.t, self.y, self.yerr
+        )
+        _precompile_log_prob(model, params)
+
+    def time_precompile_carma_gp(self, _):
+        model, params = _build_univar_model_and_params(
+            ekq.CARMA,
+            self.t,
+            self.y,
+            self.yerr,
+            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),
+            beta=jnp.asarray(CARMA_BENCHMARK_BETA),
         )
         _precompile_log_prob(model, params)
 
@@ -317,8 +345,11 @@ def generate_drw_multivar(
     return (t, band), y, yerr
 
 
-def _build_univar_model_and_params(kernel_cls, t, y, yerr):
-    kernel = kernel_cls(scale=10.0, sigma=0.1)
+def _build_univar_model_and_params(kernel_cls, t, y, yerr, **kernel_kwargs):
+    if kernel_kwargs:
+        kernel = kernel_cls(**kernel_kwargs)
+    else:
+        kernel = kernel_cls(scale=10.0, sigma=0.1)
     params = {
         "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
         "mean": 0.0,
