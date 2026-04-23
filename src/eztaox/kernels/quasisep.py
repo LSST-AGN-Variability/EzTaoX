@@ -8,6 +8,7 @@ This module extends the `tinygp.kernels.quasisep` module.
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Any
 
 import equinox as eqx

@@ -18,9 +18,7 @@ class TransferFunction(eqx.Module):
     """Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
 
     width: float
-    shift: JAXArray | float = eqx.field(
-        default_factory=lambda: jnp.zeros(()), static=True
-    )
+    shift: float = eqx.field(default=0.0, static=True)
 
     @abstractmethod
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
