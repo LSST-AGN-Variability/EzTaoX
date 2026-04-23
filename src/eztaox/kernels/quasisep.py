@@ -301,7 +301,7 @@ class CARMA(Quasisep):
             constructing the stationary state covariance.
     """
 
-    alpha: JAXArray  # [a1, ..., ap]
+    alpha: JAXArray  # [a0, ..., ap-1]
     beta: JAXArray  # [b0, ..., bq]
     sigma_w: float = eqx.field(default=1.0, static=True)
 
@@ -365,8 +365,8 @@ class CARMA(Quasisep):
         """Pad moving-average coefficients with zeros up to order ``p``."""
         # beta = [b0, ..., bq]
         beta = jnp.asarray(beta)
-        q = beta.shape[0]
-        h = jnp.concatenate((jnp.zeros(p-q), beta))
+        h = jnp.zeros(p)
+        h = h.at[: beta.shape[0]].set(beta)
         return h
 
     @jax.jit
