@@ -67,7 +67,7 @@ def test_carma(data) -> None:
         assert_allclose(gp1.solver.normalization(), gp2.solver.normalization())
 
     # Compare log_probability between tinygp and eztao implementation
-    for i in range(len(jax_carma_kernels))[:]:
+    for i in range(len(jax_carma_kernels)):
         gp1 = GaussianProcess(jax_carma_kernels[i], x, diag=0.1)
         gp2 = GP(eztao_carma_kernels[i], mean=0.0)
         gp2.compute(x, yerr=np.sqrt(0.1) * np.ones_like(x))
