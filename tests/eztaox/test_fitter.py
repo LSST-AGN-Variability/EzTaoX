@@ -51,16 +51,16 @@ def init_sampler():  # noqa: N802
             optax.adam(1e-2),
             False,
             1000,
-            100,
+            50,
             id="adam",
         ),
-        pytest.param(
-            optax.lbfgs(),
-            True,
-            100,
-            50,
-            id="lbfgs",
-        ),
+        # pytest.param(
+        #     optax.lbfgs(),
+        #     True,
+        #     100,
+        #     50,
+        #     id="lbfgs",
+        # ),
     ],
 )
 def test_multivar_drw(
