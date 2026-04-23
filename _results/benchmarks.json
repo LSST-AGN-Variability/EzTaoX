@@ -134,6 +134,27 @@
         "version": "2a6855c5afda78b272c87385b346b18798c05d8cbe8981ab578218db5876d284",
         "warmup_time": -1
     },
+    "fitting.KernelUniVarPrecompileSuite.time_precompile_carma_gp": {
+        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_carma_gp(self, _):\n        model, params = _build_univar_model_and_params(\n            ekq.CARMA,\n            self.t,\n            self.y,\n            self.yerr,\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(n)",
+        "min_run_count": 2,
+        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_carma_gp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "2000"
+            ]
+        ],
+        "repeat": 10,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "6ed6edb7285ede87fe47b893c707fab6984c6df0c8c4ce8d7e0ece9cfdef099a",
+        "warmup_time": -1
+    },
     "fitting.KernelUniVarPrecompileSuite.time_precompile_exp_gp": {
         "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_exp_gp(self, _):\n        model, params = _build_univar_model_and_params(\n            ekq.Exp, self.t, self.y, self.yerr\n        )\n        _precompile_log_prob(model, params)\n\n    def setup(self, n) -> None:\n        self.t, self.y, self.yerr = generate_drw_univar(n)",
         "min_run_count": 2,
@@ -197,8 +218,32 @@
         "version": "d9b4857b4ae732ede423c7051669b2e75b77384b45e5ae43fe7307b2ba4aab98",
         "warmup_time": -1
     },
+    "fitting.KernelUniVarSuite.time_run_carma_logp": {
+        "code": "class KernelUniVarSuite:\n    def time_run_carma_logp(self, _):\n        self.carma_log_prob(self.carma_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # CARMA kernel\n        carma_kernel = ekq.CARMA(\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        self.carma_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)\n        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)",
+        "min_run_count": 2,
+        "name": "fitting.KernelUniVarSuite.time_run_carma_logp",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "50",
+                "200",
+                "500",
+                "2000"
+            ]
+        ],
+        "repeat": 5,
+        "rounds": 2,
+        "sample_time": 0.1,
+        "type": "time",
+        "unit": "seconds",
+        "version": "06eb784e159b541c9c7223f2e9393410f19ce3baf175a4513ea69b93fd963e00",
+        "warmup_time": -1
+    },
     "fitting.KernelUniVarSuite.time_run_exp_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_exp_logp(self, _):\n        self.exp_log_prob(self.exp_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # CARMA kernel\n        carma_kernel = ekq.CARMA(\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        self.carma_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)\n        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_exp_logp",
         "number": 0,
@@ -218,11 +263,11 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "5995da74e35f4773b8e89bd25d77b423c3e7c8c13f57826be58f652345cbaced",
+        "version": "91f7b5b6d00742bdaa1792f0f8a18a11c0fe136888275d2362e5272ba5f0a1a5",
         "warmup_time": -1
     },
     "fitting.KernelUniVarSuite.time_run_m32_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_m32_logp(self, _):\n        self.m32_log_prob(self.m32_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # CARMA kernel\n        carma_kernel = ekq.CARMA(\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        self.carma_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)\n        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_m32_logp",
         "number": 0,
@@ -242,11 +287,11 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "2b876937e23cb5b4961ed94f0c5a52b3f1ccbf52758bfb553bc10b1ddc0e334f",
+        "version": "c727e5a869c137421e786c19e22096133296e178e3d08d080b4399709d79f1ad",
         "warmup_time": -1
     },
     "fitting.KernelUniVarSuite.time_run_m52_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)",
+        "code": "class KernelUniVarSuite:\n    def time_run_m52_logp(self, _):\n        self.m52_log_prob(self.m52_params).block_until_ready()\n\n    def setup(self, n) -> None:\n        t, y, yerr = generate_drw_univar(n)\n        # Exp kernel\n        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)\n        self.exp_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)\n    \n        # Matern32 kernel\n        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)\n        self.m32_params = self.exp_params.copy()\n        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)\n    \n        # Matern52 kernel\n        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)\n        self.m52_params = self.exp_params.copy()\n        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)\n    \n        # CARMA kernel\n        carma_kernel = ekq.CARMA(\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        self.carma_params = {\n            \"log_kernel_param\": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),\n            \"mean\": 0.0,\n        }\n        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)\n    \n        # Precompile log probability functions\n        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)\n        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)\n        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)\n        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)",
         "min_run_count": 2,
         "name": "fitting.KernelUniVarSuite.time_run_m52_logp",
         "number": 0,
@@ -266,7 +311,7 @@
         "sample_time": 0.1,
         "type": "time",
         "unit": "seconds",
-        "version": "39a81d19968b421c7c2af5404324d46a5852836fa21a94e6a1ef54235c6841a8",
+        "version": "7f19d55394a98ac24a8dc9e4c13235f74aef8e933d476ce574e563c1fe66a826",
         "warmup_time": -1
     },
     "fitting.MCMCMultiVarSuite.peakmem_mcmc": {
