@@ -289,6 +289,19 @@ class CARMA(Quasisep):
 
         \beta(D) = \beta_0 + \beta_1 D + \cdots + \beta_q D^q.
 
+    The corresponding power spectral density (PSD) is
+
+    .. math::
+
+        P(\omega) = \sigma^2\,\frac{|\sum_{q} \beta_q\,(i\,\omega)^q|^2}{|\sum_{p}
+            \alpha_p\,(i\,\omega)^p|^2}
+
+    following Equation 1 in `Kelly et al. (2014)
+    <https://arxiv.org/abs/1402.5978>`_, where :math:`\alpha_p` and :math:`\beta_0`
+    are set to 1. In this implementation, we absorb :math:`\sigma` into the
+    definition of the :math:`\beta` parameters. That is,
+    :math:`\beta_{\mathrm{new}} = \beta\,\sigma`.
+
     Args:
         alpha: Autoregressive coefficients in ascending power order, excluding
             the leading coefficient fixed to 1.
