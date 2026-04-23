@@ -365,8 +365,8 @@ class CARMA(Quasisep):
         """Pad moving-average coefficients with zeros up to order ``p``."""
         # beta = [b0, ..., bq]
         beta = jnp.asarray(beta)
-        h = jnp.zeros(p)
-        h = h.at[: beta.shape[0]].set(beta)
+        q = beta.shape[0]
+        h = jnp.concatenate((jnp.zeros(p-q), beta))
         return h
 
     @jax.jit
