@@ -1,3 +1,11 @@
+"""Tests for Laguerre series approximation.
+
+.. note::
+    This file tests experimental functionality (:mod:`eztaox.kernels._laguerre`)
+    that is not part of the automated test suite. The leading underscore in the
+    filename prevents pytest from collecting these tests automatically.
+"""
+
 import equinox as eqx
 import jax
 import numpy as np
@@ -9,12 +17,12 @@ from tinygp.test_utils import assert_allclose
 
 from eztaox.fitter import random_search
 from eztaox.kernels import quasisep
-from eztaox.kernels.quasisep import LaguerreSeries, Quasisep, _Laguerre
+from eztaox.kernels._laguerre import LaguerreSeries, _Laguerre
 from eztaox.models import UniVarModel
 from eztaox.simulator import UniVarSim
 
 
-class LaguerreKernel(_Laguerre, Quasisep):
+class LaguerreKernel(_Laguerre, quasisep.Quasisep):
     """Single Laguerre basis function as a quasisep kernel. For testing."""
 
     scale: jax.Array | float
