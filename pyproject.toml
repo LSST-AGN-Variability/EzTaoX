@@ -73,7 +73,7 @@ black = "^26.1.0"
 
 [tool.poetry.group.test.dependencies]
 # not used for building
-pytest = "^8.0.0"
+pytest = ">=8,<10"
 pytest-cov = "^7.1.0"
 nox = "^2025.0.0"
 nox-poetry = "^1.2.0"
