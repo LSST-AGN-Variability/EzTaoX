@@ -22,7 +22,7 @@ dependencies = [
     "jax (==0.4.31)",
     "jaxlib (==0.4.31)",
     "optax (>=0.2.5,<0.3.0)",
-    "numpyro (>=0.17.0,<0.20.0)",
+    "numpyro (>=0.17.0,<0.21.0)",
 ]
 
 [project.urls]
