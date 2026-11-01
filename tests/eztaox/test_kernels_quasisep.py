@@ -242,3 +242,112 @@ def test_mixed_blr_kernel_state_space(order) -> None:
     ]
     assert_allclose(var[0], 0.3**2)
     assert_allclose(var[2], (0.7 * 0.3) ** 2)
+
+
+@pytest.mark.parametrize("order", [1, 3, 10])
+def test_mixed_blr_kernel_two_lines_state_space(order) -> None:
+    """State-space pieces of MixedBLRKernel with two lines."""
+    base = quasisep.Exp(scale=150.0, sigma=0.3)
+    params = {
+        "lag": jnp.array([20.0, 90.0]),
+        "amp_cont": jnp.array([1.0, 0.8, 0.0]),
+        "amp_blr": jnp.array([[0.0, 0.0], [0.5, 0.2], [0.0, 0.7]]),
+    }
+    kernel = quasisep.MixedBLRKernel(params=params, kernel=base, order=order)
+    A = kernel.design_matrix()
+    P = kernel.stationary_covariance()
+
+    F, Pb = base.design_matrix(), base.stationary_covariance()
+    Q = jnp.zeros_like(A).at[:1, :1].set(-(F @ Pb + Pb @ F.T))
+    assert_allclose(A @ P + P @ A.T + Q, jnp.zeros_like(A))
+
+    for dt in [0.0, 1.0, 60.0, 600.0, 4000.0]:
+        phi = kernel.transition_matrix((jnp.asarray(0.0), 0), (jnp.asarray(dt), 0)).T
+        assert jnp.all(jnp.isfinite(phi))
+        assert_allclose(phi, jax.scipy.linalg.expm(A * dt))
+
+    # continuum band = driver variance; a band with one line = amp_blr^2 * that
+    var = [
+        float(
+            kernel.observation_model((None, b))
+            @ P
+            @ kernel.observation_model((None, b))
+        )
+        for b in range(3)
+    ]
+    assert_allclose(var[0], 0.3**2)
+    assert_allclose(var[2], (0.7 * 0.3) ** 2)
+
+
+@pytest.mark.parametrize("order", [1, 3])
+def test_mixed_blr_kernel_line_shapes(order) -> None:
+    """Scalar lag, a (1,) lag and two lines sharing a lag all give the same kernel."""
+    base = quasisep.Exp(scale=150.0, sigma=0.3)
+    amp_cont, amp_blr = jnp.array([1.0, 0.8, 0.3]), jnp.array([0.0, 0.5, 0.7])
+    scalar = quasisep.MixedBLRKernel(
+        params={"lag": jnp.asarray(60.0), "amp_cont": amp_cont, "amp_blr": amp_blr},
+        kernel=base,
+        order=order,
+    )
+    one = quasisep.MixedBLRKernel(
+        params={
+            "lag": jnp.array([60.0]),
+            "amp_cont": amp_cont,
+            "amp_blr": amp_blr[:, None],
+        },
+        kernel=base,
+        order=order,
+    )
+    two = quasisep.MixedBLRKernel(
+        params={
+            "lag": jnp.array([60.0, 60.0]),
+            "amp_cont": amp_cont,
+            "amp_blr": jnp.stack([0.3 * amp_blr, 0.7 * amp_blr], axis=1),
+        },
+        kernel=base,
+        order=order,
+    )
+    for b1, b2 in [(0, 1), (1, 2), (2, 2)]:
+        for dt in [0.0, 30.0, 300.0]:
+            X1, X2 = (jnp.asarray(0.0), b1), (jnp.asarray(dt), b2)
+            expected = scalar.evaluate(X1, X2)
+            assert_allclose(one.evaluate(X1, X2), expected)
+            assert_allclose(two.evaluate(X1, X2), expected)
+
+
+@_tinygp_nonreversible
+def test_mixed_blr_kernel_two_lines() -> None:
+    """Two-line band vs continuum cross-covariance against numerical convolution."""
+    from scipy.stats import gamma
+
+    base = quasisep.Exp(scale=150.0, sigma=0.3)
+    lags, order = (20.0, 90.0), 3
+    kernel = quasisep.MixedBLRKernel(
+        params={
+            "lag": jnp.array(lags),
+            "amp_cont": jnp.array([1.0, 0.8]),
+            "amp_blr": jnp.array([[0.0, 0.0], [0.5, 0.3]]),
+        },
+        kernel=base,
+        order=order,
+    )
+
+    def k_x(d):
+        d = jnp.atleast_1d(jnp.asarray(d, dtype=float))
+        return np.asarray(jax.vmap(lambda x: base.evaluate(jnp.zeros(()), x))(d))
+
+    u = np.linspace(0.0, 1500.0, 6001)
+    du = u[1] - u[0]
+    terms = []
+    for lag, r in zip(lags, (0.5, 0.3), strict=False):
+        psi = gamma.pdf(u, order, scale=lag / order)
+        uu = (u[:, None] - u[None, :])[::5, ::5]
+        var_l = (k_x(uu.ravel()).reshape(uu.shape) * np.outer(psi[::5], psi[::5])).sum()
+        var_l *= (5 * du) ** 2
+        terms.append((psi, r * np.sqrt(k_x(0.0)[0] / var_l)))
+    for d in [0.0, 30.0, 90.0, 300.0]:
+        expected = 0.8 * k_x(d)[0] + sum(
+            rt * (k_x(d - u) * psi).sum() * du for psi, rt in terms
+        )
+        actual = kernel.evaluate((jnp.asarray(0.0), 0), (jnp.asarray(d), 1))
+        assert_allclose(actual, expected, atol=1e-4 * k_x(0.0)[0])
