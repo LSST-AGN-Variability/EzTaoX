@@ -191,6 +191,7 @@ class MultiVarModel(eqx.Module):
 
         return (new_t, band), inds
 
+    @eqx.filter_jit
     def log_prob(self, params: dict[str, JAXArray]) -> JAXArray:
         """Calculate the log probability of the input parameters.
 
@@ -257,8 +258,8 @@ class MultiVarModel(eqx.Module):
         # transform time axis
         new_X, _ = self.lag_transform(self.has_lag, params, X)
 
-        # build gp, cond (inside this trace: the GP mean function closes over params)
-        gp, inds = self._make_gp(params)
+        # build gp, cond
+        gp, inds = self._build_gp(params)
         _, cond = gp.condition(self.y[inds], new_X)
 
         return cond.loc, jnp.sqrt(cond.variance)
@@ -274,16 +275,11 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
-    @eqx.filter_jit
+    # Not jitted on its own: the returned GP's mean function closes over params, so
+    # it must be built and used inside the same trace (see log_prob and pred).
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
-        return self._make_gp(params)
-
-    def _make_gp(self, params: dict[str, JAXArray]) -> tuple[GaussianProcess, JAXArray]:
-        # Not jitted itself: the GP's mean function closes over params, so callers
-        # that condition the GP (pred) must build it inside their own trace.
-
         # log amp + mean
         log_amp_scales = self.get_amp_scale(params)
         means = partial(self.get_mean, self.zero_mean, params)
@@ -410,7 +406,7 @@ class UniVarModel(MultiVarModel):
             uncertainty (square root of the predicted variance).
         """
         # build gp, cond
-        gp, inds = self._make_gp(params)
+        gp, inds = self._build_gp(params)
         _, cond = gp.condition(self.y[inds], (t, jnp.zeros_like(t, dtype=int)))
 
         return cond.loc, jnp.sqrt(cond.variance)
