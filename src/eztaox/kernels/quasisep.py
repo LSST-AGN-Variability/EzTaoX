@@ -665,3 +665,150 @@ class MultibandLowRank(tkq.Wrapper):
         return amplitudes[X[1]] * self.kernel.observation_model(
             self.coord_to_sortable(X)
         )
+
+
+def _solve_lyapunov(A: JAXArray, Q: JAXArray) -> JAXArray:
+    """Solve :math:`AP + PA^T + Q = 0` for :math:`P` (small dense matrices)."""
+    n = A.shape[0]
+    eye = jnp.eye(n)
+    P = jnp.linalg.solve(jnp.kron(eye, A) + jnp.kron(A, eye), -Q.reshape(-1))
+    P = P.reshape(n, n)
+    return 0.5 * (P + P.T)
+
+
+class MixedBLRKernel(tkq.Quasisep):
+    """A multiband kernel mixing a prompt continuum with Erlang-lagged BLR responses.
+
+    A latent driver :math:`x(t)` is described by any quasiseparable ``kernel``
+    (e.g., DRW/``Exp``, ``SHO``, ``CARMA``). Each broad line :math:`j` is a chain of
+    ``order`` identical first-order filters with time constant ``lag[j] / order``,
+    which turns :math:`x` into :math:`\\ell_j(t) = (\\psi_j * x)(t)`, where
+    :math:`\\psi_j` is an Erlang (gamma) transfer function with mean delay
+    ``lag[j]``. Band :math:`b` observes
+
+    .. math::
+
+        y_b(t) = c_b\\, x(t) + \\sum_j r_{bj}\\, \\tilde\\ell_j(t),
+        \\qquad \\tilde\\ell_j = \\frac{\\sigma_x}{\\sigma_{\\ell_j}}\\, \\ell_j,
+
+    so :math:`r_{bj} / c_b` is the ratio of line :math:`j`'s variability amplitude
+    to the continuum's in band :math:`b`. With several lines, e.g. a band containing
+    more than one broad line or different lines in different bands, the chains share
+    the driver but do not feed each other. All bands are linear readouts of one
+    augmented state-space model (dimension :math:`n + JK`), so the likelihood remains
+    :math:`\\mathcal{O}(N)` and the transition stays closed form.
+
+    The kernel is not time-reversible, so it requires a ``tinygp`` version with the
+    non-reversible quasiseparable transition convention (currently the GitHub
+    version of ``tinygp``).
+
+    Args:
+        params: A dictionary with ``lag`` (mean BLR lag; a scalar for one line or
+            shape ``(J,)``), ``amp_cont`` (continuum amplitude :math:`c_b`, shape
+            ``(B,)``) and ``amp_blr`` (BLR amplitudes :math:`r_{bj}` in units of the
+            driver rms; shape ``(B,)`` for one line or ``(B, J)``).
+        kernel: The quasiseparable kernel of the latent driver.
+        order: Order :math:`K` of every Erlang chain; the transfer function's
+            fractional rms width is :math:`1/\\sqrt{K}`. Defaults to 3.
+    """
+
+    params: dict[str, JAXArray]
+    kernel: tkq.Quasisep
+    order: int = eqx.field(static=True, default=3)
+
+    def coord_to_sortable(self, X) -> JAXArray:
+        """Extract the time-sortable component of the coordinates."""
+        return X[0]
+
+    def _base(self) -> tuple[JAXArray, JAXArray, JAXArray]:
+        F = jnp.asarray(self.kernel.design_matrix())
+        P = jnp.asarray(self.kernel.stationary_covariance())
+        h = jnp.asarray(self.kernel.observation_model(jnp.zeros(())))
+        return F, P, h
+
+    def _lags(self) -> JAXArray:
+        return jnp.atleast_1d(jnp.asarray(self.params["lag"]))
+
+    def _amp_blr(self) -> JAXArray:
+        amp = jnp.asarray(self.params["amp_blr"])
+        return amp[:, None] if amp.ndim == 1 else amp
+
+    def design_matrix(self) -> JAXArray:
+        """Generator of the driver state augmented by one Erlang chain per line."""
+        F, _, h = self._base()
+        lags = self._lags()
+        n, K, J = F.shape[0], self.order, lags.shape[0]
+        A = jnp.zeros((n + J * K, n + J * K)).at[:n, :n].set(F)
+        for j in range(J):
+            rate = K / lags[j]
+            s = n + j * K
+            A = A.at[s : s + K, s : s + K].set(rate * (jnp.eye(K, k=-1) - jnp.eye(K)))
+            A = A.at[s, :n].set(rate * h)
+        return A
+
+    def stationary_covariance(self) -> JAXArray:
+        """Solve the Lyapunov equation with the driver's implied process noise."""
+        F, P, _ = self._base()
+        n = F.shape[0]
+        A = self.design_matrix()
+        Q = jnp.zeros(A.shape).at[:n, :n].set(-(F @ P + P @ F.T))
+        return _solve_lyapunov(A, Q)
+
+    def observation_model(self, X) -> JAXArray:
+        """Continuum and normalized BLR loadings for the band of ``X``."""
+        F, P, h = self._base()
+        amp_blr = self._amp_blr()
+        n, K, J = F.shape[0], self.order, self._lags().shape[0]
+        cov = self.stationary_covariance()
+        std_x = jnp.sqrt(h @ P @ h)
+        band = X[1]
+        parts = [self.params["amp_cont"][band] * h]
+        for j in range(J):
+            s = n + (j + 1) * K - 1
+            blr = amp_blr[band, j] * std_x / jnp.sqrt(cov[s, s])
+            parts += [jnp.zeros(K - 1), jnp.atleast_1d(blr)]
+        return jnp.concatenate(parts)
+
+    def _sylvester_solution(self, lag) -> JAXArray:
+        """Solve :math:`CX - XF = D` for one chain of mean delay ``lag``."""
+        F, _, h = self._base()
+        n, K = F.shape[0], self.order
+        rate = K / lag
+        M = jnp.linalg.inv(rate * jnp.eye(n) + F)
+        rows, prev = [], jnp.zeros(n)
+        for j in range(K):
+            d = rate * h if j == 0 else jnp.zeros(n)
+            prev = (rate * prev - d) @ M
+            rows.append(prev)
+        return jnp.stack(rows)
+
+    def transition_matrix(self, X1, X2) -> JAXArray:
+        """Closed-form transition from block-diagonalizing the generator.
+
+        For each chain, with :math:`CX - XF = D`, :math:`e^{A\\Delta}` has blocks
+        :math:`\\Phi_F`, :math:`\\Phi_C` and :math:`\\Phi_C X - X\\Phi_F`, where
+        :math:`\\Phi_F` is the driver's transition and :math:`\\Phi_C` the Erlang
+        chain's. Returns the adjoint (transpose), as ``tinygp`` expects.
+        """
+        dt = X2[0] - X1[0]
+        F, _, _ = self._base()
+        lags = self._lags()
+        n, K, J = F.shape[0], self.order, lags.shape[0]
+        phi_F = jnp.asarray(self.kernel.transition_matrix(X1[0], X2[0])).T
+        full = jnp.zeros((n + J * K, n + J * K)).at[:n, :n].set(phi_F)
+        k = jnp.arange(K)
+        for j in range(J):
+            x = K / lags[j] * dt
+            # exp(-x) x^k / k! in log space: no overflow for large K or long time gaps
+            log_x = jnp.log(jnp.maximum(x, jnp.finfo(x.dtype).tiny))
+            coeff = jnp.where(
+                k == 0,
+                jnp.exp(-x),
+                jnp.exp(-x + k * log_x - jax.scipy.special.gammaln(k + 1.0)),
+            )
+            phi_C = sum(coeff[i] * jnp.eye(K, k=-i) for i in range(K))
+            X = self._sylvester_solution(lags[j])
+            s = n + j * K
+            full = full.at[s : s + K, s : s + K].set(phi_C)
+            full = full.at[s : s + K, :n].set(phi_C @ X - X @ phi_F)
+        return full.T

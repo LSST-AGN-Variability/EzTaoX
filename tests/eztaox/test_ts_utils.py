@@ -103,7 +103,8 @@ def test_addNoise() -> None:  # noqa: N802
 
     # Verify that the noise is Gaussian
     std_diff = (noisy_y - y) / yerr
-    res = kstest(std_diff, "norm", args=(0, 1))
+    # standard normal; SciPy >= 1.18 passes loc/scale args straight to special.ndtr
+    res = kstest(std_diff, "norm")
 
     print(res.pvalue)
     assert res.pvalue > 0.05  # Fail if p-value < 5%

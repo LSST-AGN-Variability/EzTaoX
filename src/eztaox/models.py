@@ -191,6 +191,7 @@ class MultiVarModel(eqx.Module):
 
         return (new_t, band), inds
 
+    @eqx.filter_jit
     def log_prob(self, params: dict[str, JAXArray]) -> JAXArray:
         """Calculate the log probability of the input parameters.
 
@@ -239,6 +240,7 @@ class MultiVarModel(eqx.Module):
         gp, inds = self._build_gp(params)
         numpyro.sample("gp", gp.numpyro_dist(), obs=self.y[inds])
 
+    @eqx.filter_jit
     def pred(
         self, params: dict[str, JAXArray], X: JAXArray
     ) -> tuple[JAXArray, JAXArray]:
@@ -273,7 +275,8 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
-    @eqx.filter_jit
+    # Not jitted on its own: the returned GP's mean function closes over params, so
+    # it must be built and used inside the same trace (see log_prob and pred).
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
@@ -389,6 +392,7 @@ class UniVarModel(MultiVarModel):
         """
         return self.X, jnp.arange(self.X[0].size)
 
+    @eqx.filter_jit
     def pred(self, params, t) -> tuple[JAXArray, JAXArray]:
         """Make conditional GP prediction.
 
