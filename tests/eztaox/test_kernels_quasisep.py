@@ -203,3 +203,42 @@ def test_mixed_blr_kernel(base) -> None:
     for d in [1.0, 60.0, 600.0]:
         phi = kernel.transition_matrix((jnp.asarray(0.0), 0), (jnp.asarray(d), 0)).T
         assert_allclose(phi, jax.scipy.linalg.expm(A * d))
+
+
+@pytest.mark.parametrize("order", [1, 3, 10, 30])
+def test_mixed_blr_kernel_state_space(order) -> None:
+    """State-space pieces of MixedBLRKernel; independent of tinygp's time convention."""
+    base = quasisep.Exp(
+        scale=150.0, sigma=0.3
+    )  # one-state driver: no transpose ambiguity
+    params = {
+        "lag": jnp.asarray(60.0),
+        "amp_cont": jnp.array([1.0, 0.8, 0.0]),
+        "amp_blr": jnp.array([0.0, 0.5, 0.7]),
+    }
+    kernel = quasisep.MixedBLRKernel(params=params, kernel=base, order=order)
+    A = kernel.design_matrix()
+    P = kernel.stationary_covariance()
+
+    # stationary covariance solves the Lyapunov equation with the driver's noise
+    F, Pb = base.design_matrix(), base.stationary_covariance()
+    Q = jnp.zeros_like(A).at[:1, :1].set(-(F @ Pb + Pb @ F.T))
+    assert_allclose(A @ P + P @ A.T + Q, jnp.zeros_like(A))
+
+    # closed-form transition equals the matrix exponential (returned as its adjoint)
+    for dt in [0.0, 1.0, 60.0, 600.0, 4000.0]:
+        phi = kernel.transition_matrix((jnp.asarray(0.0), 0), (jnp.asarray(dt), 0)).T
+        assert jnp.all(jnp.isfinite(phi))
+        assert_allclose(phi, jax.scipy.linalg.expm(A * dt))
+
+    # band variances: continuum = driver variance; pure BLR band = amp_blr^2 * that
+    var = [
+        float(
+            kernel.observation_model((None, b))
+            @ P
+            @ kernel.observation_model((None, b))
+        )
+        for b in range(3)
+    ]
+    assert_allclose(var[0], 0.3**2)
+    assert_allclose(var[2], (0.7 * 0.3) ** 2)
