@@ -4,10 +4,12 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+import tinygp
 from celerite import GP
 from eztao.carma import CARMA_term
 from numpy import random as np_random
 from numpy.random import Generator
+from packaging.version import Version
 from tinygp import GaussianProcess
 from tinygp.helpers import JAXArray
 from tinygp.test_utils import assert_allclose
@@ -143,3 +145,61 @@ def test_carma_root_stationary_covariance(alpha, sigma_w) -> None:
     actual = quasisep.carma_root_stationary_covariance(arroots, sigma_w)
 
     assert_allclose(actual, expected)
+
+
+_tinygp_nonreversible = pytest.mark.skipif(
+    Version(tinygp.__version__) < Version("0.3.2.dev0"),
+    reason="MixedBLRKernel needs tinygp's non-reversible quasisep convention",
+)
+
+
+@_tinygp_nonreversible
+@pytest.mark.parametrize(
+    "base",
+    [
+        quasisep.Exp(scale=150.0, sigma=0.3),
+        quasisep.SHO(omega=2 * np.pi / 300, quality=0.4, sigma=0.3),
+    ],
+)
+def test_mixed_blr_kernel(base) -> None:
+    from scipy.stats import gamma
+
+    lag, order = 60.0, 3
+    params = {
+        "lag": jnp.asarray(lag),
+        "amp_cont": jnp.array([1.0, 0.8]),
+        "amp_blr": jnp.array([0.0, 0.5]),
+    }
+    kernel = quasisep.MixedBLRKernel(params=params, kernel=base, order=order)
+
+    def k_x(d):
+        d = jnp.atleast_1d(jnp.asarray(d, dtype=float))
+        return np.asarray(jax.vmap(lambda x: base.evaluate(jnp.zeros(()), x))(d))
+
+    # numerical convolution with the Erlang transfer function
+    u = np.linspace(0.0, 1500.0, 6001)
+    du = u[1] - u[0]
+    psi = gamma.pdf(u, order, scale=lag / order)
+    uu = (u[:, None] - u[None, :])[::5, ::5]
+    var_l = (k_x(uu.ravel()).reshape(uu.shape) * np.outer(psi[::5], psi[::5])).sum()
+    var_l *= (5 * du) ** 2
+    r_tilde = 0.5 * np.sqrt(k_x(0.0)[0] / var_l)
+    for d in [0.0, 30.0, 60.0, 200.0]:
+        expected = 0.8 * k_x(d)[0] + r_tilde * (k_x(d - u) * psi).sum() * du
+        forward = kernel.evaluate((jnp.asarray(0.0), 0), (jnp.asarray(d), 1))
+        assert_allclose(forward, expected, atol=1e-4 * k_x(0.0)[0])
+        # the BLR term only correlates with the continuum's past
+        backward = kernel.evaluate((jnp.asarray(d), 0), (jnp.asarray(0.0), 1))
+        expected_back = 0.8 * k_x(d)[0] + r_tilde * (k_x(d + u) * psi).sum() * du
+        assert_allclose(backward, expected_back, atol=1e-4 * k_x(0.0)[0])
+
+    # the continuum band reproduces the driver kernel
+    assert_allclose(
+        kernel.evaluate((jnp.asarray(0.0), 0), (jnp.asarray(40.0), 0)), k_x(40.0)[0]
+    )
+
+    # the closed-form transition matches the matrix exponential
+    A = kernel.design_matrix()
+    for d in [1.0, 60.0, 600.0]:
+        phi = kernel.transition_matrix((jnp.asarray(0.0), 0), (jnp.asarray(d), 0)).T
+        assert_allclose(phi, jax.scipy.linalg.expm(A * d))

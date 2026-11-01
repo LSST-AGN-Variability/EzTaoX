@@ -665,3 +665,123 @@ class MultibandLowRank(tkq.Wrapper):
         return amplitudes[X[1]] * self.kernel.observation_model(
             self.coord_to_sortable(X)
         )
+
+
+def _solve_lyapunov(A: JAXArray, Q: JAXArray) -> JAXArray:
+    """Solve :math:`AP + PA^T + Q = 0` for :math:`P` (small dense matrices)."""
+    n = A.shape[0]
+    eye = jnp.eye(n)
+    P = jnp.linalg.solve(jnp.kron(eye, A) + jnp.kron(A, eye), -Q.reshape(-1))
+    P = P.reshape(n, n)
+    return 0.5 * (P + P.T)
+
+
+class MixedBLRKernel(tkq.Quasisep):
+    """A multiband kernel mixing a prompt continuum with an Erlang-lagged BLR response.
+
+    A latent driver :math:`x(t)` is described by any quasiseparable ``kernel``
+    (e.g., DRW/``Exp``, ``SHO``, ``CARMA``). A chain of ``order`` identical
+    first-order filters with time constant ``lag / order`` turns :math:`x` into
+    :math:`\\ell(t) = (\\psi * x)(t)`, where :math:`\\psi` is an Erlang (gamma)
+    transfer function with mean delay ``lag``. Band :math:`b` observes
+
+    .. math::
+
+        y_b(t) = c_b\\, x(t) + r_b\\, \\frac{\\sigma_x}{\\sigma_\\ell}\\, \\ell(t),
+
+    so :math:`r_b / c_b` is the BLR-to-continuum ratio of variability amplitudes
+    in band :math:`b`. All bands are linear readouts of one augmented state-space
+    model, so the likelihood remains :math:`\\mathcal{O}(N)`.
+
+    The kernel is not time-reversible, so it requires a ``tinygp`` version with the
+    non-reversible quasiseparable transition convention (currently the GitHub
+    version of ``tinygp``).
+
+    Args:
+        params: A dictionary with ``lag`` (mean BLR lag), ``amp_cont`` (continuum
+            amplitude :math:`c_b` per band) and ``amp_blr`` (BLR amplitude
+            :math:`r_b` per band, in units of the driver rms).
+        kernel: The quasiseparable kernel of the latent driver.
+        order: Order :math:`K` of the Erlang chain; the transfer function's
+            fractional rms width is :math:`1/\\sqrt{K}`. Defaults to 3.
+    """
+
+    params: dict[str, JAXArray]
+    kernel: tkq.Quasisep
+    order: int = eqx.field(static=True, default=3)
+
+    def coord_to_sortable(self, X) -> JAXArray:
+        """Extract the time-sortable component of the coordinates."""
+        return X[0]
+
+    def _base(self) -> tuple[JAXArray, JAXArray, JAXArray]:
+        F = jnp.asarray(self.kernel.design_matrix())
+        P = jnp.asarray(self.kernel.stationary_covariance())
+        h = jnp.asarray(self.kernel.observation_model(jnp.zeros(())))
+        return F, P, h
+
+    def design_matrix(self) -> JAXArray:
+        """Generator of the driver state augmented by the Erlang chain."""
+        F, _, h = self._base()
+        n, K = F.shape[0], self.order
+        rate = K / self.params["lag"]
+        chain = rate * (jnp.eye(K, k=-1) - jnp.eye(K))
+        drive = jnp.zeros((K, n)).at[0].set(rate * h)
+        return jnp.block([[F, jnp.zeros((n, K))], [drive, chain]])
+
+    def stationary_covariance(self) -> JAXArray:
+        """Solve the Lyapunov equation with the driver's implied process noise."""
+        F, P, _ = self._base()
+        n, K = F.shape[0], self.order
+        Q = jnp.zeros((n + K, n + K)).at[:n, :n].set(-(F @ P + P @ F.T))
+        return _solve_lyapunov(self.design_matrix(), Q)
+
+    def observation_model(self, X) -> JAXArray:
+        """Continuum and normalized BLR loadings for the band of ``X``."""
+        F, P, h = self._base()
+        K = self.order
+        std_x = jnp.sqrt(h @ P @ h)
+        std_blr = jnp.sqrt(self.stationary_covariance()[-1, -1])
+        band = X[1]
+        prompt = self.params["amp_cont"][band] * h
+        blr = self.params["amp_blr"][band] * std_x / std_blr
+        return jnp.concatenate([prompt, jnp.zeros(K - 1), jnp.atleast_1d(blr)])
+
+    def _sylvester_solution(self) -> JAXArray:
+        """Solve :math:`CX - XF = D` row by row, once per kernel evaluation."""
+        F, _, h = self._base()
+        n, K = F.shape[0], self.order
+        rate = K / self.params["lag"]
+        M = jnp.linalg.inv(rate * jnp.eye(n) + F)
+        rows, prev = [], jnp.zeros(n)
+        for j in range(K):
+            d = rate * h if j == 0 else jnp.zeros(n)
+            prev = (rate * prev - d) @ M
+            rows.append(prev)
+        return jnp.stack(rows)
+
+    def transition_matrix(self, X1, X2) -> JAXArray:
+        """Closed-form transition from block-diagonalizing the generator.
+
+        With :math:`CX - XF = D`, :math:`e^{A\\Delta}` has blocks
+        :math:`\\Phi_F`, :math:`\\Phi_C` and :math:`\\Phi_C X - X\\Phi_F`, where
+        :math:`\\Phi_F` is the driver's transition and :math:`\\Phi_C` the Erlang
+        chain's. Returns the adjoint (transpose), as ``tinygp`` expects.
+        """
+        dt = X2[0] - X1[0]
+        F, _, _ = self._base()
+        n, K = F.shape[0], self.order
+        x = K / self.params["lag"] * dt
+        phi_F = jnp.asarray(self.kernel.transition_matrix(X1[0], X2[0])).T
+        # exp(-x) x^k / k! in log space: no overflow for large K or long time gaps
+        k = jnp.arange(K)
+        log_x = jnp.log(jnp.maximum(x, jnp.finfo(x.dtype).tiny))
+        coeff = jnp.where(
+            k == 0,
+            jnp.exp(-x),
+            jnp.exp(-x + k * log_x - jax.scipy.special.gammaln(k + 1.0)),
+        )
+        phi_C = sum(coeff[k] * jnp.eye(K, k=-k) for k in range(K))
+        X = self._sylvester_solution()
+        full = jnp.block([[phi_F, jnp.zeros((n, K))], [phi_C @ X - X @ phi_F, phi_C]])
+        return full.T

@@ -360,3 +360,34 @@ def test_multivar_qs_vs_nonqs_exp_same(data, random) -> None:
 
     # log-prob equality
     assert_allclose(m_qs.log_prob(p_qs), m_nonqs.log_prob(p_nonqs))
+
+
+def test_pred_with_mean(data, random) -> None:
+    """pred with a fitted mean equals pred on mean-subtracted data plus the mean."""
+    t, y, b = data
+    yerr = jnp.ones_like(t) * 0.05
+    kernel = quasisep.Exp(sigma=1.8, scale=1.5)
+    log_kernel_param = jnp.log(jax.flatten_util.ravel_pytree(kernel)[0])
+    mean = jnp.array([0.3, -0.2, 0.1])
+    t_pred, b_pred = jnp.array([4.2, 0.3, 3.4, 1.7]), jnp.array([1, 2, 1, 0])
+
+    params = {
+        "log_kernel_param": log_kernel_param,
+        "log_amp_scale": jnp.array([0.2, -0.1]),
+        "lag": jnp.array([1.0, 2.0]),
+    }
+    m_mean = MultiVarModel((t, b), y, yerr, kernel, 3, has_lag=True, zero_mean=False)
+    m_zero = MultiVarModel((t, b), y - mean[b], yerr, kernel, 3, has_lag=True)
+    mu, sd = m_mean.pred({**params, "mean": mean}, (t_pred, b_pred))
+    mu0, sd0 = m_zero.pred(params, (t_pred, b_pred))
+    assert_allclose(mu, mu0 + mean[b_pred])
+    assert_allclose(sd, sd0)
+
+    u_mean = UniVarModel(t, y, yerr, kernel, zero_mean=False)
+    u_zero = UniVarModel(t, y - 0.3, yerr, kernel)
+    mu, sd = u_mean.pred(
+        {"log_kernel_param": log_kernel_param, "mean": jnp.array(0.3)}, t_pred
+    )
+    mu0, sd0 = u_zero.pred({"log_kernel_param": log_kernel_param}, t_pred)
+    assert_allclose(mu, mu0 + 0.3)
+    assert_allclose(sd, sd0)

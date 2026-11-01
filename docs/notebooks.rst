@@ -15,3 +15,5 @@ Tutorial notebooks demonstating the use of EzTaoX for fitting AGN light curves. 
   4. Simulating Multiband Light Curves <notebooks/04_MultibandSimulation>
   5. Transfer Functions and Convolved Kernels <notebooks/05_TransferFunction>
   6. Fitting DP1 light curves with LSDB <pre_executed/05_DP1_LSDB>
+  7. Reverberation Mapping <pre_executed/06_ReverberationMapping>
+  8. Photometric Reverberation Mapping <pre_executed/07_PhotometricReverberationMapping>
