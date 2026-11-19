@@ -30,19 +30,43 @@ CARMA_BENCHMARK_ALPHA = (0.0002, 0.05)
 CARMA_BENCHMARK_BETA = (0.0006, 0.03)
 
 
-# The log-likelihood suites keep their models in a module-level cache instead of
-# a ``setup`` hook. asv_runner >= 0.3 re-runs ``setup`` before every timed call,
-# so with a hook each sample would be a single cold call made right after
-# seconds of JIT compilation, which inflates these microsecond-scale timings
-# 3-4x and makes them noisy. Without a hook asv batches ``number`` warm calls per
-# sample; the one-off build and compile lands in asv's warmup phase.
+# No suite in this module defines a ``setup`` hook. asv_runner >= 0.3 forces a
+# single timed call per sample for any timing benchmark that has one (and re-runs
+# the hook before every call), so with a hook each sample would be one cold call
+# made right after seconds of JIT compilation, which inflates the microsecond-scale
+# log-likelihood timings 3-4x and makes them noisy. Instead, every suite reads its
+# data and models from the ``functools.cache``'d builders below and sets an
+# explicit ``number``: asv then runs a warmup phase that absorbs the one-off build
+# and compile, and each sample times ``number`` warm calls, as the old ``setup``
+# based suites did under asv_runner 0.2.
 _LOGP_NUMBER = 200
+# One warmup batch always completes before sampling starts, so this only has to be
+# positive; stated explicitly so a change of asv's default can't drop the warmup.
+_WARMUP_TIME = 0.1
+
+
+@functools.cache
+def _univar_data(n) -> tuple[JAXArray, JAXArray, JAXArray]:
+    """Simulate the single-band light curve of size ``n`` once per process."""
+    return generate_drw_univar(n)
+
+
+@functools.cache
+def _multivar_data(n) -> tuple[tuple[JAXArray, JAXArray], JAXArray, JAXArray]:
+    """Simulate the multiband light curve of size ``n`` once per process."""
+    return generate_drw_multivar(n)
+
+
+@functools.cache
+def _multivar_lag() -> JAXArray:
+    """Random lag shared by the multivariate suites."""
+    return jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
 
 
 @functools.cache
 def _univar_logp_state(n) -> dict[str, tuple[dict, callable]]:
     """Build and precompile the univariate models once per light-curve size."""
-    t, y, yerr = generate_drw_univar(n)
+    t, y, yerr = _univar_data(n)
     kernels = {
         "exp": ekq.Exp(scale=10.0, sigma=0.1),
         "m32": ekq.Matern32(scale=10.0, sigma=0.1),
@@ -66,8 +90,8 @@ def _univar_logp_state(n) -> dict[str, tuple[dict, callable]]:
 @functools.cache
 def _multivar_logp_state(n) -> dict[str, tuple[dict, callable]]:
     """Build and precompile the multivariate models once per light-curve size."""
-    X, y, yerr = generate_drw_multivar(n)
-    rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
+    X, y, yerr = _multivar_data(n)
+    rand_lag = _multivar_lag()
     kernels = {
         "exp": ekq.Exp(scale=10.0, sigma=0.1),
         "m32": ekq.Matern32(scale=10.0, sigma=0.1),
@@ -86,6 +110,34 @@ def _multivar_logp_state(n) -> dict[str, tuple[dict, callable]]:
     return state
 
 
+@functools.cache
+def _random_search_univar_model() -> UniVarModel:
+    x = jnp.linspace(0.0, 2.0 * jnp.pi, 1000)
+    y = jnp.sin(x)
+    yerr = jnp.ones_like(x) * 0.05
+    return UniVarModel(x, y, yerr, ekq.Exp(scale=1.5, sigma=0.8), zero_mean=False)
+
+
+@functools.cache
+def _random_search_multivar_model() -> MultiVarModel:
+    X, y, yerr = _multivar_data(1000)
+    kernel = ekq.Exp(scale=100.0, sigma=0.1)
+    return MultiVarModel(X, y, yerr, kernel, NBANDS, zero_mean=True, has_lag=True)
+
+
+@functools.cache
+def _mcmc_univar_model() -> UniVarModel:
+    t, y, yerr = _univar_data(1000)
+    return UniVarModel(t, y, yerr, ekq.Exp(scale=100.0, sigma=1.0), zero_mean=False)
+
+
+@functools.cache
+def _mcmc_multivar_model() -> MultiVarModel:
+    X, y, yerr = _multivar_data(1000)
+    kernel = ekq.Exp(scale=100.0, sigma=1.0)
+    return MultiVarModel(X, y, yerr, kernel, NBANDS, zero_mean=True, has_lag=True)
+
+
 class KernelUniVarSuite:
     """Timing benchmarks for various Univariate kernels"""
 
@@ -93,6 +145,7 @@ class KernelUniVarSuite:
     params = [50, 200, 500, 2_000]
     repeat = 5
     number = _LOGP_NUMBER
+    warmup_time = _WARMUP_TIME
 
     def time_run_exp_logp(self, n):
         params, log_prob = _univar_logp_state(n)["exp"]
@@ -118,6 +171,7 @@ class KernelMultiVarSuite:
     params = [50, 200, 500, 2_000]
     repeat = 5
     number = _LOGP_NUMBER
+    warmup_time = _WARMUP_TIME
 
     def time_run_exp_logp(self, n):
         params, log_prob = _multivar_logp_state(n)["exp"]
@@ -137,35 +191,26 @@ class KernelUniVarPrecompileSuite:
 
     params = [2_000]
     repeat = 10
-    sample_time = 0.1
+    # Each call builds a fresh jitted function, so compilation is what is timed.
+    number = 1
+    warmup_time = _WARMUP_TIME
 
-    def setup(self, n) -> None:
-        self.t, self.y, self.yerr = generate_drw_univar(n)
-
-    def time_precompile_exp_gp(self, _):
-        model, params = _build_univar_model_and_params(
-            ekq.Exp, self.t, self.y, self.yerr
-        )
+    def time_precompile_exp_gp(self, n):
+        model, params = _build_univar_model_and_params(ekq.Exp, *_univar_data(n))
         _precompile_log_prob(model, params)
 
-    def time_precompile_m32_gp(self, _):
-        model, params = _build_univar_model_and_params(
-            ekq.Matern32, self.t, self.y, self.yerr
-        )
+    def time_precompile_m32_gp(self, n):
+        model, params = _build_univar_model_and_params(ekq.Matern32, *_univar_data(n))
         _precompile_log_prob(model, params)
 
-    def time_precompile_m52_gp(self, _):
-        model, params = _build_univar_model_and_params(
-            ekq.Matern52, self.t, self.y, self.yerr
-        )
+    def time_precompile_m52_gp(self, n):
+        model, params = _build_univar_model_and_params(ekq.Matern52, *_univar_data(n))
         _precompile_log_prob(model, params)
 
-    def time_precompile_carma_gp(self, _):
+    def time_precompile_carma_gp(self, n):
         model, params = _build_univar_model_and_params(
             ekq.CARMA,
-            self.t,
-            self.y,
-            self.yerr,
+            *_univar_data(n),
             alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),
             beta=jnp.asarray(CARMA_BENCHMARK_BETA),
         )
@@ -177,27 +222,25 @@ class KernelMultiVarPrecompileSuite:
 
     params = [2_000]
     repeat = 10
-    sample_time = 0.1
+    # Each call builds a fresh jitted function, so compilation is what is timed.
+    number = 1
+    warmup_time = _WARMUP_TIME
 
-    def setup(self, n) -> None:
-        self.X, self.y, self.yerr = generate_drw_multivar(n)
-        self.rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
-
-    def time_precompile_exp_gp(self, _):
+    def time_precompile_exp_gp(self, n):
         model, params = _build_multivar_model_and_params(
-            ekq.Exp, self.X, self.y, self.yerr, self.rand_lag
+            ekq.Exp, *_multivar_data(n), _multivar_lag()
         )
         _precompile_log_prob(model, params)
 
-    def time_precompile_m32_gp(self, _):
+    def time_precompile_m32_gp(self, n):
         model, params = _build_multivar_model_and_params(
-            ekq.Matern32, self.X, self.y, self.yerr, self.rand_lag
+            ekq.Matern32, *_multivar_data(n), _multivar_lag()
         )
         _precompile_log_prob(model, params)
 
-    def time_precompile_m52_gp(self, _):
+    def time_precompile_m52_gp(self, n):
         model, params = _build_multivar_model_and_params(
-            ekq.Matern52, self.X, self.y, self.yerr, self.rand_lag
+            ekq.Matern52, *_multivar_data(n), _multivar_lag()
         )
         _precompile_log_prob(model, params)
 
@@ -208,29 +251,16 @@ class RandomSearchUniVarSuite:
     params = [1000]
     param_names = ["batch_size"]
     repeat = 5
-    sample_time = 0.1
+    number = 1
+    warmup_time = _WARMUP_TIME
     timeout = 120
-
-    def setup(self, batch_size) -> None:
-        self.x = jnp.linspace(0.0, 2.0 * jnp.pi, 1000)
-        self.y = jnp.sin(self.x)
-        self.yerr = jnp.ones_like(self.x) * 0.05
-        self.kernel = ekq.Exp(scale=1.5, sigma=0.8)
-        self.model = UniVarModel(
-            self.x,
-            self.y,
-            self.yerr,
-            self.kernel,
-            zero_mean=False,
-        )
-        self.init_sampler = _init_sampler
-        self.fit_key = jr.PRNGKey(0)
+    model_builder = staticmethod(_random_search_univar_model)
 
     def time_random_search(self, batch_size):
         best_param, log_likelihood = _run_random_search_benchmark(
-            self.model,
-            self.init_sampler,
-            self.fit_key,
+            self.model_builder(),
+            _init_sampler,
+            jr.PRNGKey(0),
             n_sample=2000,
             n_best=5,
             batch_size=batch_size,
@@ -239,9 +269,9 @@ class RandomSearchUniVarSuite:
 
     def peakmem_random_search(self, batch_size):
         best_param, log_likelihood = _run_random_search_benchmark(
-            self.model,
-            self.init_sampler,
-            self.fit_key,
+            self.model_builder(),
+            _init_sampler,
+            jr.PRNGKey(0),
             n_sample=2000,
             n_best=5,
             batch_size=batch_size,
@@ -252,20 +282,7 @@ class RandomSearchUniVarSuite:
 class RandomSearchMultiVarSuite(RandomSearchUniVarSuite):
     """Benchmark multivariate random_search."""
 
-    def setup(self, batch_size) -> None:
-        self.X, self.y, self.yerr = generate_drw_multivar(1000)
-        self.kernel = ekq.Exp(scale=100.0, sigma=0.1)
-        self.model = MultiVarModel(
-            self.X,
-            self.y,
-            self.yerr,
-            self.kernel,
-            NBANDS,
-            zero_mean=True,
-            has_lag=True,
-        )
-        self.init_sampler = _init_sampler
-        self.fit_key = jr.PRNGKey(0)
+    model_builder = staticmethod(_random_search_multivar_model)
 
 
 class MCMCUniSuite:
@@ -273,25 +290,13 @@ class MCMCUniSuite:
 
     timeout = 300
     repeat = 5
-
-    def setup(self) -> None:
-        self.t, self.y, self.yerr = generate_drw_univar(1000)
-        self.kernel = ekq.Exp(scale=100.0, sigma=1.0)
-        self.model = UniVarModel(
-            self.t,
-            self.y,
-            self.yerr,
-            self.kernel,
-            zero_mean=False,
-        )
-        self.numpyro_model = _make_numpyro_model(_init_sampler)
-        self.mcmc_key = jr.PRNGKey(0)
+    model_builder = staticmethod(_mcmc_univar_model)
 
     def peakmem_mcmc(self):
         samples = _run_mcmc_benchmark(
-            self.model,
-            self.numpyro_model,
-            self.mcmc_key,
+            self.model_builder(),
+            _make_numpyro_model(_init_sampler),
+            jr.PRNGKey(0),
             num_warmup=1000,
             num_samples=2000,
         )
@@ -301,20 +306,7 @@ class MCMCUniSuite:
 class MCMCMultiVarSuite(MCMCUniSuite):
     """Peak-memory benchmark for multivariate MCMC."""
 
-    def setup(self) -> None:
-        self.X, self.y, self.yerr = generate_drw_multivar(1000)
-        self.kernel = ekq.Exp(scale=100.0, sigma=1.0)
-        self.model = MultiVarModel(
-            self.X,
-            self.y,
-            self.yerr,
-            self.kernel,
-            NBANDS,
-            zero_mean=True,
-            has_lag=True,
-        )
-        self.numpyro_model = _make_numpyro_model(_init_sampler)
-        self.mcmc_key = jr.PRNGKey(0)
+    model_builder = staticmethod(_mcmc_multivar_model)
 
 
 def generate_drw_univar(n) -> tuple[JAXArray, JAXArray, JAXArray]:

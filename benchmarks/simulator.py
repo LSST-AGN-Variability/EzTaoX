@@ -1,6 +1,7 @@
 """Benchmarks for EzTaoX simulation"""
 
 import contextlib
+import functools
 
 import jax
 import jax.numpy as jnp
@@ -20,56 +21,73 @@ with contextlib.suppress(AttributeError, ValueError, KeyError):
 DRW_PARAMS = {"tau": 100.0, "sigma": 0.1}
 NBANDS = 2
 
+# As in fitting.py, the suites build their simulators in cached module-level
+# functions rather than a ``setup`` hook: asv_runner >= 0.3 re-runs a hook before
+# every timed call, which would rebuild the simulator and put its JIT compilation
+# inside each sample. With an explicit ``number`` the compile lands in asv's
+# warmup phase instead.
+_WARMUP_TIME = 0.1
+
+
+def _log_kernel_param() -> jnp.ndarray:
+    return jnp.stack([jnp.log(DRW_PARAMS["tau"]), jnp.log(DRW_PARAMS["sigma"])])
+
+
+@functools.cache
+def _univar_sim() -> tuple[UniVarSim, jnp.ndarray]:
+    """Build the univariate simulator and its sampling grid once per process."""
+    drw_true = ekq.Exp(scale=DRW_PARAMS["tau"], sigma=DRW_PARAMS["sigma"])
+    t = jnp.arange(0.0, 4000.0, 1.0)
+    s = UniVarSim(
+        drw_true,
+        min_dt=0.01,
+        max_dt=float(t[-1]),
+        init_params={"log_kernel_param": _log_kernel_param()},
+        zero_mean=True,
+    )
+    return s, t
+
+
+@functools.cache
+def _multivar_sim() -> tuple[MultiVarSim, tuple[jnp.ndarray, jnp.ndarray]]:
+    """Build the multivariate simulator and its sampling grid once per process."""
+    drw_true = ekq.Exp(scale=DRW_PARAMS["tau"], sigma=DRW_PARAMS["sigma"])
+    sim_params = {
+        "log_kernel_param": _log_kernel_param(),
+        "log_amp_scale": jnp.log(1.0),
+        "lag": 10.0,
+    }
+    t = jnp.arange(0.0, 4000.0, 1.0)
+    band = jr.choice(jr.PRNGKey(1), a=NBANDS, shape=t.shape, replace=True)
+    s = MultiVarSim(
+        drw_true,
+        min_dt=0.01,
+        max_dt=float(t[-1]),
+        n_band=NBANDS,
+        init_params=sim_params,
+        zero_mean=True,
+        has_lag=True,
+    )
+    return s, (t, band)
+
 
 class UnivariateSimulatorSuite:
     """Timing benchmarks for the univariate simulator"""
 
-    def setup(self):
-        drw_true = ekq.Exp(scale=DRW_PARAMS["tau"], sigma=DRW_PARAMS["sigma"])
-        log_kernel_param = jnp.stack(
-            [jnp.log(DRW_PARAMS["tau"]), jnp.log(DRW_PARAMS["sigma"])]
-        )
-        self.t = jnp.arange(0.0, 4000.0, 1.0)
-        self.s = UniVarSim(
-            drw_true,
-            min_dt=0.01,
-            max_dt=float(self.t[-1]),
-            init_params={"log_kernel_param": log_kernel_param},
-            zero_mean=True,
-        )
-        self.lc_key = jax.random.key(11)
+    number = 1
+    warmup_time = _WARMUP_TIME
 
     def time_run_sim(self):
-        return jax.block_until_ready(self.s.fixed_input(self.t, self.lc_key))
+        s, t = _univar_sim()
+        return jax.block_until_ready(s.fixed_input(t, jax.random.key(11)))
 
 
 class MultivariateSimulatorSuite:
     """Timing benchmarks for the multivariate simulator"""
 
-    def setup(self):
-        drw_true = ekq.Exp(scale=DRW_PARAMS["tau"], sigma=DRW_PARAMS["sigma"])
-        log_kernel_param = jnp.stack(
-            [jnp.log(DRW_PARAMS["tau"]), jnp.log(DRW_PARAMS["sigma"])]
-        )
-        sim_params = {
-            "log_kernel_param": log_kernel_param,
-            "log_amp_scale": jnp.log(1.0),
-            "lag": 10.0,
-        }
-        self.t = jnp.arange(0.0, 4000.0, 1.0)
-        self.band = jr.choice(jr.PRNGKey(1), a=NBANDS, shape=self.t.shape, replace=True)
-        self.s = MultiVarSim(
-            drw_true,
-            min_dt=0.01,
-            max_dt=float(self.t[-1]),
-            n_band=NBANDS,
-            init_params=sim_params,
-            zero_mean=True,
-            has_lag=True,
-        )
-        self.lc_key = jax.random.PRNGKey(12)
+    number = 1
+    warmup_time = _WARMUP_TIME
 
     def time_run_sim(self):
-        return jax.block_until_ready(
-            self.s.fixed_input((self.t, self.band), self.lc_key)
-        )
+        s, X = _multivar_sim()
+        return jax.block_until_ready(s.fixed_input(X, jax.random.PRNGKey(12)))
