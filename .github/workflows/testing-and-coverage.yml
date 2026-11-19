@@ -11,8 +11,38 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  # Put [skip-test] in a commit's first line (its subject) to skip the unit
+  # tests for that commit. On pull requests the latest commit on the branch is
+  # checked; on pushes to main, the pushed commit. Only the subject is checked,
+  # so a commit body that merely mentions the marker does not skip anything.
+  # Other workflows still run.
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+    - id: check
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PUSH_MESSAGE: ${{ github.event.head_commit.message }}
+      run: |
+        if [ -n "$PR_HEAD_SHA" ]; then
+          MESSAGE=$(gh api "repos/$REPO/commits/$PR_HEAD_SHA" --jq .commit.message)
+        else
+          MESSAGE="$PUSH_MESSAGE"
+        fi
+        if printf '%s\n' "$MESSAGE" | head -n 1 | grep -qE '\[skip-tests?\]'; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "Commit subject contains [skip-test], so the unit tests were skipped." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
 
+  build:
+    needs: check-skip
+    if: needs.check-skip.outputs.skip != 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -46,6 +76,8 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
   test-lowest-versions:
+    needs: check-skip
+    if: needs.check-skip.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
