@@ -2,12 +2,18 @@
 # It will compare the performance of the main branch with the performance of the merge
 # with the new changes. It then publishes a comment with this assessment by triggering
 # the publish-benchmarks-pr workflow.
+#
+# Benchmarks are opt-in: they run only on pull requests that carry the `benchmark`
+# label, when the label is added and on every later push. Remove the label to stop.
+# The workflow can also be started by hand from the Actions tab; that run shows the
+# comparison table in its job summary instead of posting a PR comment.
 # Based on https://securitylab.github.com/research/github-actions-preventing-pwn-requests/.
 name: Run benchmarks for PR
 
 on:
   pull_request:
     branches: [ main ]
+    types: [ labeled, synchronize, reopened ]
   workflow_dispatch:
 
 concurrency:
@@ -22,6 +28,12 @@ env:
 
 jobs:
   asv-pr:
+    # Run on manual dispatch, or on a pull request labeled `benchmark`. Adding a
+    # different label to an already-labeled pull request does not trigger a rerun.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (contains(github.event.pull_request.labels.*.name, 'benchmark') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'benchmark'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,6 +72,7 @@ jobs:
         asv compare upstream/main HEAD --sort ratio --verbose | tee output
         python -m lf_asv_formatter --asv_version "$(asv --version | awk '{print $2}')"
         printf "\n\nClick [here]($STEP_URL) to view all benchmarks." >> output
+        cat output >> "$GITHUB_STEP_SUMMARY"
         mv output ${{env.ARTIFACTS_DIR}}
       env:
         STEP_URL: ${{steps.jobs.outputs.html_url}}#step:10:1

@@ -10,3 +10,15 @@ You are encouraged to add, update, or remove benchmark functions to suit the nee
 of your project.
 
 For more information, see the documentation here: https://lincc-ppt.readthedocs.io/en/latest/practices/ci_benchmarking.html
+
+## Benchmarks on pull requests
+
+Benchmarks don't run on every pull request. To compare a pull request against `main`,
+add the `benchmark` label to it. The benchmarks run right away and again on every later
+push while the label stays, and a bot comment shows the comparison table. Remove the
+label to stop.
+
+You can also start the "Run benchmarks for PR" workflow by hand from the Actions tab.
+That run shows the comparison table on its summary page instead of posting a comment.
+
+Benchmarks still run on every push to `main` and nightly.

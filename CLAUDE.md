@@ -58,7 +58,7 @@ cd docs && make html
 cd docs && make no-nb
 ```
 
-Benchmarks are `asv` suites in `benchmarks/` (`fitting.py`, `simulator.py`) and run in CI on PRs against `main`.
+Benchmarks are `asv` suites in `benchmarks/` (`fitting.py`, `simulator.py`). CI runs them on pushes to `main`, nightly, and on PRs only when the PR has the `benchmark` label (see `benchmarks/README.md`).
 
 ### Test-specific notes
 
