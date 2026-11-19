@@ -79,7 +79,7 @@ repos:
           ["docs/pre_executed/"]
     # Run unit tests on `git push` rather than on every commit. The two slowest
     # files, test_simulator.py and test_fitter.py, are left out here; CI runs
-    # the full suite. Put [skip-test] in the latest commit message to skip the
+    # the full suite. Put [skip-test] in the latest commit's first line to skip the
     # tests for that push, or skip the hook once with `git push --no-verify`.
     # Verify that they pass. Note that coverage is run against
     # the ./src directory here because that is what will be committed. In the
@@ -91,7 +91,7 @@ repos:
       - id: pytest-check
         name: Run unit tests
         description: Run unit tests with pytest.
-        entry: bash -c "if git log -1 --format=%B | grep -qE '\[skip-tests?\]'; then echo 'Latest commit message contains [skip-test], skipping unit tests.'; exit 0; fi; if python -m pytest --co -qq; then python -m pytest --ignore=tests/eztaox/test_fitter.py --ignore=tests/eztaox/test_simulator.py --cov=./src --cov-report=html; fi"
+        entry: bash -c "if git log -1 --format=%s | grep -qE '\[skip-tests?\]'; then echo 'Latest commit subject contains [skip-test], skipping unit tests.'; exit 0; fi; if python -m pytest --co -qq; then python -m pytest --ignore=tests/eztaox/test_fitter.py --ignore=tests/eztaox/test_simulator.py --cov=./src --cov-report=html; fi"
         language: system
         pass_filenames: false
         always_run: true
