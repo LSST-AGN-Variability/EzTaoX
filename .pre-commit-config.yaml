@@ -1,6 +1,8 @@
 exclude: '^.md'
-default_language_version:
-    python: python3.11
+# `pre-commit install` installs both hook types. Hooks run on commit unless
+# they set their own stages; the slow unit-test hook runs on push instead.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 
 
 repos:
@@ -56,11 +58,8 @@ repos:
       - id: black-jupyter
         name: Format code using black
         types_or: [python, pyi, jupyter]
-        # It is recommended to specify the latest version of Python
-        # supported by your project here, or alternatively use
-        # pre-commit's default_language_version, see
-        # https://pre-commit.com/#top_level-default_language_version
-        language_version: python3.11
+        # No language_version pin: hook environments use the Python that runs
+        # pre-commit (the project's Poetry .venv), so no python3.11 is needed.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.2.1
@@ -78,7 +77,9 @@ repos:
         verbose: true
         args:
           ["docs/pre_executed/"]
-    # Run unit tests, verify that they pass. Note that coverage is run against
+    # Run unit tests on `git push` rather than on every commit, because the full
+    # suite takes several minutes. Skip once with `git push --no-verify`.
+    # Verify that they pass. Note that coverage is run against
     # the ./src directory here because that is what will be committed. In the
     # github workflow script, the coverage is run against the installed package
     # and uploaded to Codecov by calling pytest like so:
@@ -92,3 +93,4 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-push]
