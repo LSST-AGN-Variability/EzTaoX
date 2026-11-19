@@ -122,4 +122,16 @@ Locally, a pre-push hook runs the suite with coverage every time you `git push`,
 poetry run pre-commit install
 ```
 
+### Skip the tests for a commit
+
+Put `[skip-test]` (or `[skip-tests]`) in a commit's first line to skip the unit tests for it, for example on a docs-only change. Only the first line counts, so a commit body that mentions the marker doesn't skip anything.
+
+```bash
+git commit -m "Fix typo in README [skip-test]"
+```
+
+- **Locally**, the pre-push hook skips the tests when the first line of the latest commit you push carries the marker.
+- **In CI**, the "Unit test and code coverage" workflow skips its test jobs when the first line of the latest commit on a pull request, or of a commit pushed to `main`, carries the marker. Other workflows, such as pre-commit and benchmarks, still run.
+- **When squash-merging**, the pull request title becomes the first line of the commit on `main`. Put the marker in the title to skip the tests on `main` too.
+
 The test hook runs the `python` on your `PATH`. If that Python can't run pytest, the hook reports "Passed" without running any tests, so activate the project environment with `source .venv/bin/activate` before you push. To push without running the tests once, use `git push --no-verify`.
