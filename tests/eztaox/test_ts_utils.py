@@ -89,7 +89,7 @@ def test_addNoise() -> None:  # noqa: N802
 
     import jax
     import jax.numpy as jnp
-    from scipy.stats import kstest
+    from scipy.stats import kstest, norm
 
     key = jax.random.PRNGKey(0)
     key, k1, k2, k3 = jax.random.split(key, 4)
@@ -103,7 +103,9 @@ def test_addNoise() -> None:  # noqa: N802
 
     # Verify that the noise is Gaussian
     std_diff = (noisy_y - y) / yerr
-    res = kstest(std_diff, "norm", args=(0, 1))
+    # Pass the standard-normal CDF explicitly: scipy >= 1.18 maps the "norm"
+    # shortcut to `special.ndtr` and rejects loc/scale given via `args`.
+    res = kstest(std_diff, norm(loc=0, scale=1).cdf)
 
     print(res.pvalue)
     assert res.pvalue > 0.05  # Fail if p-value < 5%
