@@ -9,8 +9,6 @@ import numpy as np
 from eztao.carma import carma_acf, carma_psd, carma_sf, drw_acf, drw_psd, drw_sf
 from tinygp.test_utils import assert_allclose
 
-from eztaox.kernel_stat2 import carma_acf as carma_acf_local
-from eztaox.kernel_stat2 import carma_sf as carma_sf_local
 from eztaox.kernel_stat2 import gpStat2
 from eztaox.kernels import quasisep
 
@@ -62,10 +60,7 @@ def test_carma20() -> None:
     eztao_psd2 = carma_psd(ar20_2, ma20_2)
 
     # ---------- ACF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar20_1[::-1], ma20_1))
-    assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar20_2[::-1], ma20_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c20_stat2_1.acf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
         eztao_acf1(ts),
@@ -76,10 +71,7 @@ def test_carma20() -> None:
     )
 
     # ---------- SF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar20_1[::-1], ma20_1))
-    assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar20_2[::-1], ma20_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c20_stat2_1.sf(ts, jnp.concat([ar20_1[::-1], ma20_1])),
         eztao_sf1(ts),
@@ -90,7 +82,7 @@ def test_carma20() -> None:
     )
 
     # ---------- PSD ----------
-    # eztao vs. GP
+    # eztao vs. gpStat2
     assert_allclose(c20_stat2_1.psd(fs), eztao_psd1(fs))
     assert_allclose(
         c20_stat2_2.psd(fs, jnp.concat([ar20_2[::-1], ma20_2])), eztao_psd2(fs)
@@ -124,10 +116,7 @@ def test_carma21() -> None:
     eztao_psd2 = carma_psd(ar21_2, ma21_2)
 
     # ---------- ACF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar21_1[::-1], ma21_1))
-    assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar21_2[::-1], ma21_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c21_stat2_1.acf(ts, jnp.concat([ar21_1[::-1], ma21_1])),
         eztao_acf1(ts),
@@ -138,10 +127,7 @@ def test_carma21() -> None:
     )
 
     # ---------- SF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar21_1[::-1], ma21_1))
-    assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar21_2[::-1], ma21_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c21_stat2_1.sf(ts, jnp.concat([ar21_1[::-1], ma21_1])),
         eztao_sf1(ts),
@@ -152,7 +138,7 @@ def test_carma21() -> None:
     )
 
     # ---------- PSD ----------
-    # eztao vs. GP
+    # eztao vs. gpStat2
     assert_allclose(c21_stat2_1.psd(fs), eztao_psd1(fs))
     assert_allclose(
         c21_stat2_2.psd(fs, jnp.concat([ar21_2[::-1], ma21_2])), eztao_psd2(fs)
@@ -186,10 +172,7 @@ def test_carma30() -> None:
     eztao_psd2 = carma_psd(ar30_2, ma30_2)
 
     # ---------- ACF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_acf1(ts), carma_acf_local(ts, ar30_1[::-1], ma30_1))
-    assert_allclose(eztao_acf2(ts), carma_acf_local(ts, ar30_2[::-1], ma30_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c30_stat2_1.acf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
         eztao_acf1(ts),
@@ -200,10 +183,7 @@ def test_carma30() -> None:
     )
 
     # ---------- SF ----------
-    # eztao vs. eztaoX
-    assert_allclose(eztao_sf1(ts), carma_sf_local(ts, ar30_1[::-1], ma30_1))
-    assert_allclose(eztao_sf2(ts), carma_sf_local(ts, ar30_2[::-1], ma30_2))
-    # eztao vs GP
+    # eztao vs. gpStat2
     assert_allclose(
         c30_stat2_1.sf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
         eztao_sf1(ts),
@@ -214,8 +194,33 @@ def test_carma30() -> None:
     )
 
     # ---------- PSD ----------
-    # eztao vs. GP
+    # eztao vs. gpStat2
     assert_allclose(c30_stat2_1.psd(fs), eztao_psd1(fs))
     assert_allclose(
         c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
     )
+
+
+def test_stat2_vmap() -> None:
+    """
+    The jitted ACF/SF/PSD must support vmap over a batch of kernel parameters,
+    as done with posterior draws in the docs.
+    """
+    ts = np.linspace(0.001, 1000, 50)
+    fs = np.logspace(-4, 2, 50)
+
+    ar, ma = np.array([2.0, 1.1]), np.array([0.5])
+    stat2 = gpStat2(quasisep.CARMA(alpha=ar[::-1], beta=ma))
+
+    params = jnp.stack([stat2.kernel_params] * 3)
+    batched_acf = jax.vmap(stat2.acf, in_axes=(None, 0))(ts, params)
+    batched_sf = jax.vmap(stat2.sf, in_axes=(None, 0))(ts, params)
+    batched_psd = jax.vmap(stat2.psd, in_axes=(None, 0))(fs, params)
+
+    assert batched_acf.shape == (3, ts.size)
+    assert batched_sf.shape == (3, ts.size)
+    assert batched_psd.shape == (3, fs.size)
+    for i in range(3):
+        assert_allclose(batched_acf[i], stat2.acf(ts))
+        assert_allclose(batched_sf[i], stat2.sf(ts))
+        assert_allclose(batched_psd[i], stat2.psd(fs))
