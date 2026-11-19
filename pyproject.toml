@@ -21,8 +21,8 @@ dependencies = [
     "tinygp (>=0.3.0,<0.4.0)",
     "jax (==0.4.31)",
     "jaxlib (==0.4.31)",
-    "optax (>=0.2.5,<0.3.0)",
-    "numpyro (>=0.17.0,<0.20.0)",
+    "optax (>=0.2.9,<0.3.0)",
+    "numpyro (>=0.20.0,<0.21.0)",
 ]
 
 [project.urls]
@@ -34,21 +34,21 @@ dependencies = [
 #   CI installs with: pip install -e '.[dev]'  (keep the single quotes on a mac)
 [project.optional-dependencies]
 dev = [
-    "arviz>=0.20,<=1.0.0", # Used in notebooks to inspect MCMC results
-    "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
-    "black>=26.1", # Used for static linting of files
-    "celerite>=0.4", # Used for testing against reference celerite GP likelihoods
-    "eztao>=0.5", # Used for testing against EzTao calculations that are known to be correct
-    "ipykernel>=6.29", # Runs the example notebooks
-    "ipywidgets>=8.1.5", # Notebook progress bars and widgets
-    "joblib>=1.3", # Used for parallelization in tests
+    "arviz>=0.23.4,<=1.0.0", # Used in notebooks to inspect MCMC results
+    "asv[virtualenv]==0.6.6", # Used to compute performance benchmarks
+    "black>=26.10.1", # Used for static linting of files
+    "celerite>=0.4.3", # Used for testing against reference celerite GP likelihoods
+    "eztao>=0.5.1", # Used for testing against EzTao calculations that are known to be correct
+    "ipykernel>=7.3.0", # Runs the example notebooks
+    "ipywidgets>=8.1.9", # Notebook progress bars and widgets
+    "joblib>=1.6.0", # Used for parallelization in tests
     "jupyter", # Clears output from Jupyter notebooks
     "matplotlib>3.7", # Used in notebooks and scripts
-    "nox>=2025.0", # Runs the test suite against each supported Python version
-    "pre-commit>=3.5", # Used to run checks before finalizing a git commit
-    "pytest>=8.0",
+    "nox>=2026.10.20", # Runs the test suite against each supported Python version
+    "pre-commit>=4.6.2", # Used to run checks before finalizing a git commit
+    "pytest>=9.2.0",
     "pytest-cov>=7.1", # Used to report total code coverage
-    "ruff>=0.15", # Used for static linting of files
+    "ruff>=0.17.5", # Used for static linting of files
 ]
 
 [build-system]
