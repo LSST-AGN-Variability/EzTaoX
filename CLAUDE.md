@@ -17,7 +17,7 @@ poetry install --extras dev
 poetry add --optional dev <package>
 ```
 
-Run the test suite (CI runs this on 3.10/3.11/3.12 plus a lowest-pinned-versions job). `TESTING.md` is the user-facing testing guide; keep it in sync when test tooling changes.
+Run the test suite (CI runs this on 3.10/3.11/3.12 plus a lowest-pinned-versions job). A commit whose first line contains `[skip-test]` or `[skip-tests]` skips the unit tests in CI and in the local pre-push hook; use it only for changes that can't affect test results, such as docs. `TESTING.md` is the user-facing testing guide; keep it in sync when test tooling changes.
 
 ```bash
 poetry run pytest

@@ -11,17 +11,47 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  # Put [skip-test] in a commit's first line (its subject) to skip the unit
+  # tests for that commit. On pull requests the latest commit on the branch is
+  # checked; on pushes to main, the pushed commit. Only the subject is checked,
+  # so a commit body that merely mentions the marker does not skip anything.
+  # Other workflows still run.
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+    - id: check
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PUSH_MESSAGE: ${{ github.event.head_commit.message }}
+      run: |
+        if [ -n "$PR_HEAD_SHA" ]; then
+          MESSAGE=$(gh api "repos/$REPO/commits/$PR_HEAD_SHA" --jq .commit.message)
+        else
+          MESSAGE="$PUSH_MESSAGE"
+        fi
+        if printf '%s\n' "$MESSAGE" | head -n 1 | grep -qE '\[skip-tests?\]'; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "Commit subject contains [skip-test], so the unit tests were skipped." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
 
+  build:
+    needs: check-skip
+    if: needs.check-skip.outputs.skip != 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install uv
@@ -32,7 +62,7 @@ jobs:
         uv pip install --system -e .[dev]
         if [ -f requirements.txt ]; then uv pip install --system -r requirements.txt; fi
     - name: Cache JAX compilations
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ./jax_cache
         key: jax-cache-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ env.JAX_VERSION }} 
@@ -42,15 +72,17 @@ jobs:
       run: |
         python -m pytest --cov=eztaox --cov-report=xml --jax_cache=./jax_cache
     - name: Upload coverage report to codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
   test-lowest-versions:
+    needs: check-skip
+    if: needs.check-skip.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Set up Python 3.10
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
     - name: Install dependencies
@@ -66,7 +98,7 @@ jobs:
         fi
         uv pip install --constraint=requirements_lowest.txt -e .[dev]
     - name: Cache JAX compilations
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ./jax_cache
         key: jax-cache-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements_lowest.txt') }}
