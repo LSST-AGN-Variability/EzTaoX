@@ -12,7 +12,8 @@ sphinx-copybutton
 sphinx-book-theme
 
 ## Notebook requirements
-# The tutorials use the arviz 0.x plotting API; arviz 1.0 (Python >= 3.12)
-# changed it and no longer pulls in matplotlib.
-arviz<1.0
+# The tutorials use the arviz 1.x API (plot_trace_dist, PlotMatrix). arviz 1.2 is
+# the first 1.x release whose arviz_plots imports on matplotlib 3.11; arviz 1.x
+# no longer pulls in matplotlib itself.
+arviz>=1.2
 matplotlib
