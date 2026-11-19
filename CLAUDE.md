@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`eztaox` is a JAX/`tinygp`-based framework for modeling multi-band AGN light curves with Gaussian Processes. It is generated from the LINCC Frameworks Python Project Template (see `.copier-answers.yml`); template-managed files (pre-commit config, workflows, `.setup_dev.sh`) get overwritten on template updates, so avoid hand-editing them.
+`eztaox` is a JAX/`tinygp`-based framework for modeling multi-band AGN light curves with Gaussian Processes. It is generated from the LINCC Frameworks Python Project Template (see `.copier-answers.yml`); template-managed files (pre-commit config, workflows, `.setup_dev.sh`) may be changed back by `copier` template updates. The pre-commit config has deliberate local changes to keep: no `python3.11` pin, and the unit-test hook runs on pre-push instead of on every commit.
 
 JAX is pinned to `0.4.31` and `requires-python` is `>=3.10, <3.13`. Float64 is enabled globally in `eztaox/__init__.py` (`jax_enable_x64`).
 
@@ -30,7 +30,7 @@ poetry run pytest tests/eztaox/test_fitter.py
 poetry run pytest tests/eztaox/test_kernels_quasisep.py -k "carma"
 ```
 
-Coverage (what the pre-commit hook and CI do):
+Coverage (what the pre-push hook and CI do):
 
 ```bash
 poetry run pytest --cov=eztaox --cov-report=html

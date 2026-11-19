@@ -116,4 +116,10 @@ Interpreters from conda environments also work, as long as `python3.10`, `python
 | Unit test and code coverage | Every push and pull request to `main` | The full suite on Python 3.10, 3.11 and 3.12, with coverage uploaded to Codecov. A second job runs the suite on Python 3.10 with the lowest allowed versions of the runtime dependencies. |
 | Unit test smoke test | Daily | The full suite on Python 3.10, 3.11 and 3.12 against the latest dependency releases. |
 
-The pre-commit hook also runs the full suite with coverage on every commit. Install the hooks once with `poetry run pre-commit install`.
+Locally, a pre-push hook runs the full suite with coverage every time you `git push`. Commits only run the fast formatting and lint hooks. Install both hook types once with:
+
+```bash
+poetry run pre-commit install
+```
+
+The test hook runs the `python` on your `PATH`. If that Python can't run pytest, the hook reports "Passed" without running any tests, so activate the project environment with `source .venv/bin/activate` before you push. To push without running the tests once, use `git push --no-verify`.

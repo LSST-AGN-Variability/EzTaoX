@@ -1,4 +1,8 @@
 exclude: '^.md'
+# `pre-commit install` installs both hook types. Hooks run on commit unless
+# they set their own stages; the slow unit-test hook runs on push instead.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 
 
 repos:
@@ -73,7 +77,9 @@ repos:
         verbose: true
         args:
           ["docs/pre_executed/"]
-    # Run unit tests, verify that they pass. Note that coverage is run against
+    # Run unit tests on `git push` rather than on every commit, because the full
+    # suite takes several minutes. Skip once with `git push --no-verify`.
+    # Verify that they pass. Note that coverage is run against
     # the ./src directory here because that is what will be committed. In the
     # github workflow script, the coverage is run against the installed package
     # and uploaded to Codecov by calling pytest like so:
@@ -87,3 +93,4 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-push]
