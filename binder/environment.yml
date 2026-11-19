@@ -6,7 +6,7 @@ dependencies:
   - numpy
   - scipy
   - matplotlib
-  - arviz<1.0
+  - arviz>=1.2
   - celerite
   - pip
   - pip:

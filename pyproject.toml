@@ -35,7 +35,7 @@ dependencies = [
 #   CI installs with: pip install -e '.[dev]'  (keep the single quotes on a mac)
 [project.optional-dependencies]
 dev = [
-    "arviz>=0.20,<1.0", # Used in notebooks (arviz 0.x plotting API)
+    "arviz>=1.2", # Used in notebooks (arviz 1.x API); 1.2+ imports on matplotlib 3.11
     "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
     "black>=26.1", # Used for static linting of files
     "celerite>=0.4", # Used for testing against reference celerite GP likelihoods
