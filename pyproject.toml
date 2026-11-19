@@ -35,8 +35,8 @@ dependencies = [
 #   CI installs with: pip install -e '.[dev]'  (keep the single quotes on a mac)
 [project.optional-dependencies]
 dev = [
-    "arviz>=0.20,<1.0", # Used in notebooks (arviz 0.x plotting API)
-    "asv[virtualenv]==0.6.5", # Used to compute performance benchmarks
+    "arviz>=0.20,<2.0", # Used in notebooks (arviz 0.x plotting API)
+    "asv[virtualenv]==0.6.6", # Used to compute performance benchmarks
     "black>=26.1", # Used for static linting of files
     "celerite>=0.4", # Used for testing against reference celerite GP likelihoods
     "eztao>=0.5.2", # Used for testing against EzTao calculations that are known to be correct
