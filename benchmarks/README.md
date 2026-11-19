@@ -22,5 +22,8 @@ You can also start the "Run benchmarks for PR" workflow by hand from the Actions
 That run shows the comparison table on its summary page instead of posting a comment.
 
 Benchmarks still run on every push to `main` and nightly. The push-to-`main` run
-benchmarks a sample of commits after `afe10654` (April 2026); older commits predate
-the current fitter API and the benchmark suite, so they are left out.
+benchmarks only the pushed commit, which keeps it to a few minutes. The nightly run
+compares `main` against the previous night, then fills in a sample of commits after
+`afe10654` (April 2026) so the dashboard shows history; older commits predate the
+current fitter API and the benchmark suite, so they are left out. Both runs publish
+their results to the `benchmarks` branch and the dashboard on GitHub Pages.

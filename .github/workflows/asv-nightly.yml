@@ -1,6 +1,7 @@
 # This workflow will run daily at 06:45.
-# It will run benchmarks with airspeed velocity (asv)
-# and compare performance with the previous nightly build.
+# It will run benchmarks with airspeed velocity (asv),
+# compare performance with the previous nightly build, fill in the sampled
+# history of main on the dashboard, and publish the results.
 name: Run benchmarks nightly job
 
 on:
@@ -17,6 +18,8 @@ env:
 jobs:
   asv-nightly:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: ${{env.WORKING_DIR}}
@@ -70,3 +73,24 @@ jobs:
       with:
         path: ${{env.WORKING_DIR}}
         key: nightly-results-${{steps.nightly-dates.outputs.today}}
+    # Fill in a sample of commits after afe10654 (April 2026) so the dashboard
+    # shows history; older commits predate the current fitter API and the
+    # benchmark suite. The push-to-main workflow only benchmarks HEAD, so this
+    # is where edits to benchmarks/ get re-run over past commits.
+    - name: Run ASV over a sample of main history
+      run: asv run afe10654..HEAD --steps 10 --skip-existing --verbose || true
+    - name: Submit new results to the "benchmarks" branch
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        branch: benchmarks
+        folder: ${{env.WORKING_DIR}}/_results
+        target-folder: _results
+    - name: Generate dashboard HTML
+      run: |
+        asv show
+        asv publish
+    - name: Deploy to Github pages
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        branch: gh-pages
+        folder: ${{env.WORKING_DIR}}/_html

@@ -49,11 +49,13 @@ jobs:
             --no-commit
           mv ../_results .
         fi
-    # Only benchmark commits after afe10654 (April 2026): older commits predate
-    # the current fitter API and the benchmark suite, so running today's
-    # benchmarks on them only produces failed results and wastes ~30 minutes.
-    - name: Run ASV for the main branch
-      run: asv run afe10654..HEAD --steps 10 --skip-existing --verbose || true
+    # Benchmark only the pushed commit (HEAD^! is git for "HEAD alone"). The
+    # sampled walk over history lives in asv-nightly.yml: re-running it here
+    # re-sampled a different set of ~10 commits on every push, and any edit to
+    # benchmarks/ changed benchmark versions and re-ran them on all of them,
+    # which cost 40-75 minutes per push.
+    - name: Run ASV for the pushed commit
+      run: asv run HEAD^! --skip-existing --verbose || true
     - name: Submit new results to the "benchmarks" branch
       uses: JamesIves/github-pages-deploy-action@v4
       with:
