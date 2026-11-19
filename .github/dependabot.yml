@@ -4,7 +4,22 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # Bundle all action bumps into one pull request per month.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "monthly"
+    # Bundle all Python dependency bumps into one pull request per month.
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      # jax and jaxlib are pinned to 0.4.31 on purpose. Remove these entries
+      # when you are ready to move to a newer JAX release.
+      - dependency-name: "jax"
+      - dependency-name: "jaxlib"

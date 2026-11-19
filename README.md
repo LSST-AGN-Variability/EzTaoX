@@ -29,6 +29,18 @@ pip install eztaox
 "numpyro (>=0.17.0,<0.20.0)",
 ```
 
+### Development
+`EzTaoX` uses [Poetry](https://python-poetry.org/) to manage its development environment (Python 3.10, 3.11 or 3.12).
+```
+git clone https://github.com/LSST-AGN-Variability/EzTaoX.git
+cd EzTaoX
+poetry install --extras dev
+poetry run pre-commit install
+```
+All development and testing tools live in the `dev` extra in `pyproject.toml`, which CI also installs with `pip install -e '.[dev]'`. Add a new one with `poetry add --optional dev <package>` so that local and CI environments stay in sync.
+
+See [TESTING.md](TESTING.md) for running the tests, including across all supported Python versions with `nox`.
+
 ### Documentation
 Please see our [readthedocs](https://eztaox.readthedocs.io/)
 
