@@ -13,6 +13,12 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # Only propose an update when a new release falls outside the current
+    # range. Dev tools have lower bounds only, so they never trigger one. When a
+    # runtime dependency outgrows its upper bound, check that the PR does not
+    # raise the lower bound: it sets the oldest version users may install, and
+    # the lowest-versions CI job tests it. ("widen" is not accepted for pip.)
+    versioning-strategy: "increase-if-necessary"
     # Bundle all Python dependency bumps into one pull request per month.
     groups:
       python-dependencies:
