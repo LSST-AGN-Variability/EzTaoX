@@ -13,6 +13,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # Only raise upper bounds when a new release falls outside them. Never
+    # raise lower bounds: they set the oldest versions users may install, and
+    # the lowest-versions CI job tests them.
+    versioning-strategy: "widen"
     # Bundle all Python dependency bumps into one pull request per month.
     groups:
       python-dependencies:

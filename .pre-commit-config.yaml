@@ -77,8 +77,9 @@ repos:
         verbose: true
         args:
           ["docs/pre_executed/"]
-    # Run unit tests on `git push` rather than on every commit, because the full
-    # suite takes several minutes. Skip once with `git push --no-verify`.
+    # Run unit tests on `git push` rather than on every commit. The two slowest
+    # files, test_simulator.py and test_fitter.py, are left out here; CI runs
+    # the full suite. Skip the hook once with `git push --no-verify`.
     # Verify that they pass. Note that coverage is run against
     # the ./src directory here because that is what will be committed. In the
     # github workflow script, the coverage is run against the installed package
@@ -89,7 +90,7 @@ repos:
       - id: pytest-check
         name: Run unit tests
         description: Run unit tests with pytest.
-        entry: bash -c "if python -m pytest --co -qq; then python -m pytest --cov=./src --cov-report=html; fi"
+        entry: bash -c "if python -m pytest --co -qq; then python -m pytest --ignore=tests/eztaox/test_fitter.py --ignore=tests/eztaox/test_simulator.py --cov=./src --cov-report=html; fi"
         language: system
         pass_filenames: false
         always_run: true

@@ -46,7 +46,7 @@ poetry run pytest --cov=eztaox --cov-report=html
 A few things to know:
 
 - **JAX compilation cache.** The tests store compiled JAX functions in `.jax_cache/` at the repository root, which makes later runs much faster. Pass `--jax_cache=<dir>` to use a different folder.
-- **Slow tests.** `tests/eztaox/test_fitter.py` fits many simulated light curves and takes the longest. Leave it out with `--ignore=tests/eztaox/test_fitter.py` or run it on its own.
+- **Slow tests.** `tests/eztaox/test_simulator.py` takes most of the run time, and `tests/eztaox/test_fitter.py` is next. Leave them out with `--ignore=tests/eztaox/test_simulator.py --ignore=tests/eztaox/test_fitter.py`, or run them on their own.
 - **Experimental tests.** `tests/eztaox/_test_laguerre.py` starts with an underscore so pytest skips it. It covers the hidden, experimental Laguerre kernel.
 
 ## Every supported Python version with nox
@@ -116,7 +116,7 @@ Interpreters from conda environments also work, as long as `python3.10`, `python
 | Unit test and code coverage | Every push and pull request to `main` | The full suite on Python 3.10, 3.11 and 3.12, with coverage uploaded to Codecov. A second job runs the suite on Python 3.10 with the lowest allowed versions of the runtime dependencies. |
 | Unit test smoke test | Daily | The full suite on Python 3.10, 3.11 and 3.12 against the latest dependency releases. |
 
-Locally, a pre-push hook runs the full suite with coverage every time you `git push`. Commits only run the fast formatting and lint hooks. Install both hook types once with:
+Locally, a pre-push hook runs the suite with coverage every time you `git push`, leaving out the two slowest files, `tests/eztaox/test_simulator.py` and `tests/eztaox/test_fitter.py`. CI still runs them. Commits only run the fast formatting and lint hooks. Install both hook types once with:
 
 ```bash
 poetry run pre-commit install
