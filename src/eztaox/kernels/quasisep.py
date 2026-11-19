@@ -390,12 +390,23 @@ class CARMA(Quasisep):
             return jnp.exp(-self.alpha[0] * dt)[None, None]
 
         # companion_matrix(alpha).T is diagonalizable by the AR roots when they are
-        # distinct; this constructs the transition without calling matrix expm.
-        exp_diag = jnp.exp(arroots * dt)
+        # distinct; this constructs the transition without calling matrix expm:
+        #
+        #   expm(F dt) = V diag(exp(r dt)) V^-1 = sum_k exp(r_k dt) v_k w_k^T,
+        #
+        # where v_k and w_k are the k-th column of V and row of V^-1. Only the
+        # exponentials depend on dt, so XLA evaluates the eigendecomposition once
+        # rather than per interval. The sum is real, and it is evaluated in real
+        # arithmetic on purpose: complex elementwise ops and complex batched
+        # matmuls are several times slower than real ones on the XLA CPU backend.
         vecs = self._companion_eigenvectors(arroots)
         vecs_inv = jnp.linalg.inv(vecs)
-        transition = vecs @ (exp_diag[:, None] * vecs_inv)
-        return transition.real
+        modes = vecs[:, None, :] * vecs_inv.T[None, :, :]  # [i, j, k] = V_ik W_kj
+        magnitude = jnp.exp(arroots.real * dt)
+        phase = arroots.imag * dt
+        real_part = modes.real @ (magnitude * jnp.cos(phase))
+        imag_part = modes.imag @ (magnitude * jnp.sin(phase))
+        return real_part - imag_part
 
     def design_matrix(self):
         """Return the companion-form drift matrix for the latent CAR state."""
