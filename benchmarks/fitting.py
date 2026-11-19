@@ -1,5 +1,7 @@
 """Benchmarks for EzTaoX kernel fitting"""
 
+import contextlib
+
 import jax
 import jax.numpy as jnp
 import jax.random as jr
@@ -12,6 +14,14 @@ from eztaox.kernels import quasisep as ekq
 from eztaox.models import MultiVarModel, UniVarModel
 from eztaox.simulator import UniVarSim
 from eztaox.ts_utils import add_noise
+
+# Run JAX computations inline instead of handing them to the CPU client's worker
+# thread. The asynchronous dispatch adds a fixed, noisy wake-up latency (tens of
+# microseconds on macOS) to every blocking call, which would dominate the small
+# log-likelihood benchmarks without saying anything about eztaox itself.
+with contextlib.suppress(AttributeError, ValueError, KeyError):
+    # older JAX releases have no such option
+    jax.config.update("jax_cpu_enable_async_dispatch", False)
 
 DRW_PARAMS = {"tau": 100.0, "sigma": 0.1}
 NBANDS = 2
