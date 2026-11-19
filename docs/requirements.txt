@@ -12,4 +12,7 @@ sphinx-copybutton
 sphinx-book-theme
 
 ## Notebook requirements
-arviz<=1.0.0
+# The tutorials use the arviz 0.x plotting API; arviz 1.0 (Python >= 3.12)
+# changed it and no longer pulls in matplotlib.
+arviz<1.0
+matplotlib
