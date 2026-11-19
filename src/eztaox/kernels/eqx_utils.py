@@ -2,7 +2,7 @@
 
 import equinox as eqx
 import jax
-from equinox._module import BoundMethod
+from equinox._module._prebuilt import BoundMethod
 from jax.tree_util import GetAttrKey
 
 

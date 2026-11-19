@@ -24,8 +24,3 @@ updates:
       python-dependencies:
         patterns:
           - "*"
-    ignore:
-      # jax and jaxlib are pinned to 0.4.31 on purpose. Remove these entries
-      # when you are ready to move to a newer JAX release.
-      - dependency-name: "jax"
-      - dependency-name: "jaxlib"

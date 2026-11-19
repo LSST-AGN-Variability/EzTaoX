@@ -99,7 +99,7 @@ def test_simulator_run_univarsim(kernel) -> None:
         zero_mean=True,
     )
 
-    sim_t, sim_y = s.fixed_input(t, jax.random.PRNGKey(11))
+    sim_t, sim_y = s.fixed_input(t, jax.random.key(11))
     assert sim_t.shape == sim_y.shape == t.shape
     assert not jnp.isnan(sim_t).any()
     assert not jnp.isnan(sim_y).any()
@@ -115,7 +115,7 @@ def test_simulator_fixed_input_fast() -> None:
     ## DRW simulator setup
     drw_scale, drw_sigma = 100.0, 0.2
     mindt, maxdt = 0.1, 2000.0
-    main_key = jax.random.PRNGKey(0)
+    main_key = jax.random.key(0)
     sim_params = {
         "log_kernel_param": jnp.array([jnp.log(drw_scale), jnp.log(drw_sigma)]),
     }
@@ -124,7 +124,7 @@ def test_simulator_fixed_input_fast() -> None:
 
     ## simulation configs
     nsim = 500
-    npt = 100
+    npt = 200
     nbins = 10
     input_t = jnp.linspace(mindt, maxdt, npt)
     bins = np.logspace(np.log10(maxdt / npt), np.log10(maxdt), nbins)
@@ -159,7 +159,7 @@ def test_simulator_multivar(kernel) -> None:
     mindt, maxdt = 0.1, 2000.0
     n_random = 1000
     nband = 2
-    main_key = jax.random.PRNGKey(101)
+    main_key = jax.random.key(101)
     sim_keys = jax.random.split(main_key, 5)
     sim_params = {
         "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
@@ -243,7 +243,7 @@ def test_simulator_nonqs_exp_minimal() -> None:
         zero_mean=True,
     )
 
-    sim_t, sim_y = s.fixed_input(t, jax.random.PRNGKey(123))
+    sim_t, sim_y = s.fixed_input(t, jax.random.key(123))
     assert sim_t.shape == sim_y.shape == t.shape
     assert not jnp.isnan(sim_t).any()
     assert not jnp.isnan(sim_y).any()

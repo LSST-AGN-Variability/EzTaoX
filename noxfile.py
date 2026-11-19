@@ -7,7 +7,7 @@ CI run. Nox skips any Python version it cannot find; see TESTING.md.
 
 import nox
 
-PYTHON_VERSIONS = ["3.10", "3.11", "3.12"]
+PYTHON_VERSIONS = ["3.12", "3.13", "3.14"]
 
 # Use uv to build session environments when it is installed; it is much faster.
 nox.options.default_venv_backend = "uv|virtualenv"

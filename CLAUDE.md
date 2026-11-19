@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `eztaox` is a JAX/`tinygp`-based framework for modeling multi-band AGN light curves with Gaussian Processes. It is generated from the LINCC Frameworks Python Project Template (see `.copier-answers.yml`); template-managed files (pre-commit config, workflows, `.setup_dev.sh`) may be changed back by `copier` template updates. The pre-commit config has deliberate local changes to keep: no `python3.11` pin, and the unit-test hook runs on pre-push instead of on every commit, skipping the slow `test_simulator.py` and `test_fitter.py`.
 
-JAX is pinned to `0.4.31` and `requires-python` is `>=3.10, <3.13`. Float64 is enabled globally in `eztaox/__init__.py` (`jax_enable_x64`).
+JAX is `>=0.12.0` (unpinned above that) and `requires-python` is `>=3.12, <3.15`. Float64 is enabled globally in `eztaox/__init__.py` (`jax_enable_x64`).
 
 ## Commands
 
@@ -17,7 +17,7 @@ poetry install --extras dev
 poetry add --optional dev <package>
 ```
 
-Run the test suite (CI runs this on 3.10/3.11/3.12 plus a lowest-pinned-versions job). A commit whose first line contains `[skip-test]` or `[skip-tests]` skips the unit tests in CI and in the local pre-push hook; use it only for changes that can't affect test results, such as docs. `TESTING.md` is the user-facing testing guide; keep it in sync when test tooling changes.
+Run the test suite (CI runs this on 3.12/3.13/3.14 plus a lowest-pinned-versions job). A commit whose first line contains `[skip-test]` or `[skip-tests]` skips the unit tests in CI and in the local pre-push hook; use it only for changes that can't affect test results, such as docs. `TESTING.md` is the user-facing testing guide; keep it in sync when test tooling changes.
 
 ```bash
 poetry run pytest
@@ -48,7 +48,7 @@ Multi-version tests via plain nox. Each session builds a fresh environment, inst
 
 ```bash
 poetry run nox
-poetry run nox -s tests-3.11 -- tests/eztaox/test_ts_utils.py
+poetry run nox -s tests-3.13 -- tests/eztaox/test_ts_utils.py
 ```
 
 Docs (Sphinx + autoapi + nbsphinx; `make no-nb` skips executing notebooks):

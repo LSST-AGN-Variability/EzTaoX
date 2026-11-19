@@ -1,5 +1,8 @@
 """Benchmarks for EzTaoX kernel fitting"""
 
+import contextlib
+import functools
+
 import jax
 import jax.numpy as jnp
 import jax.random as jr
@@ -13,10 +16,74 @@ from eztaox.models import MultiVarModel, UniVarModel
 from eztaox.simulator import UniVarSim
 from eztaox.ts_utils import add_noise
 
+# Run JAX computations inline instead of handing them to the CPU client's worker
+# thread. The asynchronous dispatch adds a fixed, noisy wake-up latency (tens of
+# microseconds on macOS) to every blocking call, which would dominate the small
+# log-likelihood benchmarks without saying anything about eztaox itself.
+with contextlib.suppress(AttributeError, ValueError, KeyError):
+    # older JAX releases have no such option
+    jax.config.update("jax_cpu_enable_async_dispatch", False)
+
 DRW_PARAMS = {"tau": 100.0, "sigma": 0.1}
 NBANDS = 2
 CARMA_BENCHMARK_ALPHA = (0.0002, 0.05)
 CARMA_BENCHMARK_BETA = (0.0006, 0.03)
+
+
+# The log-likelihood suites keep their models in a module-level cache instead of
+# a ``setup`` hook. asv_runner >= 0.3 re-runs ``setup`` before every timed call,
+# so with a hook each sample would be a single cold call made right after
+# seconds of JIT compilation, which inflates these microsecond-scale timings
+# 3-4x and makes them noisy. Without a hook asv batches ``number`` warm calls per
+# sample; the one-off build and compile lands in asv's warmup phase.
+_LOGP_NUMBER = 200
+
+
+@functools.cache
+def _univar_logp_state(n) -> dict[str, tuple[dict, callable]]:
+    """Build and precompile the univariate models once per light-curve size."""
+    t, y, yerr = generate_drw_univar(n)
+    kernels = {
+        "exp": ekq.Exp(scale=10.0, sigma=0.1),
+        "m32": ekq.Matern32(scale=10.0, sigma=0.1),
+        "m52": ekq.Matern52(scale=10.0, sigma=0.1),
+        "carma": ekq.CARMA(
+            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),
+            beta=jnp.asarray(CARMA_BENCHMARK_BETA),
+        ),
+    }
+    state = {}
+    for name, kernel in kernels.items():
+        params = {
+            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+            "mean": 0.0,
+        }
+        model = UniVarModel(t, y, yerr, kernel, zero_mean=False)
+        state[name] = (params, _precompile_log_prob(model, params))
+    return state
+
+
+@functools.cache
+def _multivar_logp_state(n) -> dict[str, tuple[dict, callable]]:
+    """Build and precompile the multivariate models once per light-curve size."""
+    X, y, yerr = generate_drw_multivar(n)
+    rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
+    kernels = {
+        "exp": ekq.Exp(scale=10.0, sigma=0.1),
+        "m32": ekq.Matern32(scale=10.0, sigma=0.1),
+        "m52": ekq.Matern52(scale=10.0, sigma=0.1),
+    }
+    state = {}
+    for name, kernel in kernels.items():
+        params = {
+            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(kernel)[0]),
+            "log_amp_scale": jnp.log(1.0),
+            "lag": rand_lag,
+            "mean": 0.0,
+        }
+        model = MultiVarModel(X, y, yerr, kernel, NBANDS, zero_mean=False, has_lag=True)
+        state[name] = (params, _precompile_log_prob(model, params))
+    return state
 
 
 class KernelUniVarSuite:
@@ -25,56 +92,23 @@ class KernelUniVarSuite:
     # Size of lightcurve `n`
     params = [50, 200, 500, 2_000]
     repeat = 5
-    sample_time = 0.1
+    number = _LOGP_NUMBER
 
-    def setup(self, n) -> None:
-        t, y, yerr = generate_drw_univar(n)
-        # Exp kernel
-        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)
-        self.exp_params = {
-            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),
-            "mean": 0.0,
-        }
-        self.exp_model = UniVarModel(t, y, yerr, exp_kernel, zero_mean=False)
+    def time_run_exp_logp(self, n):
+        params, log_prob = _univar_logp_state(n)["exp"]
+        log_prob(params).block_until_ready()
 
-        # Matern32 kernel
-        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)
-        self.m32_params = self.exp_params.copy()
-        self.m32_model = UniVarModel(t, y, yerr, m32_kernel, zero_mean=False)
+    def time_run_m32_logp(self, n):
+        params, log_prob = _univar_logp_state(n)["m32"]
+        log_prob(params).block_until_ready()
 
-        # Matern52 kernel
-        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)
-        self.m52_params = self.exp_params.copy()
-        self.m52_model = UniVarModel(t, y, yerr, m52_kernel, zero_mean=False)
+    def time_run_m52_logp(self, n):
+        params, log_prob = _univar_logp_state(n)["m52"]
+        log_prob(params).block_until_ready()
 
-        # CARMA kernel
-        carma_kernel = ekq.CARMA(
-            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),
-            beta=jnp.asarray(CARMA_BENCHMARK_BETA),
-        )
-        self.carma_params = {
-            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(carma_kernel)[0]),
-            "mean": 0.0,
-        }
-        self.carma_model = UniVarModel(t, y, yerr, carma_kernel, zero_mean=False)
-
-        # Precompile log probability functions
-        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)
-        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)
-        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)
-        self.carma_log_prob = _precompile_log_prob(self.carma_model, self.carma_params)
-
-    def time_run_exp_logp(self, _):
-        self.exp_log_prob(self.exp_params).block_until_ready()
-
-    def time_run_m32_logp(self, _):
-        self.m32_log_prob(self.m32_params).block_until_ready()
-
-    def time_run_m52_logp(self, _):
-        self.m52_log_prob(self.m52_params).block_until_ready()
-
-    def time_run_carma_logp(self, _):
-        self.carma_log_prob(self.carma_params).block_until_ready()
+    def time_run_carma_logp(self, n):
+        params, log_prob = _univar_logp_state(n)["carma"]
+        log_prob(params).block_until_ready()
 
 
 class KernelMultiVarSuite:
@@ -83,51 +117,19 @@ class KernelMultiVarSuite:
     # Size of lightcurve `n`
     params = [50, 200, 500, 2_000]
     repeat = 5
-    sample_time = 0.2
+    number = _LOGP_NUMBER
 
-    def setup(self, n) -> None:
-        X, y, yerr = generate_drw_multivar(n)
-        rand_lag = jr.uniform(jr.PRNGKey(0), minval=0.0, maxval=10.0)
-        # Exp kernel
-        exp_kernel = ekq.Exp(scale=10.0, sigma=0.1)
-        self.exp_params = {
-            "log_kernel_param": jnp.log(jax.flatten_util.ravel_pytree(exp_kernel)[0]),
-            "log_amp_scale": jnp.log(1.0),
-            "lag": rand_lag,
-            "mean": 0.0,
-        }
-        self.exp_model = MultiVarModel(
-            X, y, yerr, exp_kernel, NBANDS, zero_mean=False, has_lag=True
-        )
+    def time_run_exp_logp(self, n):
+        params, log_prob = _multivar_logp_state(n)["exp"]
+        log_prob(params).block_until_ready()
 
-        # Matern32 kernel
-        m32_kernel = ekq.Matern32(scale=10.0, sigma=0.1)
-        self.m32_params = self.exp_params.copy()
+    def time_run_m32_logp(self, n):
+        params, log_prob = _multivar_logp_state(n)["m32"]
+        log_prob(params).block_until_ready()
 
-        self.m32_model = MultiVarModel(
-            X, y, yerr, m32_kernel, NBANDS, zero_mean=False, has_lag=True
-        )
-
-        # Matern52 kernel
-        m52_kernel = ekq.Matern52(scale=10.0, sigma=0.1)
-        self.m52_params = self.exp_params.copy()
-        self.m52_model = MultiVarModel(
-            X, y, yerr, m52_kernel, NBANDS, zero_mean=False, has_lag=True
-        )
-
-        # Precompile log probability functions
-        self.exp_log_prob = _precompile_log_prob(self.exp_model, self.exp_params)
-        self.m32_log_prob = _precompile_log_prob(self.m32_model, self.m32_params)
-        self.m52_log_prob = _precompile_log_prob(self.m52_model, self.m52_params)
-
-    def time_run_exp_logp(self, _):
-        self.exp_log_prob(self.exp_params).block_until_ready()
-
-    def time_run_m32_logp(self, _):
-        self.m32_log_prob(self.m32_params).block_until_ready()
-
-    def time_run_m52_logp(self, _):
-        self.m52_log_prob(self.m52_params).block_until_ready()
+    def time_run_m52_logp(self, n):
+        params, log_prob = _multivar_logp_state(n)["m52"]
+        log_prob(params).block_until_ready()
 
 
 class KernelUniVarPrecompileSuite:

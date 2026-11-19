@@ -3,7 +3,7 @@
 There are two ways to run the tests locally:
 
 - **pytest in your Poetry environment.** Fast. Use it while you work.
-- **nox.** Runs the suite once per supported Python version (3.10, 3.11, 3.12), each in a fresh environment, the same way CI does. Use it before you push.
+- **nox.** Runs the suite once per supported Python version (3.12, 3.13, 3.14), each in a fresh environment, the same way CI does. Use it before you push.
 
 ## Set up
 
@@ -13,7 +13,7 @@ EzTaoX uses [Poetry](https://python-poetry.org/) to manage its development envir
 poetry install --extras dev
 ```
 
-The project needs Python 3.10, 3.11 or 3.12. If Poetry picks an unsupported interpreter, point it at a supported one:
+The project needs Python 3.12, 3.13 or 3.14. If Poetry picks an unsupported interpreter, point it at a supported one:
 
 ```bash
 poetry env use python3.12
@@ -60,7 +60,7 @@ poetry run nox
 Run a single Python version:
 
 ```bash
-poetry run nox -s tests-3.11
+poetry run nox -s tests-3.13
 ```
 
 Pass arguments to pytest after `--`:
@@ -82,7 +82,7 @@ Each session installs the package with `pip install -e '.[dev]'`, exactly as CI 
 **Nox only tests the Python versions it can find on your machine.** For every version that is missing, nox skips that session and prints a line like this:
 
 ```text
-nox > Session tests-3.11 skipped: Python interpreter 3.11 not found.
+nox > Session tests-3.14 skipped: Python interpreter 3.14 not found.
 ```
 
 A skipped session is not a failure, so a run can look green while testing fewer versions than you expect. Check the summary at the end of the run.
@@ -92,29 +92,29 @@ Install the missing versions with pyenv or uv.
 **pyenv.** Install all three versions, then make them available in this repository. The `.python-version` file that `pyenv local` writes is git-ignored.
 
 ```bash
-for v in 3.10 3.11 3.12; do pyenv install --skip-existing "$v"; done
+for v in 3.12 3.13 3.14; do pyenv install --skip-existing "$v"; done
 ```
 
 ```bash
-pyenv local 3.12 3.11 3.10
+pyenv local 3.14 3.13 3.12
 ```
 
-**uv.** Install all three versions. Recent uv releases also put `python3.10`, `python3.11` and `python3.12` into `~/.local/bin`, which must be on your `PATH`.
+**uv.** Install all three versions. Recent uv releases also put `python3.12`, `python3.13` and `python3.14` into `~/.local/bin`, which must be on your `PATH`.
 
 ```bash
-uv python install 3.10 3.11 3.12
+uv python install 3.12 3.13 3.14
 ```
 
 With uv installed, nox also downloads any missing version through uv on its own, so you rarely see a skipped session. To turn that off and test only the versions already installed, add `--download-python never`.
 
-Interpreters from conda environments also work, as long as `python3.10`, `python3.11` and `python3.12` are on your `PATH` when you run nox.
+Interpreters from conda environments also work, as long as `python3.12`, `python3.13` and `python3.14` are on your `PATH` when you run nox.
 
 ## What CI runs
 
 | Workflow | When | What it checks |
 | --- | --- | --- |
-| Unit test and code coverage | Every push and pull request to `main` | The full suite on Python 3.10, 3.11 and 3.12, with coverage uploaded to Codecov. A second job runs the suite on Python 3.10 with the lowest allowed versions of the runtime dependencies. |
-| Unit test smoke test | Daily | The full suite on Python 3.10, 3.11 and 3.12 against the latest dependency releases. |
+| Unit test and code coverage | Every push and pull request to `main` | The full suite on Python 3.12, 3.13 and 3.14, with coverage uploaded to Codecov. A second job runs the suite on Python 3.12 with the lowest allowed versions of the runtime dependencies. |
+| Unit test smoke test | Daily | The full suite on Python 3.12, 3.13 and 3.14 against the latest dependency releases. |
 
 Locally, a pre-push hook runs the suite with coverage every time you `git push`, leaving out the two slowest files, `tests/eztaox/test_simulator.py` and `tests/eztaox/test_fitter.py`. CI still runs them. Commits only run the fast formatting and lint hooks. Install both hook types once with:
 

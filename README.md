@@ -20,17 +20,18 @@
 pip install eztaox
 ```
 #### Dependencies
-##### Supports Python 3.10, 3.11, 3.12
+##### Supports Python 3.12, 3.13, 3.14
 ```
-"jax (==0.4.31)",
-"jaxlib (==0.4.31)",
+"jax (>=0.12.0)",
+"jaxlib (>=0.12.0)",
+"equinox (>=0.13.1)",
 "tinygp (>=0.3.0,<0.4.0)",
 "optax (>=0.2.5,<0.3.0)",
-"numpyro (>=0.17.0,<0.20.0)",
+"numpyro (>=0.21.0,<0.23.0)",
 ```
 
 ### Development
-`EzTaoX` uses [Poetry](https://python-poetry.org/) to manage its development environment (Python 3.10, 3.11 or 3.12).
+`EzTaoX` uses [Poetry](https://python-poetry.org/) to manage its development environment (Python 3.12, 3.13 or 3.14).
 ```
 git clone https://github.com/LSST-AGN-Variability/EzTaoX.git
 cd EzTaoX
