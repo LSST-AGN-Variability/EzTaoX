@@ -173,9 +173,9 @@ def test_carma30() -> None:
 
     # from GP
     c30_k1 = quasisep.CARMA(alpha=ar30_1[::-1], beta=ma30_1)
-    # c30_k2 = quasisep.CARMA(alpha=ar30_2[::-1], beta=ma30_2)
+    c30_k2 = quasisep.CARMA(alpha=ar30_2[::-1], beta=ma30_2)
     c30_stat2_1 = gpStat2(c30_k1)
-    # c30_stat2_2 = gpStat2(c30_k2)
+    c30_stat2_2 = gpStat2(c30_k2)
 
     # from eztao
     eztao_acf1 = carma_acf(ar30_1, ma30_1)
@@ -183,7 +183,7 @@ def test_carma30() -> None:
     eztao_sf1 = carma_sf(ar30_1, ma30_1)
     eztao_sf2 = carma_sf(ar30_2, ma30_2)
     eztao_psd1 = carma_psd(ar30_1, ma30_1)
-    # eztao_psd2 = carma_psd(ar30_2, ma30_2)
+    eztao_psd2 = carma_psd(ar30_2, ma30_2)
 
     # ---------- ACF ----------
     # eztao vs. eztaoX
@@ -194,10 +194,10 @@ def test_carma30() -> None:
         c30_stat2_1.acf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
         eztao_acf1(ts),
     )
-    # assert_allclose(
-    #     c30_stat2_2.acf(ts, jnp.concat([ar30_2[::-1], ma30_2])),
-    #     eztao_acf2(ts),
-    # )
+    assert_allclose(
+        c30_stat2_2.acf(ts, jnp.concat([ar30_2[::-1], ma30_2])),
+        eztao_acf2(ts),
+    )
 
     # ---------- SF ----------
     # eztao vs. eztaoX
@@ -208,14 +208,14 @@ def test_carma30() -> None:
         c30_stat2_1.sf(ts, jnp.concat([ar30_1[::-1], ma30_1])),
         eztao_sf1(ts),
     )
-    # assert_allclose(
-    #     c30_stat2_2.sf(ts, jnp.concat([ar30_2[::-1], ma30_2])),
-    #     eztao_sf2(ts),
-    # )
+    assert_allclose(
+        c30_stat2_2.sf(ts, jnp.concat([ar30_2[::-1], ma30_2])),
+        eztao_sf2(ts),
+    )
 
     # ---------- PSD ----------
     # eztao vs. GP
     assert_allclose(c30_stat2_1.psd(fs), eztao_psd1(fs))
-    # assert_allclose(
-    #     c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
-    # )
+    assert_allclose(
+        c30_stat2_2.psd(fs, jnp.concat([ar30_2[::-1], ma30_2])), eztao_psd2(fs)
+    )

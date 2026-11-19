@@ -5,7 +5,7 @@ import numpy as np
 from eztaox.ts_utils import (
     _get_nearest_idx,
     add_noise,
-    downsampleByTime,
+    down_sample_by_time,
     formatlc,
     merge_sort,
 )
@@ -14,42 +14,42 @@ from eztaox.ts_utils import (
 def test_get_nearest_idx() -> None:
     """Test the nearest index utility."""
 
-    tIn = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+    t_in = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
 
     # Case: Simple, rounds to nearest
     x = 0.1
     expected = 0
-    res = int(_get_nearest_idx(tIn, x))
+    res = int(_get_nearest_idx(t_in, x))
     assert expected == res
 
     # Case: Value in the middle of two elements (rounds down)
     x = 4.5
     expected = 4
-    res = int(_get_nearest_idx(tIn, x))
+    res = int(_get_nearest_idx(t_in, x))
     assert expected == res
 
     # Case: Value less than least element (clamps to first index)
     x = -0.1
     expected = 0
-    res = int(_get_nearest_idx(tIn, x))
+    res = int(_get_nearest_idx(t_in, x))
     assert expected == res
 
     # Case: Value greater than greatest element (clamps to last index)
     x = 42.0
     expected = 5
-    res = int(_get_nearest_idx(tIn, x))
+    res = int(_get_nearest_idx(t_in, x))
     assert expected == res
 
 
-def test_downsampleByTime() -> None:  # noqa: N802
+def test_down_sample_by_time() -> None:  # noqa: N802
     """Test the time series downsampling utility."""
 
-    tIn = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
-    tOut = np.array([0.2, 2.7, 4.5])
+    t_in = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+    t_out = np.array([0.2, 2.7, 4.5])
 
     # Downsample
     expected = np.array([0.0, 3.0, 4.0])
-    res = np.array(downsampleByTime(tIn, tOut))
+    res = np.array(down_sample_by_time(t_in, t_out))
 
     # Verify output
     assert np.allclose(expected, res)
@@ -89,7 +89,7 @@ def test_addNoise() -> None:  # noqa: N802
 
     import jax
     import jax.numpy as jnp
-    from scipy.stats import kstest
+    from scipy.stats import kstest, norm
 
     key = jax.random.PRNGKey(0)
     key, k1, k2, k3 = jax.random.split(key, 4)
@@ -103,7 +103,9 @@ def test_addNoise() -> None:  # noqa: N802
 
     # Verify that the noise is Gaussian
     std_diff = (noisy_y - y) / yerr
-    res = kstest(std_diff, "norm", args=(0, 1))
+    # Pass the standard-normal CDF explicitly: scipy >= 1.18 maps the "norm"
+    # shortcut to `special.ndtr` and rejects loc/scale given via `args`.
+    res = kstest(std_diff, norm(loc=0, scale=1).cdf)
 
     print(res.pvalue)
     assert res.pvalue > 0.05  # Fail if p-value < 5%

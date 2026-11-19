@@ -20,39 +20,52 @@
 pip install eztaox
 ```
 #### Dependencies
-##### Supports Python 3.10, 3.11, 3.12
+##### Supports Python 3.12, 3.13, 3.14
 ```
-"jax (<=0.4.31)",
-"jaxlib (<=0.4.31)",
+"jax (>=0.12.0)",
+"jaxlib (>=0.12.0)",
+"equinox (>=0.13.1)",
 "tinygp (>=0.3.0,<0.4.0)",
-"jaxopt (>=0.8.3,<0.9.0)",
-"optax (>=0.2.4,<0.3.0)",
-"numpyro (>=0.17.0,<0.20.0)",
+"optax (>=0.2.5,<0.3.0)",
+"numpyro (>=0.21.0,<0.23.0)",
 ```
+
+### Development
+`EzTaoX` uses [Poetry](https://python-poetry.org/) to manage its development environment (Python 3.12, 3.13 or 3.14).
+```
+git clone https://github.com/LSST-AGN-Variability/EzTaoX.git
+cd EzTaoX
+poetry install --extras dev
+poetry run pre-commit install
+```
+All development and testing tools live in the `dev` extra in `pyproject.toml`, which CI also installs with `pip install -e '.[dev]'`. Add a new one with `poetry add --optional dev <package>` so that local and CI environments stay in sync.
+
+See [TESTING.md](TESTING.md) for running the tests, including across all supported Python versions with `nox`.
 
 ### Documentation
 Please see our [readthedocs](https://eztaox.readthedocs.io/)
 
 ### Citation
-If you find `EzTaoX` useful for your research, please consider citing the following paper [arXiv:2511.21479](https://arxiv.org/abs/2511.21479):
+If you find `EzTaoX` useful for your research, please consider citing the following paper [arXiv:2511.21479](https://arxiv.org/abs/2511.21479),
 ```
-@ARTICLE{Yu2025,
-       author = {{Yu}, Weixiang and {Ruan}, John J. and {Burke}, Colin J. and {Assef}, Roberto J. and {Ananna}, Tonima T. and {Bauer}, Franz E. and {De Cicco}, Demetra and {Horne}, Keith and {Hern{\'a}ndez-Garc{\'\i}a}, Lorena and {Ili{\'c}}, Dragana and {Kova{\v{c}}evi{\'c}}, Andjelka B. and {Marculewicz}, Marcin and {Panda}, Swayamtrupta and {Ricci}, Claudio and {Richards}, Gordon T. and {Riffel}, Rogemar A. and {Schneider}, Donald P. and {S{\'a}nchez-S{\'a}ez}, Paula and {Satheesh Sheeba}, Sarath and {Tombesi}, Francesco and {Temple}, Matthew J. and {Vogeley}, Michael S. and {Yoon}, Ilsang and {Zou}, Fan},
+@ARTICLE{Yu2026,
+       author = {{Yu}, Weixiang and {Ruan}, John J. and {Burke}, Colin J. and {Assef}, Roberto J. and {Ananna}, Tonima T. and {Bauer}, Franz E. and {De Cicco}, Demetra and {Horne}, Keith and {Hern{\'a}ndez-Garc{\'\i}a}, Lorena and {Ili{\'c}}, Dragana and {Jha}, Vivek Kumar and {Kova{\v{c}}evi{\'c}}, Andjelka B. and {Marculewicz}, Marcin and {Panda}, Swayamtrupta and {Ricci}, Claudio and {Richards}, Gordon T. and {Riffel}, Rogemar A. and {Schneider}, Donald P. and {S{\'a}nchez-S{\'a}ez}, Paula and {Satheesh-Sheeba}, Sarath and {Tombesi}, Francesco and {Temple}, Matthew J. and {Vogeley}, Michael S. and {Yoon}, Ilsang and {Zou}, Fan},
         title = "{Scalable and Robust Multiband Modeling of AGN Light Curves in Rubin-LSST}",
-      journal = {arXiv e-prints},
-     keywords = {Astrophysics of Galaxies, Instrumentation and Methods for Astrophysics},
-         year = 2025,
-        month = nov,
-          eid = {arXiv:2511.21479},
-        pages = {arXiv:2511.21479},
-          doi = {10.48550/arXiv.2511.21479},
+      journal = {\apj},
+     keywords = {Active galactic nuclei, Reverberation mapping, Time series analysis, Red noise, Gaussian Processes regression, Astronomy software, 16, 2019, 1916, 1956, 1930, 1855, Astrophysics of Galaxies, Instrumentation and Methods for Astrophysics},
+         year = 2026,
+        month = feb,
+       volume = {998},
+       number = {1},
+          eid = {144},
+        pages = {144},
+          doi = {10.3847/1538-4357/ae28d3},
 archivePrefix = {arXiv},
        eprint = {2511.21479},
- primaryClass = {astro-ph.GA},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2025arXiv251121479Y},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 ```
+
+and the Zenodo code repository: [10.5281/zenodo.17467662](https://doi.org/10.5281/zenodo.17467662).
 
 ### Acknowledgment
 `EzTaoX` is built on top of (and inspired by) [`tinygp`](https://github.com/dfm/tinygp)---a general purpose GP modeling framework written in `JAX`. For more general GP modeling tasks, experienced users can directly explore `tinygp`.

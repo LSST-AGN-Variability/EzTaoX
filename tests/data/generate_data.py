@@ -12,7 +12,7 @@ base_key = jr.PRNGKey(0)
 
 
 def generate_simulated_dataset(
-    nBand: int,
+    n_band: int,
     drw_scale: float,
     drw_sigma: float,
     mindt: float,
@@ -23,7 +23,7 @@ def generate_simulated_dataset(
     """Generate simulated multiband light curve dataset.
 
     Args:
-        nBand (int): Number of bands.
+        n_band (int): Number of bands.
         drw_scale (float): DRW kernel scale parameter.
         drw_sigma (float): DRW kernel sigma parameter.
         mindt (float): Minimum time difference.
@@ -37,15 +37,15 @@ def generate_simulated_dataset(
     """
     sim_params = {
         "log_kernel_param": jnp.array([jnp.log(drw_scale), jnp.log(drw_sigma)]),
-        "log_amp_scale": jnp.log(jnp.linspace(0.9, 0.4, nBand)),
-        "lag": jnp.linspace(1, nBand, nBand) * 2.0,
+        "log_amp_scale": jnp.log(jnp.linspace(0.9, 0.4, n_band)),
+        "lag": jnp.linspace(1, n_band, n_band) * 2.0,
     }
 
     drw = ekq.Exp(scale=drw_scale, sigma=drw_sigma)
-    s = MultiVarSim(drw, mindt, maxdt, nBand, sim_params, has_lag=True)
+    s = MultiVarSim(drw, mindt, maxdt, n_band, sim_params, has_lag=True)
 
     lc_key, random_key = jr.split(jr.fold_in(base_key, seed), 2)
-    sim_X, sim_y = s.random(npt * nBand, lc_key, random_key)
+    sim_X, sim_y = s.random(npt * n_band, lc_key, random_key)
 
     return sim_X, sim_y
 
@@ -55,7 +55,7 @@ N = 100
 sim_ts, sim_bands, sim_ys = [], [], []
 for i in range(N):
     (sim_t, sim_band), sim_y = generate_simulated_dataset(
-        nBand=2,
+        n_band=2,
         drw_scale=50.0,
         drw_sigma=0.2,
         mindt=0.01,

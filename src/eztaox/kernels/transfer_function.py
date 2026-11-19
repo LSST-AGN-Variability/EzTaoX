@@ -1,3 +1,5 @@
+"""Transfer functions"""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -16,7 +18,7 @@ class TransferFunction(eqx.Module):
     """Base class for transfer functions :math:`\\Psi(\\Delta t)`."""
 
     width: float
-    shift: JAXArray | float = eqx.field(default_factory=lambda: jnp.zeros(()))
+    shift: float = eqx.field(default=0.0, static=True)
 
     @abstractmethod
     def evaluate(self, X1: JAXArray, X2: JAXArray) -> JAXArray:
@@ -37,7 +39,8 @@ class GaussianTransferFunction(TransferFunction):
         """Evaluate the normalized transfer function at two points.
 
         Normalized so that
-        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
+        t=1`.
         """
         dt = X2 - X1 - self.shift
         norm = jnp.sqrt(jnp.pi) * self.width
@@ -56,7 +59,8 @@ class ExponentialTransferFunction(TransferFunction):
         """Evaluate the normalized transfer function at two points.
 
         Normalized so that
-        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`.
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
+        t=1`.
         """
         dt = X2 - X1 - self.shift
         norm = 2.0 * self.width
@@ -75,8 +79,8 @@ class CausalGaussianTransferFunction(TransferFunction):
         """Evaluate the normalized transfer function at two points.
 
         Normalized so that
-        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`
-        for any shift.
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
+        t=1` for any shift.
         """
         ds = X2 - X1
         dt = ds - self.shift
@@ -102,8 +106,8 @@ class CausalExponentialTransferFunction(TransferFunction):
         """Evaluate the normalized transfer function at two points.
 
         Normalized so that
-        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta t=1`
-        for any shift.
+        :math:`\\int_{-\\infty}^{\\infty}\\Psi(\\Delta t)\\,d\\Delta
+        t=1` for any shift.
         """
         dt = X2 - X1 - self.shift
         return jnp.where(dt >= 0, jnp.exp(-dt / self.width) / self.width, 0.0)
@@ -127,7 +131,8 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
     n_grid: int = eqx.field(static=True)
     truncation_factor: float = eqx.field(static=True, default=6.0)
 
-    def coord_to_sortable(self, X) -> JAXArray:  # noqa: D102
+    def coord_to_sortable(self, X) -> JAXArray:
+        """Extract the time-sortable component of the coordinates."""
         return X[0]
 
     @property
@@ -143,9 +148,8 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
         """Center of integration grid."""
         return self.transfer_function.shift
 
-    def evaluate(self, X1, X2) -> JAXArray:  # noqa: D102
-        tau = jnp.abs(X1 - X2)
-
+    def _compute_k_conv(self) -> tuple[JAXArray, JAXArray]:
+        """Run FFT once and return the lag grid and convolved kernel values."""
         hw = self._half_width
         center = self._center
         n = self.n_grid
@@ -168,8 +172,51 @@ class ConvolvedKernel(tinygp.kernels.Kernel):
         # IFFT → k_conv on uniform lag grid
         k_conv = ds * jnp.fft.irfft(psd_conv, n=n)
 
-        # Interpolate at desired lag (first half = non-negative lags)
+        # First half = non-negative lags
         n_half = n // 2 + 1
         tau_grid = jnp.arange(n_half) * ds
+        return tau_grid, k_conv[:n_half]
 
-        return jnp.interp(tau, tau_grid, k_conv[:n_half])
+    def evaluate(self, X1, X2) -> JAXArray:
+        """Evaluate the transfer function at two points."""
+        tau_grid, k_vals = self._compute_k_conv()
+        tau = jnp.abs(X1 - X2)
+        return jnp.interp(tau, tau_grid, k_vals)
+
+    # Override __call__ so the FFT runs once per (X1, X2) call instead of once
+    # per pair via vmap(evaluate).
+    def __call__(self, X1: JAXArray, X2: JAXArray | None = None) -> JAXArray:
+        """Evaluate the kernel matrix (or diagonal) for arrays of input coordinates.
+
+        Overrides the parent implementation to run the FFT-based computation once
+        for the entire input, rather than once per pair via ``vmap``.
+
+        Args:
+            X1: Array of input coordinates, shape ``(n1,)``.
+            X2: Array of input coordinates, shape ``(n2,)``. If ``None``,
+                returns the diagonal ``k(X1[i], X1[i])``, shape ``(n1,)``.
+
+        Returns:
+            Kernel matrix of shape ``(n1, n2)``, or diagonal of shape ``(n1,)``
+            when ``X2`` is ``None``.
+        """
+        tau_grid, k_vals = self._compute_k_conv()
+
+        if X2 is None:
+            # Diagonal: stationary kernel, so k(X, X) = k(tau=0) for all X
+            k = jnp.full(X1.shape[0], jnp.interp(jnp.zeros(()), tau_grid, k_vals))
+            if k.ndim != 1:
+                raise ValueError(
+                    "Invalid kernel diagonal shape: "
+                    f"expected ndim = 1, got ndim={k.ndim}"
+                )
+            return k
+
+        # Full matrix: tau[i, j] = |X1[i] - X2[j]|
+        tau = jnp.abs(X1[:, None] - X2[None, :])
+        k = jnp.interp(tau, tau_grid, k_vals)
+        if k.ndim != 2:
+            raise ValueError(
+                "Invalid kernel shape: " f"expected ndim = 2, got ndim={k.ndim}"
+            )
+        return k

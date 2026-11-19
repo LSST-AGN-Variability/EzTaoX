@@ -217,7 +217,7 @@ def test_multivar_pred_unsorted_inputs(data, kernel, random) -> None:
         "lag": jnp.array([1.0, 2.0]),
     }
 
-    model = MultiVarModel((t, b), y, yerr, kernel, nBand=3, has_lag=True)
+    model = MultiVarModel((t, b), y, yerr, kernel, n_band=3, has_lag=True)
 
     # unsorted inputs
     t_pred = jnp.array([4.2, 0.3, 3.4, 1.7])
@@ -331,15 +331,15 @@ def test_multivar_qs_vs_nonqs_exp_same(data, random) -> None:
     mean = jnp.array(random.uniform(-1, 1))
     log_jitter = jnp.array(random.uniform(-20, 5))
 
-    # MultiVarModel default amp/scale expects log_amp_scale for bands 1..nBand-1
-    nBand = 3
+    # MultiVarModel default amp/scale expects log_amp_scale for bands 1..n_band-1
+    n_band = 3
     log_amp_scale = jnp.zeros(
-        (nBand - 1,)
+        (n_band - 1,)
     )  # keep equivalence test focused on kernel only
 
     # build models
-    m_qs = MultiVarModel((t, b), y, yerr, k_qs, nBand=nBand, has_jitter=True)
-    m_nonqs = MultiVarModel((t, b), y, yerr, k_nonqs, nBand=nBand, has_jitter=True)
+    m_qs = MultiVarModel((t, b), y, yerr, k_qs, n_band=n_band, has_jitter=True)
+    m_nonqs = MultiVarModel((t, b), y, yerr, k_nonqs, n_band=n_band, has_jitter=True)
 
     # flatten each kernel separately
     theta_qs, _ = jax.flatten_util.ravel_pytree(k_qs)

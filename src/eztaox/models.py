@@ -1,6 +1,7 @@
-"""
-A module of light curve models, which are the interface for modeling uni/multi-band
-light curves using Gaussian Processes (GPs).
+"""Light curve models.
+
+A module of light curve models. which are the interface for modeling
+uni/multi-band light curves using Gaussian Processes (GPs).
 """
 
 from collections.abc import Callable
@@ -21,8 +22,7 @@ from eztaox.ts_utils import merge_sort
 
 
 class MultiVarModel(eqx.Module):
-    """
-    An interface for modeling multivariate/multi-band time series using GPs.
+    """An interface for modeling multivariate/multi-band time series using GPs.
 
     This interface only takes GP kernels that can be evaluated using the
     scalable method of `DFM+17 <https://arxiv.org/abs/1703.09710>`. This
@@ -35,7 +35,7 @@ class MultiVarModel(eqx.Module):
         y (JAXArray|NDArray): Observed data values.
         yerr (JAXArray|NDArray): Observational uncertainties.
         base_kernel (Quasisep): A GP kernel from the kernels.quasisep module.
-        nBand (int): An integer number of bands in the input light curve.
+        n_band (int): An integer number of bands in the input light curve.
         multiband_kernel(Quasisep, optional): A multiband kernel specifying the
             cross-band covariance, defaults to kernels.quasisep.MultibandLowRank.
         mean_func(Callable, optional): A callable mean function for the GP, defaults to
@@ -60,7 +60,7 @@ class MultiVarModel(eqx.Module):
     multiband_kernel: tk.Kernel | tk.quasisep.Wrapper
     t_in_bands: list[JAXArray]
     concat_inds_in_bands: list[JAXArray]
-    nBand: int
+    n_band: int
     mean_func: Callable | None
     amp_scale_func: Callable | None
     lag_func: Callable | None
@@ -74,7 +74,8 @@ class MultiVarModel(eqx.Module):
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
         base_kernel: tk.Kernel | quasisep.Quasisep,
-        nBand: int,
+        n_band: int,
+        *,
         multiband_kernel: tk.Kernel | tk.quasisep.Wrapper | None = None,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
@@ -93,7 +94,7 @@ class MultiVarModel(eqx.Module):
         self.diag = (yerr**2)[init_inds]
         self.y = y[init_inds]
         self.base_kernel_def = jax.flatten_util.ravel_pytree(base_kernel)[1]
-        self.nBand = nBand
+        self.n_band = n_band
 
         # assign band indexs for sorting the input time axis after lag transform
         sorted_t, sorted_band = self.X
@@ -145,7 +146,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         """Shift the time axis by the lag in each band. Fast version used in fitting."""
         if has_lag is False:
-            lags = jnp.zeros(self.nBand)
+            lags = jnp.zeros(self.n_band)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -165,9 +166,20 @@ class MultiVarModel(eqx.Module):
     def lag_transform(
         self, has_lag: bool, params: dict[str, JAXArray], X: JAXArray
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        """Shift the time axis by the lag in each band."""
+        """Shift the time axis by the lag in each band.
+
+        Args:
+            has_lag (bool): should we introduce lag?
+            params (dict): argument to pass to the lag function (callable for
+                time delays between bands).
+            X (JAXArray): times and bands
+
+        Returns:
+            tuple(tuple(JAXArray, JAXArray), JAXArray): modified times and bands
+                and indexes of the new times.
+        """
         if has_lag is False:
-            lags = jnp.zeros(self.nBand)
+            lags = jnp.zeros(self.n_band)
         elif self.lag_func is not None:
             lags = self.lag_func(params)
         else:
@@ -179,20 +191,6 @@ class MultiVarModel(eqx.Module):
 
         return (new_t, band), inds
 
-    def log_prior(self, params: dict[str, JAXArray]) -> JAXArray:
-        """Calculate the log prior of the input parameters.
-
-        Args:
-            params (dict[str, JAXArray]): Model parameters.
-
-        Returns:
-            JAXArray: Log prior of the input parameters.
-        """
-        # Assuming a Gaussian prior for demonstration purposes
-        log_prior = 0.0
-        return log_prior
-
-    @eqx.filter_jit
     def log_prob(self, params: dict[str, JAXArray]) -> JAXArray:
         """Calculate the log probability of the input parameters.
 
@@ -203,13 +201,13 @@ class MultiVarModel(eqx.Module):
             JAXArray: Log probability of the input parameters.
         """
         gp, inds = self._build_gp(params)
-        return gp.log_probability(y=self.y[inds]) + self.log_prior(params)
+        return gp.log_probability(y=self.y[inds])
 
     def aic(self, params: dict[str, JAXArray]) -> JAXArray:
         """Calculate the Akaike Information Criterion (AIC) for the model.
 
         Args:
-            params (dict[str, JAXArray]): Model parameters.
+            params (dict[str, JAXArray]): Maximum likelihood model parameters.
         Returns:
             JAXArray: AIC value.
         """
@@ -222,7 +220,7 @@ class MultiVarModel(eqx.Module):
         """Calculate the Bayesian Information Criterion (BIC) for the model.
 
         Args:
-            params (dict[str, JAXArray]): Model parameters.
+            params (dict[str, JAXArray]): Maximum likelihood model parameters.
         Returns:
             JAXArray: BIC value.
         """
@@ -233,7 +231,7 @@ class MultiVarModel(eqx.Module):
         return jnp.log(n) * k - 2 * log_likelihood
 
     def sample(self, params: dict[str, JAXArray]) -> None:
-        """A convience function for intergrating with numpyro for MCMC sampling.
+        """Integrate with numpyro for MCMC sampling.
 
         Args:
             params (dict[str, JAXArray]): Model parameters.
@@ -241,7 +239,6 @@ class MultiVarModel(eqx.Module):
         gp, inds = self._build_gp(params)
         numpyro.sample("gp", gp.numpyro_dist(), obs=self.y[inds])
 
-    @eqx.filter_jit
     def pred(
         self, params: dict[str, JAXArray], X: JAXArray
     ) -> tuple[JAXArray, JAXArray]:
@@ -276,7 +273,7 @@ class MultiVarModel(eqx.Module):
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
         return jnp.insert(jnp.atleast_1d(params["lag"]), 0, 0.0)
 
-    # @eqx.filter_jit
+    @eqx.filter_jit
     def _build_gp(
         self, params: dict[str, JAXArray]
     ) -> tuple[GaussianProcess, JAXArray]:
@@ -323,8 +320,7 @@ class MultiVarModel(eqx.Module):
 
 
 class UniVarModel(MultiVarModel):
-    """
-    A subclass of MultiVarModel for modeling univariate/single-band time series data.
+    """Subclass MultiVarModel for modeling univariate/single-band time series data.
 
     Args:
         t (JAXArray|NDArray): Time stamps of the input light curve.
@@ -347,26 +343,25 @@ class UniVarModel(MultiVarModel):
         t: JAXArray | NDArray,
         y: JAXArray | NDArray,
         yerr: JAXArray | NDArray,
-        kernel: tk.Kernel | tk.quasisep.Quasisep,
+        kernel: tk.Kernel | quasisep.Quasisep,
+        *,
         mean_func: Callable | None = None,
         amp_scale_func: Callable | None = None,
         **kwargs,
     ) -> None:
-        """Initialize the UniVarModel with time, observed data, and kernel."""
-
         inds = jnp.argsort(jnp.asarray(t))
         X = (jnp.asarray(t)[inds], jnp.zeros_like(t, dtype=int))
         y = jnp.asarray(y)[inds]
         yerr = jnp.asarray(yerr)[inds]
         base_kernel = kernel
-        nBand = 1
+        n_band = 1
         has_lag = False
         super().__init__(
             X,
             y,
             yerr,
             base_kernel,
-            nBand,
+            n_band,
             mean_func=mean_func,
             amp_scale_func=amp_scale_func,
             has_lag=has_lag,
@@ -376,10 +371,22 @@ class UniVarModel(MultiVarModel):
     def _default_amp_scale_func(self, params: dict[str, JAXArray]) -> JAXArray:
         return jnp.array([0.0])
 
-    def _lag_transform_fast(  # noqa: D102
-        self, has_lag, params
+    def _lag_transform_fast(
+        self,
+        has_lag: bool,
+        params: dict[str, JAXArray],
     ) -> tuple[tuple[JAXArray, JAXArray], JAXArray]:
-        # TODO: Write docstring.
+        """Shift the time axis by the lag in each band.
+
+        Args:
+            has_lag (bool): should we introduce lag?
+            params (dict): argument to pass to the lag function (callable for
+                time delays between bands).
+
+        Returns:
+            tuple(tuple(JAXArray, JAXArray), JAXArray): modified times and bands
+                and indexes of the new times.
+        """
         return self.X, jnp.arange(self.X[0].size)
 
     def pred(self, params, t) -> tuple[JAXArray, JAXArray]:

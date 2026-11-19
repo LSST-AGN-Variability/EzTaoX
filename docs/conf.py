@@ -42,7 +42,7 @@ copybutton_prompt_text = ">> "
 copybutton_selector = "div:not(.no-copybutton) > div.highlight > pre"
 
 templates_path = []
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "_autoapi_templates"]
 
 # This assumes that sphinx-build is called from the root directory
 master_doc = "index"
@@ -56,5 +56,13 @@ autoapi_dirs = ["../src"]
 autoapi_ignore = ["*/__main__.py", "*/_version.py"]
 autoapi_add_toc_tree_entry = False
 autoapi_member_order = "bysource"
+autoapi_template_dir = "_autoapi_templates"
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
 
 html_theme = "sphinx_book_theme"

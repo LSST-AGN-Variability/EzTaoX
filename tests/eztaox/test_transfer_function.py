@@ -1,6 +1,8 @@
+import jax
 import jax.numpy as jnp
 import pytest
-from tinygp.test_utils import assert_allclose
+from numpy.testing import assert_allclose
+from tinygp.kernels import Exp as ExpDirect
 
 from eztaox.kernels import quasisep
 from eztaox.kernels.transfer_function import (
@@ -11,6 +13,77 @@ from eztaox.kernels.transfer_function import (
     GaussianTransferFunction,
     TransferFunction,
 )
+from eztaox.simulator import UniVarSim
+
+
+def simulate_exp(tau, sigma, transfer_function, rng):
+    n = 1000
+    t = jnp.linspace(0.0, 1000.0, n)
+    dt = t[1] - t[0]
+
+    sim = UniVarSim(
+        ExpDirect(scale=tau),
+        1.0,
+        float(t[-1]),
+        init_params={"log_kernel_param": jnp.array([jnp.log(tau)])},
+        zero_mean=True,
+    )
+
+    _, latent = sim.fixed_input_fast(
+        t,
+        jax.random.PRNGKey(rng),
+    )
+
+    # symmetric kernel centered at t = 0
+    t_kernel = jnp.r_[-t[::-1][1:], t]  # length 2n-1, zero at center
+    kernel = jax.vmap(transfer_function.evaluate)(jnp.zeros_like(t_kernel), t_kernel)
+
+    # zero-phase, index-aligned convolution
+    result = jax.scipy.signal.fftconvolve(latent, kernel, mode="same") * dt
+
+    return t, latent, result
+
+
+def test_simulate_exp():
+    tau = 100.0
+    sigma = 1.0
+    psi_width = 20.0
+    rng = 1
+
+    transfer_function = GaussianTransferFunction(width=psi_width)
+    base_kernel = quasisep.Exp(scale=tau, sigma=sigma)
+    convolved_kernel = ConvolvedKernel(base_kernel, transfer_function, n_grid=2000)
+
+    t, lc_latent, lc_expected = simulate_exp(tau, sigma, transfer_function, rng)
+
+    sim = UniVarSim(
+        convolved_kernel,
+        1.0,
+        float(t[-1]),
+        init_params={
+            "log_kernel_param": jnp.array(
+                [jnp.log(tau), jnp.log(sigma), jnp.log(psi_width)]
+            )
+        },
+        zero_mean=True,
+    )
+
+    _, lc_actual = sim.fixed_input_fast(t, jax.random.PRNGKey(rng))
+
+    def empirical_sf(lc, ks):
+        return jnp.array([jnp.sqrt(jnp.mean((lc[k:] - lc[:-k]) ** 2)) for k in ks])
+
+    dt_val = float(t[1] - t[0])
+    min_lag_idx = max(1, round(0.1 * psi_width / dt_val))
+    max_lag_idx = round(2.0 * tau / dt_val)
+    lag_indices = jnp.unique(
+        jnp.geomspace(min_lag_idx, max_lag_idx, 100).round().astype(int)
+    )
+
+    sf_expected = empirical_sf(lc_expected, lag_indices)
+    sf_actual = empirical_sf(lc_actual, lag_indices)
+
+    assert_allclose(sf_expected, sf_actual, rtol=0.1, atol=0)
 
 
 def _analytic_convolved_exp(dt, tau, w):
@@ -70,6 +143,25 @@ def test_convolved_kernel_shift_invariance(shift):
         expected = ck_ref.evaluate(lag, jnp.array(0.0))
         actual = ck_shifted.evaluate(lag, jnp.array(0.0))
         assert_allclose(actual, expected, atol=1e-4)
+
+
+def test_convolved_kernel_call_matches_evaluate():
+    """ConvolvedKernel.__call__ agrees with evaluate for both matrix and diagonal."""
+    tau, w = 100.0, 20.0
+    base = quasisep.Exp(scale=tau)
+    tf = ExponentialTransferFunction(width=w)
+    ck = ConvolvedKernel(base, tf, n_grid=500)
+
+    t1 = jnp.array([0.0, 10.0, 50.0, 100.0])
+    t2 = jnp.array([5.0, 25.0, 75.0])
+
+    K_call = ck(t1, t2)
+    K_eval = jax.vmap(jax.vmap(ck.evaluate, (None, 0)), (0, None))(t1, t2)
+    assert_allclose(K_call, K_eval)
+
+    diag_call = ck(t1, None)
+    diag_eval = jax.vmap(ck.evaluate)(t1, t1)
+    assert_allclose(diag_call, diag_eval)
 
 
 @pytest.mark.parametrize(
