@@ -21,4 +21,6 @@ label to stop.
 You can also start the "Run benchmarks for PR" workflow by hand from the Actions tab.
 That run shows the comparison table on its summary page instead of posting a comment.
 
-Benchmarks still run on every push to `main` and nightly.
+Benchmarks still run on every push to `main` and nightly. The push-to-`main` run
+benchmarks a sample of commits after `afe10654` (April 2026); older commits predate
+the current fitter API and the benchmark suite, so they are left out.
