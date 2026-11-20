@@ -1,435 +1,55 @@
 {
-    "fitting.KernelMultiVarPrecompileSuite.time_precompile_exp_gp": {
-        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_exp_gp(self, n):\n        model, params = _build_multivar_model_and_params(\n            ekq.Exp, *_multivar_data(n), _multivar_lag()\n        )\n        _precompile_log_prob(model, params)",
+    "fitting.KernelFittingSuite.time_run_exp_fitting": {
+        "code": "class KernelFittingSuite:\n    def time_run_exp_fitting(self, _):\n        self.loss_exp(self.fitting_params).block_until_ready()\n\n    def setup(self, n):\n        X, y, diag = generate_data(n)\n        fitting_params = {\n            \"log_kernel_param\": jnp.log(jnp.array([100, 0.1])),\n            \"log_amp_delta\": jnp.log(0.6),\n            \"lag\": jnp.array(10),\n        }\n        self.loss_exp = _precompile_exp_loss(X, y, diag, fitting_params)\n        self.loss_m32 = _precompile_m32_loss(X, y, diag, fitting_params)\n        self.fitting_params = fitting_params",
         "min_run_count": 2,
-        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_exp_gp",
-        "number": 1,
+        "name": "fitting.KernelFittingSuite.time_run_exp_fitting",
+        "number": 0,
         "param_names": [
             "param1"
         ],
         "params": [
             [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "f29b821f1299308990e59addc32963411572bfeac817cb082a2cd0fcc84584b5",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelMultiVarPrecompileSuite.time_precompile_m32_gp": {
-        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_m32_gp(self, n):\n        model, params = _build_multivar_model_and_params(\n            ekq.Matern32, *_multivar_data(n), _multivar_lag()\n        )\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_m32_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "e5ba635c3c75b2ac06b7f2edd5c74620fdff4e463fa3b0dadaea6a8b907b1ec7",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelMultiVarPrecompileSuite.time_precompile_m52_gp": {
-        "code": "class KernelMultiVarPrecompileSuite:\n    def time_precompile_m52_gp(self, n):\n        model, params = _build_multivar_model_and_params(\n            ekq.Matern52, *_multivar_data(n), _multivar_lag()\n        )\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelMultiVarPrecompileSuite.time_precompile_m52_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "16d48e8efee551c1ce82e17a1602b8b58d330f7c7743e8a0f5bc70b32d9de947",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelMultiVarSuite.time_run_exp_logp": {
-        "code": "class KernelMultiVarSuite:\n    def time_run_exp_logp(self, n):\n        params, log_prob = _multivar_logp_state(n)[\"exp\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelMultiVarSuite.time_run_exp_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "09ce4b0518f952ad323c40c8b6fda4d6e39092d9dec537cc3ac4c320048c035f",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelMultiVarSuite.time_run_m32_logp": {
-        "code": "class KernelMultiVarSuite:\n    def time_run_m32_logp(self, n):\n        params, log_prob = _multivar_logp_state(n)[\"m32\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelMultiVarSuite.time_run_m32_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "fefe40f7c84f3b435b296c7d73672309cdea5c2937a91754908af00aa792b10e",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelMultiVarSuite.time_run_m52_logp": {
-        "code": "class KernelMultiVarSuite:\n    def time_run_m52_logp(self, n):\n        params, log_prob = _multivar_logp_state(n)[\"m52\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelMultiVarSuite.time_run_m52_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "a8e5c2ba66a66a9e982e17b28a8475bcaaf9b6dcfe052b76b560b0825e7ed151",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarPrecompileSuite.time_precompile_carma_gp": {
-        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_carma_gp(self, n):\n        model, params = _build_univar_model_and_params(\n            ekq.CARMA,\n            *_univar_data(n),\n            alpha=jnp.asarray(CARMA_BENCHMARK_ALPHA),\n            beta=jnp.asarray(CARMA_BENCHMARK_BETA),\n        )\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_carma_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "f77c867c70557d9b810ea541e4aefeee8dd52febff9aea9c476f6c4649c6beae",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarPrecompileSuite.time_precompile_exp_gp": {
-        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_exp_gp(self, n):\n        model, params = _build_univar_model_and_params(ekq.Exp, *_univar_data(n))\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_exp_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "c92c4d8c674f6dccf3e338c4063117652a0947bdb2acae320695169be2e12beb",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarPrecompileSuite.time_precompile_m32_gp": {
-        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_m32_gp(self, n):\n        model, params = _build_univar_model_and_params(ekq.Matern32, *_univar_data(n))\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_m32_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "274e48c6e3f16b582c9bedaddedf617d68be918eff43b4bac7d95a3e45615276",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarPrecompileSuite.time_precompile_m52_gp": {
-        "code": "class KernelUniVarPrecompileSuite:\n    def time_precompile_m52_gp(self, n):\n        model, params = _build_univar_model_and_params(ekq.Matern52, *_univar_data(n))\n        _precompile_log_prob(model, params)",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarPrecompileSuite.time_precompile_m52_gp",
-        "number": 1,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "2000"
-            ]
-        ],
-        "repeat": 10,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "685490e9d07075a1b9fb2d8dc22a1fa4dd9c9b3ea599054b0a8ae5ced63c5684",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarSuite.time_run_carma_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_carma_logp(self, n):\n        params, log_prob = _univar_logp_state(n)[\"carma\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarSuite.time_run_carma_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "7a763fb1870ba73ed48ca56657bf98d9a3db824c5fd2f8b2f03878c5a5ec19a7",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarSuite.time_run_exp_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_exp_logp(self, n):\n        params, log_prob = _univar_logp_state(n)[\"exp\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarSuite.time_run_exp_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "d001b24d1aa50f7f9f8114b69044dd7eecdd74909199ac6254d7697777743f3f",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarSuite.time_run_m32_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m32_logp(self, n):\n        params, log_prob = _univar_logp_state(n)[\"m32\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarSuite.time_run_m32_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "efcb1fccffc3592f92525566bbb46f921bb52cf43f2c75a6a10edf216ce08027",
-        "warmup_time": 0.1
-    },
-    "fitting.KernelUniVarSuite.time_run_m52_logp": {
-        "code": "class KernelUniVarSuite:\n    def time_run_m52_logp(self, n):\n        params, log_prob = _univar_logp_state(n)[\"m52\"]\n        log_prob(params).block_until_ready()",
-        "min_run_count": 2,
-        "name": "fitting.KernelUniVarSuite.time_run_m52_logp",
-        "number": 200,
-        "param_names": [
-            "param1"
-        ],
-        "params": [
-            [
-                "50",
-                "200",
-                "500",
-                "2000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "1ede627ded5fd8613062052dc021cf0bd51b95ed34295a7f2d2437e698f04324",
-        "warmup_time": 0.1
-    },
-    "fitting.MCMCMultiVarSuite.peakmem_mcmc": {
-        "code": "class MCMCUniSuite:\n    def peakmem_mcmc(self):\n        samples = _run_mcmc_benchmark(\n            self.model_builder(),\n            _make_numpyro_model(_init_sampler),\n            jr.PRNGKey(0),\n            num_warmup=1000,\n            num_samples=2000,\n        )\n        _block_until_ready(samples)",
-        "name": "fitting.MCMCMultiVarSuite.peakmem_mcmc",
-        "param_names": [],
-        "params": [],
-        "timeout": 300,
-        "type": "peakmemory",
-        "unit": "bytes",
-        "version": "7f4d18b7b7466fb2b0261ad4f956de62521d4abb959df7b432d8048cc1e1665c"
-    },
-    "fitting.MCMCUniSuite.peakmem_mcmc": {
-        "code": "class MCMCUniSuite:\n    def peakmem_mcmc(self):\n        samples = _run_mcmc_benchmark(\n            self.model_builder(),\n            _make_numpyro_model(_init_sampler),\n            jr.PRNGKey(0),\n            num_warmup=1000,\n            num_samples=2000,\n        )\n        _block_until_ready(samples)",
-        "name": "fitting.MCMCUniSuite.peakmem_mcmc",
-        "param_names": [],
-        "params": [],
-        "timeout": 300,
-        "type": "peakmemory",
-        "unit": "bytes",
-        "version": "7f4d18b7b7466fb2b0261ad4f956de62521d4abb959df7b432d8048cc1e1665c"
-    },
-    "fitting.RandomSearchMultiVarSuite.peakmem_random_search": {
-        "code": "class RandomSearchUniVarSuite:\n    def peakmem_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model_builder(),\n            _init_sampler,\n            jr.PRNGKey(0),\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)",
-        "name": "fitting.RandomSearchMultiVarSuite.peakmem_random_search",
-        "param_names": [
-            "batch_size"
-        ],
-        "params": [
-            [
+                "20",
+                "100",
                 "1000"
             ]
         ],
-        "timeout": 120,
-        "type": "peakmemory",
-        "unit": "bytes",
-        "version": "da8320400716bcb7814034672f12e64ec50a3f341484f332d21ce69ef9b86037"
-    },
-    "fitting.RandomSearchMultiVarSuite.time_random_search": {
-        "code": "class RandomSearchUniVarSuite:\n    def time_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model_builder(),\n            _init_sampler,\n            jr.PRNGKey(0),\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)",
-        "min_run_count": 2,
-        "name": "fitting.RandomSearchMultiVarSuite.time_random_search",
-        "number": 1,
-        "param_names": [
-            "batch_size"
-        ],
-        "params": [
-            [
-                "1000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 120,
-        "type": "time",
-        "unit": "seconds",
-        "version": "328a40aaf926f3f84e370956f7ea570f73fc628bddf7afcb56c59f633d7c0c3c",
-        "warmup_time": 0.1
-    },
-    "fitting.RandomSearchUniVarSuite.peakmem_random_search": {
-        "code": "class RandomSearchUniVarSuite:\n    def peakmem_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model_builder(),\n            _init_sampler,\n            jr.PRNGKey(0),\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)",
-        "name": "fitting.RandomSearchUniVarSuite.peakmem_random_search",
-        "param_names": [
-            "batch_size"
-        ],
-        "params": [
-            [
-                "1000"
-            ]
-        ],
-        "timeout": 120,
-        "type": "peakmemory",
-        "unit": "bytes",
-        "version": "da8320400716bcb7814034672f12e64ec50a3f341484f332d21ce69ef9b86037"
-    },
-    "fitting.RandomSearchUniVarSuite.time_random_search": {
-        "code": "class RandomSearchUniVarSuite:\n    def time_random_search(self, batch_size):\n        best_param, log_likelihood = _run_random_search_benchmark(\n            self.model_builder(),\n            _init_sampler,\n            jr.PRNGKey(0),\n            n_sample=2000,\n            n_best=5,\n            batch_size=batch_size,\n        )\n        _block_until_ready(best_param, log_likelihood)",
-        "min_run_count": 2,
-        "name": "fitting.RandomSearchUniVarSuite.time_random_search",
-        "number": 1,
-        "param_names": [
-            "batch_size"
-        ],
-        "params": [
-            [
-                "1000"
-            ]
-        ],
-        "repeat": 5,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 120,
-        "type": "time",
-        "unit": "seconds",
-        "version": "328a40aaf926f3f84e370956f7ea570f73fc628bddf7afcb56c59f633d7c0c3c",
-        "warmup_time": 0.1
-    },
-    "simulator.MultivariateSimulatorSuite.time_run_sim": {
-        "code": "class MultivariateSimulatorSuite:\n    def time_run_sim(self):\n        s, X = _multivar_sim()\n        return jax.block_until_ready(s.fixed_input(X, jax.random.PRNGKey(12)))",
-        "min_run_count": 2,
-        "name": "simulator.MultivariateSimulatorSuite.time_run_sim",
-        "number": 1,
-        "param_names": [],
-        "params": [],
         "repeat": 0,
         "rounds": 2,
         "sample_time": 0.01,
         "type": "time",
         "unit": "seconds",
-        "version": "ead23e7f61b170f7b49788239066108b4ee46ce80c541127ef3f2e2e8bf5768c",
-        "warmup_time": 0.1
+        "version": "8d7060d346562a7f82266259a6e58b76c03eba5369098e13ece44cb68c7b62fb",
+        "warmup_time": -1
+    },
+    "fitting.KernelFittingSuite.time_run_m32_fitting": {
+        "code": "class KernelFittingSuite:\n    def time_run_m32_fitting(self, _):\n        self.loss_m32(self.fitting_params).block_until_ready()\n\n    def setup(self, n):\n        X, y, diag = generate_data(n)\n        fitting_params = {\n            \"log_kernel_param\": jnp.log(jnp.array([100, 0.1])),\n            \"log_amp_delta\": jnp.log(0.6),\n            \"lag\": jnp.array(10),\n        }\n        self.loss_exp = _precompile_exp_loss(X, y, diag, fitting_params)\n        self.loss_m32 = _precompile_m32_loss(X, y, diag, fitting_params)\n        self.fitting_params = fitting_params",
+        "min_run_count": 2,
+        "name": "fitting.KernelFittingSuite.time_run_m32_fitting",
+        "number": 0,
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "20",
+                "100",
+                "1000"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "type": "time",
+        "unit": "seconds",
+        "version": "1cb1738d950119f7be5e1755594df0474356c08e93c982252fe4d33b59a71359",
+        "warmup_time": -1
     },
     "simulator.UnivariateSimulatorSuite.time_run_sim": {
-        "code": "class UnivariateSimulatorSuite:\n    def time_run_sim(self):\n        s, t = _univar_sim()\n        return jax.block_until_ready(s.fixed_input(t, jax.random.key(11)))",
+        "code": "class UnivariateSimulatorSuite:\n    def time_run_sim(self):\n        return self.s.fixed_input(self.t, self.lc_key)\n\n    def setup(self):\n        tau_true = 5.891242982962032\n        sigma_true = 0.13896505738419102\n        drw_true = ekq.Exp(scale=tau_true, sigma=sigma_true)\n        log_kernel_param = jnp.stack([jnp.log(tau_true), jnp.log(sigma_true)])\n        self.t = jnp.arange(0.0, 4000.0, 1.0)\n        self.s = UniVarSim(\n            drw_true,\n            min_dt=0.01,\n            max_dt=float(self.t[-1]),\n            init_params={\"log_kernel_param\": log_kernel_param},\n            zero_mean=True,\n        )\n        self.lc_key = jax.random.PRNGKey(11)",
         "min_run_count": 2,
         "name": "simulator.UnivariateSimulatorSuite.time_run_sim",
-        "number": 1,
+        "number": 0,
         "param_names": [],
         "params": [],
         "repeat": 0,
@@ -437,8 +57,8 @@
         "sample_time": 0.01,
         "type": "time",
         "unit": "seconds",
-        "version": "688c2b80978738d5216ff96356cefba97007eece053df71a738b1d6c669ccd74",
-        "warmup_time": 0.1
+        "version": "54aef32c269f405f6352b09d8e65a84bba194394065ad26b57ce6cb2295621b1",
+        "warmup_time": -1
     },
     "version": 2
 }
