@@ -290,3 +290,5 @@ def test_psd_not_implemented() -> None:
     product = quasisep.Exp(scale=10.0, sigma=1.0) * quasisep.Exp(scale=5.0, sigma=1.0)
     with pytest.raises(NotImplementedError):
         gpStat2(product).psd(np.array([0.1]))
+    with pytest.raises(NotImplementedError):
+        quasisep.Quasisep.power(quasisep.Exp(scale=10.0, sigma=1.0), 0.1)
