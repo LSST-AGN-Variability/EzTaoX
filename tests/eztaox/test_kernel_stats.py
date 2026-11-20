@@ -6,6 +6,7 @@ Test for second-order statistics of GP kernels: autocorrelation function
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 from eztao.carma import carma_acf, carma_psd, carma_sf, drw_acf, drw_psd, drw_sf
 from tinygp.test_utils import assert_allclose
 
@@ -13,6 +14,31 @@ from eztaox.kernel_stat2 import gpStat2
 from eztaox.kernels import quasisep
 
 jax.config.update("jax_enable_x64", True)
+
+# kernels whose psd must integrate to the kernel variance
+PSD_KERNELS = [
+    pytest.param(quasisep.Exp(scale=10.0, sigma=1.3), id="exp"),
+    pytest.param(quasisep.Matern32(scale=10.0, sigma=1.3), id="matern32"),
+    pytest.param(quasisep.Matern52(scale=10.0, sigma=1.3), id="matern52"),
+    pytest.param(quasisep.SHO(omega=0.5, quality=3.0, sigma=1.3), id="sho"),
+    pytest.param(quasisep.Celerite(a=1.5, b=0.3, c=0.1, d=0.5), id="celerite"),
+    pytest.param(
+        quasisep.Lorentzian(omega=0.5, quality=5.0, sigma=1.3), id="lorentzian_highQ"
+    ),
+    pytest.param(
+        quasisep.Lorentzian(omega=0.5, quality=0.6, sigma=1.3), id="lorentzian_lowQ"
+    ),
+    pytest.param(quasisep.Cosine(scale=10.0, sigma=1.3, psd_width=0.01), id="cosine"),
+    pytest.param(
+        quasisep.CARMA(alpha=jnp.array([1.2, 2.0]), beta=jnp.array([1.0, 2.0])),
+        id="carma21",
+    ),
+    pytest.param(
+        quasisep.Exp(scale=10.0, sigma=1.3) + quasisep.Matern32(scale=3.0, sigma=0.7),
+        id="sum",
+    ),
+    pytest.param(2.5 * quasisep.Exp(scale=10.0, sigma=1.3), id="scale"),
+]
 
 
 def test_drw() -> None:
@@ -224,3 +250,45 @@ def test_stat2_vmap() -> None:
         assert_allclose(batched_acf[i], stat2.acf(ts))
         assert_allclose(batched_sf[i], stat2.sf(ts))
         assert_allclose(batched_psd[i], stat2.psd(fs))
+
+
+@pytest.mark.parametrize("kernel", PSD_KERNELS)
+def test_psd_normalization(kernel: quasisep.Quasisep) -> None:
+    """
+    Every PSD follows the two-sided Kelly et al. (2014) convention: it is even
+    in frequency, so twice its integral over f >= 0 must equal the variance.
+    """
+    fs = np.logspace(-6, 4, 400_001)
+    psd = np.asarray(gpStat2(kernel).psd(fs))
+    variance = kernel.evaluate_diag(jnp.array(0.0))
+
+    assert np.all(psd >= 0)
+    assert_allclose(2 * np.trapezoid(psd, fs), variance, rtol=2e-3)
+
+
+def test_lorentzian_matches_celerite() -> None:
+    """
+    A Lorentzian is a Celerite kernel with b = 0, so the ACF and PSD must agree.
+    """
+    omega, quality, sigma = 0.5, 0.6, 1.3
+    ts = jnp.linspace(0.0, 50.0, 101)
+    fs = np.logspace(-4, 2, 101)
+
+    lor = gpStat2(quasisep.Lorentzian(omega=omega, quality=quality, sigma=sigma))
+    cel = gpStat2(
+        quasisep.Celerite(a=sigma**2, b=0.0, c=omega / (2 * quality), d=omega)
+    )
+
+    assert_allclose(lor.acf(ts), cel.acf(ts))
+    assert_allclose(lor.psd(fs), cel.psd(fs))
+
+
+def test_psd_not_implemented() -> None:
+    """
+    Kernels without a PSD raise instead of returning an exception class.
+    """
+    product = quasisep.Exp(scale=10.0, sigma=1.0) * quasisep.Exp(scale=5.0, sigma=1.0)
+    with pytest.raises(NotImplementedError):
+        gpStat2(product).psd(np.array([0.1]))
+    with pytest.raises(NotImplementedError):
+        quasisep.Quasisep.power(quasisep.Exp(scale=10.0, sigma=1.0), 0.1)

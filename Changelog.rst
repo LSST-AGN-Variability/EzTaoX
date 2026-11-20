@@ -1,3 +1,10 @@
+Unreleased
+++++++++++++++++++
+* Put every kernel's ``power`` method on the two-sided PSD convention of Kelly et al. (2014),
+  in which the PSD integrates to the kernel variance: the ``SHO`` and ``Celerite`` PSDs are
+  rescaled by :math:`\sqrt{2\pi}`, the ``Lorentzian`` PSD gains its negative-frequency term,
+  the ``Cosine`` PSD is normalized to the variance, and ``Scale`` now scales the PSD linearly.
+
 0.2 (2026-04-16)
 ++++++++++++++++++
 * Refactor the fitting module to use `optax`, `PR 120 <https://github.com/LSST-AGN-Variability/EzTaoX/pull/120>`__
