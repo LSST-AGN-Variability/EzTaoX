@@ -53,11 +53,14 @@ jobs:
       run: |
         echo "yesterday=$(date -d yesterday +'%Y-%m-%d')" >> $GITHUB_OUTPUT
         echo "today=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+    # Cache only the hash file. Caching the whole benchmarks directory restored a
+    # months-old asv.conf.json, suite and _results/benchmarks.json over the
+    # checkout every night, which then got published as a 3-benchmark dashboard.
     - name: Use last nightly commit hash from cache
       uses: actions/cache@v6
       with:
-        path: ${{env.WORKING_DIR}}
-        key: nightly-results-${{steps.nightly-dates.outputs.yesterday}}
+        path: ${{env.WORKING_DIR}}/${{env.NIGHTLY_HASH_FILE}}
+        key: nightly-hash-${{steps.nightly-dates.outputs.yesterday}}
     - name: Run comparison of main against last nightly build
       run: |
         HASH_FILE=${{env.NIGHTLY_HASH_FILE}}
@@ -71,8 +74,8 @@ jobs:
     - name: Update last nightly hash in cache
       uses: actions/cache@v6
       with:
-        path: ${{env.WORKING_DIR}}
-        key: nightly-results-${{steps.nightly-dates.outputs.today}}
+        path: ${{env.WORKING_DIR}}/${{env.NIGHTLY_HASH_FILE}}
+        key: nightly-hash-${{steps.nightly-dates.outputs.today}}
     # Fill in a sample of commits after afe10654 (April 2026) so the dashboard
     # shows history; older commits predate the current fitter API and the
     # benchmark suite. The push-to-main workflow only benchmarks HEAD, so this
