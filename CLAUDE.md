@@ -127,7 +127,7 @@ New code must read like the existing modules (`models.py`, `simulator.py`, `fitt
 
 ## Tutorial notebook style
 
-New tutorials go in `docs/notebooks/` and must follow the existing ones (`01_DRW`, `03_MultibandFitting`, `04_MultibandSimulation`, `06_MultibandPrediction` are the reference set):
+New tutorials go in `docs/notebooks/` and must follow the existing ones (`01_DRW`, `03_MultibandFitting`, `04_MultibandSimulation`, `05_MultibandPrediction` are the reference set):
 
 - **File and registration.** Name it `NN_CamelCaseTopic.ipynb` with the next two-digit number. Register it in three places: the `toctree` in `docs/notebooks.rst` (numbered entry `N. Title <notebooks/NN_Topic>`, keep the DP1/LSDB pre-executed notebook last), the tutorial list in `docs/index.rst` (`:doc:` link plus a one-sentence "Demonstrating ..." description), and the bullet list in `docs/notebooks/README.md`. Kernel is `python3`; outputs are cleared (pre-commit does it). CI executes every notebook here, so keep the runtime small: ~1e3-1e4 random-search samples, one MCMC chain with a few thousand draws. Anything heavy or needing external data goes to `docs/pre_executed/` with the `nbsphinx: execute: never` metadata.
 - **Cell 0 is the standard setup cell**, copied verbatim from an existing notebook: matplotlib/numpy/warnings imports, `warnings.filterwarnings("ignore", category=RuntimeWarning)`, the `mpl.rcParams.update({...})` block (`text.usetex: False`, label/tick sizes, constrained-layout padding zeroed, `axes.linewidth`), then `import jax`, `import jax.numpy as jnp` and `jax.config.update("jax_enable_x64", True)` under the comment `# you should always set this`.
