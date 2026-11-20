@@ -1,9 +1,22 @@
-"""Quasiseparable kernels.
+r"""Quasiseparable kernels.
 
 Scalable kernels exploiting the quasiseparable structure in the relevant
 matrices to achieve a O(N) scaling.
 
 This module extends the `tinygp.kernels.quasisep` module.
+
+Every kernel exposes a ``power`` method returning its power spectral density (PSD)
+in the convention of `Kelly et al. (2014) <https://arxiv.org/abs/1402.5978>`_: the
+PSD is the (non-unitary) Fourier transform of the covariance function in ordinary
+frequency :math:`f`,
+
+.. math::
+
+    P(f) = \int_{-\infty}^{\infty} k(\tau)\,e^{-2\pi i f \tau}\,d\tau,
+    \qquad k(0) = \int_{-\infty}^{\infty} P(f)\,df,
+
+so the PSD is even in :math:`f` and its integral over all frequencies is the
+kernel variance (equivalently, twice its integral over :math:`f \geq 0`).
 """
 
 from __future__ import annotations
@@ -72,7 +85,9 @@ class Quasisep(tkq.Quasisep):
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
-        return NotImplementedError
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement a power spectral density"
+        )
 
 
 class Sum(Quasisep, tkq.Sum):
@@ -88,17 +103,24 @@ class Sum(Quasisep, tkq.Sum):
 class Product(Quasisep, tkq.Product):
     """A helper to represent the product of two quasiseparable kernels."""
 
-    def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
+    def power(
+        self, f: float | JAXArray, df: float | JAXArray | None = None
+    ) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
-        return NotImplementedError
+        raise NotImplementedError(
+            "the PSD of a product of quasiseparable kernels is not implemented"
+        )
 
 
 class Scale(Quasisep, tkq.Scale):
     """The product of a scalar and a quasiseparable kernel."""
 
-    def power(self, f: float | JAXArray, df: float | JAXArray) -> JAXArray:
+    def power(
+        self, f: float | JAXArray, df: float | JAXArray | None = None
+    ) -> JAXArray:
         """Compute the power spectral density (PSD) at frequency `f`."""
-        return self.kernel.power(f) * jnp.square(self.scale)
+        # tinygp's Scale multiplies the covariance (not its square root) by scale
+        return self.kernel.power(f, df) * self.scale
 
 
 class Exp(Quasisep, tkq.Exp):
@@ -123,11 +145,17 @@ class Cosine(Quasisep, tkq.Cosine):
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
-        """Compute the power spectral density (PSD) at frequency `f`."""
-        return (
-            0.5
-            * self.sigma**2
-            * jnp.exp(-(((f - 1 / self.scale) / self.psd_width) ** 2))
+        r"""Compute the power spectral density (PSD) at frequency `f`.
+
+        The exact PSD of a cosine kernel is a pair of delta functions at
+        :math:`\pm f_0 = \pm 1 / \mathrm{scale}`; each is replaced by a Gaussian of
+        width ``psd_width`` carrying half of the variance.
+        """
+        f0 = 1 / self.scale
+        peak = 0.5 * self.sigma**2 / (self.psd_width * jnp.sqrt(jnp.pi))
+        return peak * (
+            jnp.exp(-jnp.square((f - f0) / self.psd_width))
+            + jnp.exp(-jnp.square((f + f0) / self.psd_width))
         )
 
 
@@ -148,7 +176,13 @@ class Celerite(Quasisep, tkq.Celerite):
         num = (ac + bd) * (c2 + d2) + (ac - bd) * w2
         denom = jnp.square(w2) + 2 * (c2 - d2) * w2 + jnp.square(c2 + d2)
 
-        return jnp.sqrt(2 / jnp.pi) * num / denom
+        # celerite (Foreman-Mackey et al. 2017) defines the PSD through the unitary
+        # Fourier transform in angular frequency, k(tau) = (1 / sqrt(2 pi)) *
+        # int S(w) exp(i w tau) dw, so its S(w) = sqrt(2 / pi) * num / denom
+        # integrates to sqrt(2 pi) * variance. The Kelly et al. (2014) convention
+        # used in this module needs P(f) = sqrt(2 pi) * S(2 pi f), i.e. a prefactor
+        # of sqrt(2 / pi) * sqrt(2 pi) = 2.
+        return 2 * num / denom
 
 
 class Matern32(Quasisep, tkq.Matern32):
@@ -189,7 +223,10 @@ class SHO(Quasisep, tkq.SHO):
             self.omega * omega / self.quality
         )
 
-        return jnp.sqrt(2 / jnp.pi) * num / denom
+        # celerite's S(w) = sqrt(2 / pi) * num / denom uses the unitary transform in
+        # angular frequency; P(f) = sqrt(2 pi) * S(2 pi f) gives the prefactor 2
+        # (see Celerite.power)
+        return 2 * num / denom
 
 
 class Lorentzian(Quasisep):
@@ -261,12 +298,30 @@ class Lorentzian(Quasisep):
     def power(
         self, f: float | JAXArray, df: float | JAXArray | None = None
     ) -> JAXArray:
-        """Compute the power spectral density (PSD) at frequency `f`."""
-        f0 = self.omega / (2 * np.pi)
-        num = jnp.square(self.sigma) * self.quality * f0
-        denom = jnp.square(f0) + 4 * jnp.square(self.quality) * jnp.square(f - f0)
-        pre_fix = np.sqrt(2 / np.pi) / (2 * np.pi)
-        return pre_fix * num / denom
+        r"""Compute the power spectral density (PSD) at frequency `f`.
+
+        The PSD is a pair of Lorentzians centered at :math:`\pm\omega`,
+
+        .. math::
+
+            P(f) = \sigma^2 b \left[\frac{1}{b^2 + (2\pi f - \omega)^2}
+            + \frac{1}{b^2 + (2\pi f + \omega)^2}\right],
+
+        which coincides with the PSD of a :class:`Celerite` kernel with
+        :math:`a = \sigma^2`, :math:`b_{\rm cel} = 0`, :math:`c = b` and
+        :math:`d = \omega`.
+        """
+        w = 2 * jnp.pi * f
+        b = self.omega / (2 * self.quality)
+        b2 = jnp.square(b)
+        return (
+            jnp.square(self.sigma)
+            * b
+            * (
+                1 / (b2 + jnp.square(w - self.omega))
+                + 1 / (b2 + jnp.square(w + self.omega))
+            )
+        )
 
 
 class CARMA(Quasisep):

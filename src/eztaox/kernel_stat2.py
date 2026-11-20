@@ -12,13 +12,18 @@ from tinygp.helpers import JAXArray
 
 
 class gpStat2(eqx.Module):  # noqa: N801
-    """Base class for second-order statistics of GP kernels.
+    r"""Base class for second-order statistics of GP kernels.
 
     The :meth:`acf`, :meth:`sf` and :meth:`psd` methods are compiled with
     :func:`equinox.filter_jit`, so the first call for a given input shape traces
     and compiles; later calls reuse the compiled function. They can also be
     transformed with :func:`jax.vmap`, e.g. to evaluate a statistic over a batch
     of posterior parameter draws.
+
+    The PSD follows the two-sided convention of `Kelly et al. (2014)
+    <https://arxiv.org/abs/1402.5978>`_: it is even in frequency and integrates
+    to the kernel variance over :math:`(-\infty, \infty)`. See
+    :mod:`eztaox.kernels.quasisep` for the definition.
 
     Args:
         kernel (Callable): A kernel function from kernels.quasisep.
@@ -85,16 +90,20 @@ class gpStat2(eqx.Module):  # noqa: N801
         self,
         fs: JAXArray | NDArray,
         params: JAXArray | NDArray | None = None,
-        df: float | JAXArray | None = 0.01,
+        df: float | JAXArray | None = None,
     ) -> JAXArray:
-        """Compute the power spectral density (PSD) for given frequencies.
+        r"""Compute the power spectral density (PSD) for given frequencies.
+
+        The PSD is two-sided (Kelly et al. 2014 convention): :math:`P(-f) = P(f)`
+        and :math:`\int_{-\infty}^{\infty} P(f)\,df` equals the kernel variance.
 
         Args:
             fs (JAXArray | NDArray): Frequencies for which to compute the PSD.
             params (JAXArray | NDArray | None, optional): Parameters of the GP kernel if
                 different from those used to initialize the object. Defaults to None.
-            df (float | JAXArray | None, optional): Frequency width for create convolved
-                PSDs (not in use). Defaults to 0.01.
+            df (float | JAXArray | None, optional): Frequency width forwarded to the
+                kernel's ``power`` method (currently unused by all kernels).
+                Defaults to None.
 
         Returns:
             JAXArray: The computed PSD values for the given frequencies.
