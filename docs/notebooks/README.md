@@ -9,6 +9,8 @@ Notebooks in this folder:
 - `02_DHO.ipynb`: single-band DHO/CARMA(2,1) fitting
 - `03_MultibandFitting.ipynb`: multiband fitting with shared latent kernels
 - `04_MultibandSimulation.ipynb`: multiband light-curve simulation with `MultiVarSim`
+- `05_TransferFunction.ipynb`: transfer functions and convolved kernels
+- `06_MultibandPrediction.ipynb`: joint multiband fitting and GP prediction to fill non-overlapping gaps in each band
 
 Additional notebooks elsewhere in the docs tree:
 
