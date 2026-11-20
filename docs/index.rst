@@ -141,6 +141,10 @@ A preliminary list of tutorials to help users getting started:
   In this notebook, we are fitting the CARMA(2,1) process, which is also known as the damped harmonic oscillator (DHO) process.
 * :doc:`Multiband Fitting <notebooks/03_MultibandFitting>`: Demonstrating fitting multi-band light curves to a DRW model.  
 * :doc:`Simulating Multi-band Light Curves <notebooks/04_MultibandSimulation>`: Demonstrating how to simulate full, randomly sampled, and user-defined multi-band observing cadences from a shared latent GP.
+* :doc:`Multiband Fitting and Prediction <notebooks/05_MultibandPrediction>`: Demonstrating how joint multi-band fitting and conditional GP prediction
+  fill the gaps in each band of a two-band light curve, when the gaps do not overlap.
+* :doc:`Transfer Functions and Convolved Kernels <notebooks/06_TransferFunction>`: Demonstrating how to model a light curve that responds to a latent DRW
+  through a transfer function, by convolving a ``quasisep`` kernel with the transfer function using ``ConvolvedKernel``.
 
 
 These notebooks are also available for live experimentation in a binder instance.
